@@ -1,0 +1,15 @@
+@startuml
+skinparam packageStyle rectangle
+
+rectangle "User\n(Finder / Loser)" as User <<External Entity>>
+usecase "4.0\nManage\nOwnership Claims" as P4
+database "D3: Claims DB\n(MongoDB)" as D3
+database "D2: Items DB\n(MongoDB)" as D2
+
+User --> P4 : Claim Request, Security Answer,\nApproval/Rejection
+P4 --> D3 : Save/Update Claim Record
+D3 --> P4 : Claim Status Data
+P4 --> D2 : Update Item Status\n(Open -> Closed)
+D2 --> P4 : Item Ownership Data\n(For Verification)
+P4 --> User : Contact Info (If Approved),\nStatus Update
+@enduml

@@ -1,0 +1,118 @@
+<resources>
+    <string name="app_name">ReClaim</string>
+
+    <!-- Login Screen -->
+    <string name="login_title">Welcome Back</string>
+    <string name="login_subtitle">Sign in to continue</string>
+    <string name="hint_email">Email Address</string>
+    <string name="hint_password">Password</string>
+    <string name="btn_login">Sign In</string>
+    <string name="btn_forgot_password">Forgot Password?</string>
+    <string name="login_no_account">Don\'t have an account?</string>
+    <string name="btn_go_register">Register</string>
+
+    <!-- Register Screen -->
+    <string name="register_title">Create Account</string>
+    <string name="register_subtitle">Join the community</string>
+    <string name="hint_full_name">Full Name</string>
+    <string name="hint_phone">Phone Number</string>
+    <string name="hint_confirm_password">Confirm Password</string>
+    <string name="btn_register">Create Account</string>
+    <string name="register_has_account">Already have an account?</string>
+    <string name="btn_go_login">Sign In</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Dashboard</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_map">Map</string>
+    <string name="nav_profile">Profile</string>
+    <string name="btn_report_fab">Report a Find</string>
+
+    <!-- List Fragment -->
+    <string name="list_title">Recent Finds</string>
+    <string name="list_empty">No items found in your area</string>
+    <string name="filter_all">All</string>
+    <string name="filter_electronics">Electronics</string>
+    <string name="filter_documents">Documents</string>
+    <string name="filter_keys">Keys</string>
+    <string name="filter_wallets">Wallets</string>
+    <string name="filter_other">Other</string>
+    <string name="search_hint">Search items…</string>
+
+    <!-- Map Fragment -->
+    <string name="map_title">Items Map</string>
+
+    <!-- Report Screen -->
+    <string name="report_title">Report an Item</string>
+    <string name="report_subtitle">Help someone find their belongings</string>
+    <string name="label_report_type">Report Type</string>
+    <string name="type_found">Found</string>
+    <string name="type_lost">Lost</string>
+    <string name="msg_submitting_report">Submitting report…</string>
+    <string name="msg_report_failed">Failed to submit report. Please try again.</string>
+    <string name="msg_image_upload_failed">Failed to upload image. Check your connection.</string>
+    <string name="hint_item_title">Item Title</string>
+    <string name="hint_item_description">Description</string>
+    <string name="hint_item_category">Category</string>
+    <string name="hint_item_location">Location Found</string>
+    <string name="hint_verification_question">Verification Question (hidden from public)</string>
+    <string name="hint_verification_hint">e.g., What is the lock screen wallpaper?</string>
+    <string name="btn_take_photo">Take Photo</string>
+    <string name="btn_choose_photo">Choose from Gallery</string>
+    <string name="btn_submit_report">Submit Report</string>
+    <string name="btn_pick_location">Pick Location on Map</string>
+    <string name="btn_use_current_location">Use Current Location</string>
+    <string name="label_location_picker">Tap the map to pick a location</string>
+    <string name="dialog_choose_image_title">Add Photo</string>
+    <string name="msg_location_permission_required">Location permission is required to get your current position</string>
+    <string name="msg_camera_permission_required">Camera permission is required to take a photo</string>
+    <string name="msg_fetching_location">Fetching your location…</string>
+    <string name="msg_location_not_available">Could not determine your location. Please try again.</string>
+    <string name="msg_address_not_found">Could not resolve address for this location</string>
+
+    <!-- Item Details Screen -->
+    <string name="item_details_title">Item Details</string>
+    <string name="btn_claim">This is Mine!</string>
+    <string name="label_reported_by">Reported by</string>
+    <string name="label_date_found">Date Found</string>
+    <string name="label_location">Location</string>
+    <string name="label_category">Category</string>
+    <string name="label_description">Description</string>
+    <string name="label_status">Status</string>
+    <string name="status_open">Open</string>
+    <string name="status_closed">Closed</string>
+
+    <!-- Profile Screen -->
+    <string name="profile_title">My Profile</string>
+    <string name="profile_my_reports">My Reports</string>
+    <string name="profile_my_claims">My Claims</string>
+    <string name="btn_edit_profile">Edit Profile</string>
+    <string name="btn_review_pending_claims">Review Pending Claims</string>
+    <string name="btn_approve_claim">Approve</string>
+    <string name="btn_reject_claim">Reject</string>
+    <string name="btn_view_contact">View Contact</string>
+    <string name="btn_save_profile">Save</string>
+    <string name="pending_claims_title">Pending Claims</string>
+    <string name="hint_profile_name">Full Name</string>
+    <string name="hint_profile_phone">Phone Number</string>
+    <string name="contact_details_title">Owner Contact</string>
+    <string name="contact_details_message">Name: %1$s\nEmail: %2$s\nPhone: %3$s</string>
+    <string name="msg_profile_load_failed">Failed to load profile</string>
+    <string name="msg_profile_updated">Profile updated</string>
+    <string name="msg_profile_update_failed">Failed to update profile</string>
+    <string name="msg_name_required">Name is required</string>
+    <string name="msg_load_pending_claims_failed">Failed to load pending claims</string>
+    <string name="msg_claim_reviewed">Claim reviewed successfully</string>
+    <string name="msg_claim_review_failed">Failed to review claim</string>
+    <string name="msg_contact_unavailable">Contact details are not available</string>
+    <string name="btn_logout">Log Out</string>
+    <string name="label_reports_count">Reports</string>
+    <string name="label_claims_count">Claims</string>
+
+    <!-- General -->
+    <string name="loading">Loading…</string>
+    <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="btn_retry">Retry</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_save">Save</string>
+</resources>

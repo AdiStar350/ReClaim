@@ -1,0 +1,80 @@
+@startuml
+autonumber
+actor "User A\n(Finder)" as UserA
+participant "Android App" as App
+participant "Spring Boot" as Server 
+database "Firebase\nStorage" as Firebase
+database "MongoDB\nAtlas" as Mongo
+actor "User B\n(Claimant)" as UserB
+
+== Report Found Item ==
+
+UserA -> App : Enter item details
+activate App
+App --> UserA : Show entered details
+deactivate App
+
+UserA -> App : Capture/Select photo
+activate App
+App --> UserA : Show photo preview
+deactivate App
+
+UserA -> App : Submit Report
+activate App
+
+App -> Firebase : Upload photo directly
+activate Firebase
+Firebase --> App : Return Image URL
+deactivate Firebase
+
+App -> Server : POST /api/items\n(JSON + URL + Token)
+activate Server
+
+Server -> Mongo : Save Item Document
+activate Mongo
+Mongo --> Server : Confirmed
+deactivate Mongo
+
+Server --> App : Success Response
+deactivate Server
+
+App --> UserA : Display Success Message
+deactivate App
+
+== Search & Submit Claim ==
+
+UserB -> App : Search items (Map/List)
+activate App
+
+App -> Server : GET /api/items
+activate Server
+
+Server -> Mongo : Fetch relevant items
+activate Mongo
+Mongo --> Server : Items List
+deactivate Mongo
+
+Server --> App : Return Items List
+deactivate Server
+
+App --> UserB : Display items to user
+deactivate App
+
+UserB -> App : Submit Claim
+activate App
+
+App -> Server : POST /api/claims\n(Item ID + Token)
+activate Server
+
+Server -> Mongo : Save Claim
+activate Mongo
+Mongo --> Server : Confirmed
+deactivate Mongo
+
+Server --> App : Claim Pending response
+deactivate Server
+
+App --> UserB : Show "Claim Pending" status
+deactivate App
+
+@enduml

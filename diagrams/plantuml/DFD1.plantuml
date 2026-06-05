@@ -1,0 +1,12 @@
+@startuml
+skinparam packageStyle rectangle
+
+rectangle "User\n(Finder / Loser)" as User <<External Entity>>
+usecase "1.0\nAuthenticate &\nManage Profile" as P1
+database "D1: Users DB\n(MongoDB)" as D1
+
+User --> P1 : Credentials, Profile Data
+P1 --> D1 : Save/Update User Record
+D1 --> P1 : User Validation / Auth Token
+P1 --> User : Session Token
+@enduml

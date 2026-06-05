@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "178379233331",
+    "project_id": "reclaim-5b4fd",
+    "storage_bucket": "reclaim-5b4fd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:178379233331:android:4a036c403af96fb6fc2b46",
+        "android_client_info": {
+          "package_name": "com.example.reclaim"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCxQ65Hgab79z_xFSL3om_a8Z-6YniG8bc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,13 @@
+@startuml
+skinparam packageStyle rectangle
+
+rectangle "User\n(Finder / Loser)" as User <<External Entity>>
+usecase "2.0\nProcess Item\nReport" as P2
+database "D4: Media Storage\n(Firebase)" as D4
+database "D2: Items DB\n(MongoDB)" as D2
+
+User --> P2 : Item Details, GPS, Photo
+P2 --> D4 : Raw Image File
+D4 --> P2 : Image URL
+P2 --> D2 : Item Record JSON\n(Details + URL)
+@enduml

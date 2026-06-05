@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.example.reclaimbackend.controller.ItemControllerSecurityTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.063 s -- in com.example.reclaimbackend.controller.ItemControllerSecurityTest

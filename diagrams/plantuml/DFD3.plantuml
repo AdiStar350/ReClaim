@@ -1,0 +1,12 @@
+@startuml
+skinparam packageStyle rectangle
+
+rectangle "User\n(Finder / Loser)" as User <<External Entity>>
+usecase "3.0\nFilter &\nSearch Items" as P3
+database "D2: Items DB\n(MongoDB)" as D2
+
+User --> P3 : Search Parameters\n(Date, Category, Location)
+P3 --> D2 : DB Query
+D2 --> P3 : Filtered Item Data
+P3 --> User : Item Results\n(List / Map Data)
+@enduml

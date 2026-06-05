@@ -1,0 +1,42 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Unregistered User" as UnregUser
+actor "Registered User" as RegUser
+
+package "ReClaim System Boundary" {
+  usecase "Register" as UC_Register
+  usecase "Login" as UC_Login
+  usecase "Manage Personal Profile" as UC_Profile
+  usecase "Report Found Item" as UC_Found
+  usecase "Report Lost Item" as UC_Lost
+  usecase "Upload Item Image" as UC_Image
+  usecase "Capture GPS Location" as UC_GPS
+  usecase "Search and Filter Items" as UC_Search
+  usecase "View Items on Map" as UC_Map
+  usecase "Submit Claim of Ownership" as UC_Claim
+  usecase "Answer Security Question" as UC_SecQuestion
+  usecase "Approve or Reject Claim" as UC_ReviewClaim
+}
+
+UnregUser --> UC_Register
+
+RegUser --> UC_Login
+RegUser --> UC_Profile
+RegUser --> UC_Found
+RegUser --> UC_Lost
+RegUser --> UC_Search
+RegUser --> UC_Claim
+RegUser --> UC_ReviewClaim
+
+UC_Found <.. UC_Image : <<include>>
+UC_Found <.. UC_GPS : <<include>>
+UC_Lost <.. UC_Image : <<include>>
+UC_Lost <.. UC_GPS : <<include>>
+
+UC_Map <. UC_Search : <<extend>>
+
+UC_Claim <.. UC_SecQuestion : <<include>>
+
+@enduml
