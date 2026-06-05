@@ -1,0 +1,7 @@
+## Copy to local.properties and fill in your machine-specific values.
+## Never commit local.properties.
+
+sdk.dir=/path/to/Android/sdk
+
+# Optional fallback for Maps if secrets.properties is not used
+MAPS_API_KEY=your_google_maps_api_key

@@ -1,7 +1,27 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.google.services)
 }
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { localProperties.load(it) }
+}
+
+val secretsProperties = Properties()
+val secretsFile = rootProject.file("secrets.properties")
+if (secretsFile.exists()) {
+    secretsFile.inputStream().use { secretsProperties.load(it) }
+}
+
+val googleMapsApiKey =
+    secretsProperties.getProperty("GOOGLE_MAPS_API_KEY")
+        ?: localProperties.getProperty("MAPS_API_KEY")
+        ?: System.getenv("MAPS_API_KEY")
+        ?: ""
 
 android {
     namespace = "com.example.reclaim"
@@ -15,6 +35,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = googleMapsApiKey
     }
 
     buildTypes {

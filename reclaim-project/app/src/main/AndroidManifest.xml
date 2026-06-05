@@ -23,10 +23,10 @@
         android:windowSoftInputMode="adjustResize"
         android:theme="@style/Theme.ReClaim">
 
-        <!-- Google Maps API Key  -->
+        <!-- Google Maps API key: set GOOGLE_MAPS_API_KEY in secrets.properties -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyC6hbebHm7xA99IfN8m7ZaF7GgpK8qS3jE" />
+            android:value="${GOOGLE_MAPS_API_KEY}" />
 
         <!-- Main Entry Point (Splash/Router) -->
         <activity
