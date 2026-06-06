@@ -8,6 +8,7 @@ import com.example.reclaimbackend.model.Item;
 import com.example.reclaimbackend.model.User;
 import com.example.reclaimbackend.repository.ClaimRepository;
 import com.example.reclaimbackend.repository.ItemRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,19 +30,12 @@ import java.util.List;
  * </p>
  */
 @Service
+@RequiredArgsConstructor
 public class ClaimService {
 
     private final ClaimRepository claimRepository;
     private final ItemRepository itemRepository;
     private final UserService userService;
-
-    public ClaimService(ClaimRepository claimRepository,
-                        ItemRepository itemRepository,
-                        UserService userService) {
-        this.claimRepository = claimRepository;
-        this.itemRepository = itemRepository;
-        this.userService = userService;
-    }
 
     // ═════════════════════════════════════════════════════════════════════
     //  SUBMIT CLAIM
@@ -85,12 +79,13 @@ public class ClaimService {
         }
 
         // 4. Create and persist the claim with PENDING status
-        Claim claim = new Claim(
-                request.getItemId(),
-                claimantId,
-                request.getValidationAnswer(),
-                "PENDING"
-        );
+        Claim claim = Claim.builder()
+            .itemId(request.getItemId())
+            .claimantId(claimantId)
+            .validationAnswer(request.getValidationAnswer())
+            .status("PENDING")
+            .build();
+
 
         return claimRepository.save(claim);
     }
@@ -235,13 +230,14 @@ public class ClaimService {
             List<Claim> pendingClaims = claimRepository.findByItemIdAndStatus(
                     item.getId(), "PENDING");
             for (Claim claim : pendingClaims) {
-                responses.add(new PendingClaimResponse(
-                        claim.getId(),
-                        item.getId(),
-                        item.getTitle(),
-                        claim.getClaimantId(),
-                        claim.getValidationAnswer(),
-                        claim.getStatus()));
+                responses.add(PendingClaimResponse.builder()
+                        .claimId(claim.getId())
+                        .itemId(item.getId())
+                        .itemTitle(item.getTitle())
+                        .claimantId(claim.getClaimantId())
+                        .validationAnswer(claim.getValidationAnswer())
+                        .status(claim.getStatus())
+                        .build());
             }
         }
 
@@ -272,9 +268,10 @@ public class ClaimService {
                         HttpStatus.NOT_FOUND, "Associated item not found"));
 
         User owner = userService.getUserEntity(item.getOwnerId());
-        return new ContactResponse(
-                owner.getName(),
-                owner.getEmail(),
-                owner.getPhoneNumber());
+        return ContactResponse.builder()
+                .name(owner.getName())
+                .email(owner.getEmail())
+                .phoneNumber(owner.getPhoneNumber())
+                .build();
     }
 }

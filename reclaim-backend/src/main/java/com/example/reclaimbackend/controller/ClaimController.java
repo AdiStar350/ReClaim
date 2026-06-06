@@ -7,6 +7,7 @@ import com.example.reclaimbackend.dto.PendingClaimResponse;
 import com.example.reclaimbackend.model.Claim;
 import com.example.reclaimbackend.service.ClaimService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -31,13 +32,10 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/claims")
+@RequiredArgsConstructor
 public class ClaimController {
 
     private final ClaimService claimService;
-
-    public ClaimController(ClaimService claimService) {
-        this.claimService = claimService;
-    }
 
     // ═════════════════════════════════════════════════════════════════════
     //  SUBMIT CLAIM

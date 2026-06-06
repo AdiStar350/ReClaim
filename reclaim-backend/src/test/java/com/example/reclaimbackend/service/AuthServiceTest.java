@@ -36,8 +36,13 @@ class AuthServiceTest {
 
     @Test
     void login_rejectsWrongPassword() {
-        User user = new User("user@example.com", "hashed", "Test User", "0500000000");
-        user.setId("user-1");
+        User user = User.builder()
+                .id("user-1")
+                .email("user@example.com")
+                .password("hashed")
+                .name("Test User")
+                .phoneNumber("0500000000")
+                .build();
 
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrong-password", "hashed")).thenReturn(false);

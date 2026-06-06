@@ -6,6 +6,7 @@ import com.example.reclaimbackend.dto.RegisterRequest;
 import com.example.reclaimbackend.model.User;
 import com.example.reclaimbackend.service.AuthService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,13 +32,10 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
-
-    public AuthController(AuthService authService) {
-        this.authService = authService;
-    }
 
     /**
      * Authenticates a user and returns a JWT token.

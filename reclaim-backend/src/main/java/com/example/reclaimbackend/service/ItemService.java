@@ -2,6 +2,7 @@ package com.example.reclaimbackend.service;
 
 import com.example.reclaimbackend.model.Item;
 import com.example.reclaimbackend.repository.ItemRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -23,15 +24,11 @@ import java.util.Optional;
  * </p>
  */
 @Service
+@RequiredArgsConstructor
 public class ItemService {
 
     private final ItemRepository itemRepository;
     private final MongoTemplate mongoTemplate;
-
-    public ItemService(ItemRepository itemRepository, MongoTemplate mongoTemplate) {
-        this.itemRepository = itemRepository;
-        this.mongoTemplate = mongoTemplate;
-    }
 
     /**
      * Retrieves all items from the database.

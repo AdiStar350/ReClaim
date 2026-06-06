@@ -35,8 +35,13 @@ class ClaimServiceTest {
 
     @Test
     void reviewClaim_rejectsNonOwner() {
-        Claim claim = new Claim("item-1", "claimant-1", "blue lining", "PENDING");
-        claim.setId("claim-1");
+        Claim claim = Claim.builder()
+                .id("claim-1")
+                .itemId("item-1")
+                .claimantId("claimant-1")
+                .validationAnswer("blue lining")
+                .status("PENDING")
+                .build();
 
         Item item = new Item();
         item.setId("item-1");

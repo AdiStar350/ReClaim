@@ -47,6 +47,13 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <!-- ═══ Lombok ═══ -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- ═══ JWT (jjwt) ═══ -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

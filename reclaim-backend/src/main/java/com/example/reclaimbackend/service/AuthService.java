@@ -6,8 +6,8 @@ import com.example.reclaimbackend.dto.LoginResponse;
 import com.example.reclaimbackend.dto.RegisterRequest;
 import com.example.reclaimbackend.model.User;
 import com.example.reclaimbackend.repository.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,21 +27,13 @@ import org.springframework.web.server.ResponseStatusException;
  * </p>
  */
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class AuthService {
-
-    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-
-    public AuthService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder,
-                       JwtUtil jwtUtil) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtUtil = jwtUtil;
-    }
 
     // ═════════════════════════════════════════════════════════════════════
     //  LOGIN
@@ -70,7 +62,7 @@ public class AuthService {
         // 1. Find the user by email
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> {
-                    logger.warn("Login failed: email not found — {}", request.getEmail());
+                    log.warn("Login failed: email not found — {}", request.getEmail());
                     return new ResponseStatusException(
                             HttpStatus.UNAUTHORIZED,
                             "Invalid email or password");
@@ -78,7 +70,7 @@ public class AuthService {
 
         // 2. Verify the raw password against the BCrypt hash
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            logger.warn("Login failed: incorrect password for — {}", request.getEmail());
+            log.warn("Login failed: incorrect password for — {}", request.getEmail());
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
                     "Invalid email or password");
@@ -87,7 +79,7 @@ public class AuthService {
         // 3. Generate a signed JWT token
         String token = jwtUtil.generateToken(user.getId(), user.getEmail());
 
-        logger.info("Login successful for user: {} (ID: {})",
+        log.info("Login successful for user: {} (ID: {})",
                 user.getEmail(), user.getId());
 
         return new LoginResponse(token);
@@ -118,7 +110,7 @@ public class AuthService {
     public User register(RegisterRequest request) {
         // 1. Check for duplicate email
         if (userRepository.existsByEmail(request.getEmail())) {
-            logger.warn("Registration failed: email already exists — {}",
+            log.warn("Registration failed: email already exists — {}",
                     request.getEmail());
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
@@ -126,16 +118,17 @@ public class AuthService {
         }
 
         // 2. Create the user entity and hash the password
-        User user = new User();
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setName(request.getName());
-        user.setPhoneNumber(request.getPhoneNumber());
+        User user = User.builder()
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .name(request.getName())
+                .phoneNumber(request.getPhoneNumber())
+                .build();
 
         // 3. Save to MongoDB
         User savedUser = userRepository.save(user);
 
-        logger.info("User registered successfully: {} (ID: {})",
+        log.info("User registered successfully: {} (ID: {})",
                 savedUser.getEmail(), savedUser.getId());
 
         return savedUser;

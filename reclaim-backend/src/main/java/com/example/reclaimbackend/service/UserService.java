@@ -4,6 +4,7 @@ import com.example.reclaimbackend.dto.UpdateProfileRequest;
 import com.example.reclaimbackend.dto.UserResponse;
 import com.example.reclaimbackend.model.User;
 import com.example.reclaimbackend.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -12,13 +13,10 @@ import org.springframework.web.server.ResponseStatusException;
  * Service layer for user profile operations.
  */
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
-
-    public UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
 
     public UserResponse getProfile(String userId) {
         User user = userRepository.findById(userId)
@@ -59,10 +57,11 @@ public class UserService {
     }
 
     private UserResponse toResponse(User user) {
-        return new UserResponse(
-                user.getId(),
-                user.getEmail(),
-                user.getName(),
-                user.getPhoneNumber());
+        return UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .name(user.getName())
+                .phoneNumber(user.getPhoneNumber())
+                .build();
     }
 }

@@ -2,6 +2,7 @@ package com.example.reclaimbackend.controller;
 
 import com.example.reclaimbackend.model.Item;
 import com.example.reclaimbackend.service.ItemService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -20,13 +21,10 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/items")
+@RequiredArgsConstructor
 public class ItemController {
 
     private final ItemService itemService;
-
-    public ItemController(ItemService itemService) {
-        this.itemService = itemService;
-    }
 
     /**
      * Retrieves all items.

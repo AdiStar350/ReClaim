@@ -2,8 +2,8 @@ package com.example.reclaimbackend.config;
 
 import com.example.reclaimbackend.model.Item;
 import jakarta.annotation.PostConstruct;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -14,15 +14,11 @@ import org.springframework.data.mongodb.core.index.Index;
  * multi-parameter search and filtering.
  */
 @Configuration
+@Slf4j
+@RequiredArgsConstructor
 public class MongoIndexConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(MongoIndexConfig.class);
-
     private final MongoTemplate mongoTemplate;
-
-    public MongoIndexConfig(MongoTemplate mongoTemplate) {
-        this.mongoTemplate = mongoTemplate;
-    }
 
     @PostConstruct
     public void initIndexes() {
@@ -39,7 +35,8 @@ public class MongoIndexConfig {
                             .on("latitude", Sort.Direction.ASC)
                             .on("longitude", Sort.Direction.ASC));
         } catch (Exception ex) {
-            logger.warn("Could not create MongoDB indexes on startup: {}", ex.getMessage());
+            log.warn("Could not create MongoDB indexes on startup: {}", ex.getMessage());
         }
     }
+
 }

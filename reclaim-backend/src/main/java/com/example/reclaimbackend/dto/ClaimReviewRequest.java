@@ -1,6 +1,11 @@
 package com.example.reclaimbackend.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import jakarta.validation.constraints.Pattern;
 
 /**
@@ -11,6 +16,11 @@ import jakarta.validation.constraints.Pattern;
  * must be either {@code "APPROVED"} or {@code "REJECTED"}.
  * </p>
  */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ClaimReviewRequest {
 
     @NotBlank(message = "Status is required")
@@ -18,18 +28,4 @@ public class ClaimReviewRequest {
             message = "Status must be either APPROVED or REJECTED")
     private String status;
 
-    public ClaimReviewRequest() {
-    }
-
-    public ClaimReviewRequest(String status) {
-        this.status = status;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
 }
