@@ -1,0 +1,14 @@
+name: MongoDB Keep Alive
+
+on:
+  schedule:
+    - cron: '0 0 */7 * *' # Runs every 7 days
+
+jobs:
+  ping-db:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Quick MongoDB Ping
+        run: |
+          npm install mongosh -g
+          mongosh "${{ secrets.MONGO_URI }}" --eval "db.adminCommand({ ping: 1 })"
