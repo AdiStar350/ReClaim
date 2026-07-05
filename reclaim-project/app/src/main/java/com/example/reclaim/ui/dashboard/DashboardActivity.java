@@ -1,29 +1,32 @@
 package com.example.reclaim.ui.dashboard;
 
-import android.content.Intent;
 import android.os.Bundle;
 
+import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
 import com.example.reclaim.R;
 import com.example.reclaim.databinding.ActivityDashboardBinding;
-import com.example.reclaim.ui.profile.ProfileFragment;
-import com.example.reclaim.ui.report.ReportActivity;
+import com.example.reclaim.ui.myitems.MyItemsFragment;
+import com.example.reclaim.ui.profile.ProfileSettingsFragment;
+import com.example.reclaim.ui.search.SearchFragment;
 
 /**
- * Primary dashboard screen of the ReClaim application.
- * <p>
- * Hosts a {@link com.google.android.material.bottomnavigation.BottomNavigationView}
- * that switches between {@link ListFragment}, {@link MapFragment}, and
- * {@link ProfileFragment}. A Floating Action Button opens
- * {@link ReportActivity} to let users file a new lost/found report.
- * </p>
+ * Main shell with bottom navigation: Home, Search, My Items, Profile.
  */
-public class DashboardActivity extends AppCompatActivity {
+public class DashboardActivity extends AppCompatActivity implements DashboardNavigator {
+
+    private static final String TAG_HOME = "home";
+    private static final String TAG_SEARCH = "search";
+    private static final String TAG_MY_ITEMS = "my_items";
+    private static final String TAG_PROFILE = "profile";
 
     private ActivityDashboardBinding binding;
+    @Nullable
+    private Fragment activeFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,58 +35,74 @@ public class DashboardActivity extends AppCompatActivity {
         binding = ActivityDashboardBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        setupBottomNavigation();
-        setupFab();
+        binding.bottomNavigation.setOnItemSelectedListener(item -> {
+            showTab(item.getItemId());
+            return true;
+        });
 
-        // Load default fragment only on fresh creation (not on config change)
         if (savedInstanceState == null) {
-            loadFragment(new ListFragment());
+            showTab(R.id.nav_home);
+        } else {
+            restoreActiveFragment();
         }
     }
 
-    /**
-     * Configures the bottom navigation bar to switch between the three
-     * primary fragments.
-     */
-    private void setupBottomNavigation() {
-        binding.bottomNavigation.setOnItemSelectedListener(item -> {
-            Fragment selectedFragment = null;
-            int itemId = item.getItemId();
-
-            if (itemId == R.id.nav_home) {
-                selectedFragment = new ListFragment();
-            } else if (itemId == R.id.nav_map) {
-                selectedFragment = new MapFragment();
-            } else if (itemId == R.id.nav_profile) {
-                selectedFragment = new ProfileFragment();
-            }
-
-            if (selectedFragment != null) {
-                loadFragment(selectedFragment);
-            }
-            return true;
-        });
+    @Override
+    public void selectTab(@IdRes int menuItemId) {
+        binding.bottomNavigation.setSelectedItemId(menuItemId);
+        showTab(menuItemId);
     }
 
-    /**
-     * Configures the Floating Action Button to navigate to the report screen.
-     */
-    private void setupFab() {
-        binding.fabReport.setOnClickListener(v -> {
-            Intent intent = new Intent(DashboardActivity.this, ReportActivity.class);
-            startActivity(intent);
-        });
+    private void showTab(@IdRes int itemId) {
+        if (itemId == R.id.nav_search) {
+            showFragment(TAG_SEARCH, SearchFragment::new);
+        } else if (itemId == R.id.nav_my_items) {
+            showFragment(TAG_MY_ITEMS, MyItemsFragment::new);
+        } else if (itemId == R.id.nav_profile) {
+            showFragment(TAG_PROFILE, ProfileSettingsFragment::new);
+        } else {
+            showFragment(TAG_HOME, HomeFragment::new);
+        }
     }
 
-    /**
-     * Replaces the current fragment in the container with the given fragment.
-     *
-     * @param fragment the fragment to display
-     */
-    private void loadFragment(@NonNull Fragment fragment) {
-        getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragment_container, fragment)
-                .commit();
+    private void showFragment(@NonNull String tag, @NonNull FragmentFactory factory) {
+        Fragment target = getSupportFragmentManager().findFragmentByTag(tag);
+        var transaction = getSupportFragmentManager().beginTransaction();
+
+        if (target == null) {
+            target = factory.create();
+            transaction.add(R.id.fragment_container, target, tag);
+        } else {
+            transaction.show(target);
+        }
+
+        if (activeFragment != null && activeFragment != target) {
+            transaction.hide(activeFragment);
+        }
+
+        transaction.commit();
+        activeFragment = target;
+    }
+
+    private void restoreActiveFragment() {
+        int selectedId = binding.bottomNavigation.getSelectedItemId();
+        if (selectedId == R.id.nav_search) {
+            activeFragment = getSupportFragmentManager().findFragmentByTag(TAG_SEARCH);
+        } else if (selectedId == R.id.nav_my_items) {
+            activeFragment = getSupportFragmentManager().findFragmentByTag(TAG_MY_ITEMS);
+        } else if (selectedId == R.id.nav_profile) {
+            activeFragment = getSupportFragmentManager().findFragmentByTag(TAG_PROFILE);
+        } else {
+            activeFragment = getSupportFragmentManager().findFragmentByTag(TAG_HOME);
+        }
+
+        if (activeFragment == null) {
+            showTab(R.id.nav_home);
+        }
+    }
+
+    @FunctionalInterface
+    private interface FragmentFactory {
+        Fragment create();
     }
 }

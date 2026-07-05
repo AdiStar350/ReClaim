@@ -31,8 +31,7 @@ public final class RetrofitClient {
      * your production URL before release.
      * </p>
      */
-    private static final String BASE_URL = "https://reclaim-tjf6.onrender.com";
-
+    private static final String BASE_URL = "http://10.0.2.2:8080/";
     /** The single Retrofit instance. */
     private static Retrofit retrofit;
 

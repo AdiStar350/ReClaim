@@ -1,34 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface">
+    android:background="@color/md_theme_background"
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    android:overScrollMode="never">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingBottom="28dp">
 
-        <!-- Profile Header -->
-        <LinearLayout
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_horizontal"
-            android:orientation="vertical"
-            android:paddingTop="16dp"
-            android:paddingBottom="16dp">
+            android:layout_height="228dp">
 
-            <!-- Profile Image Placeholder (circular via CardView) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="180dp"
+                android:background="@drawable/bg_profile_hero"
+                android:orientation="vertical" />
+
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_profile_image"
-                android:layout_width="96dp"
-                android:layout_height="96dp"
-                app:cardCornerRadius="48dp"
-                app:cardElevation="0dp"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:strokeWidth="2dp">
+                android:layout_width="112dp"
+                android:layout_height="112dp"
+                android:layout_gravity="bottom|center_horizontal"
+                app:cardBackgroundColor="@color/brand_white"
+                app:cardCornerRadius="56dp"
+                app:cardElevation="6dp"
+                app:strokeColor="@color/brand_white"
+                app:strokeWidth="4dp">
 
                 <ImageView
                     android:id="@+id/image_profile"
@@ -39,186 +45,204 @@
                     android:src="@android:drawable/ic_menu_myplaces" />
 
             </com.google.android.material.card.MaterialCardView>
+        </FrameLayout>
 
-            <!-- User Name -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp">
+
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/text_user_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_gravity="center_horizontal"
                 android:textAppearance="?attr/textAppearanceHeadlineSmall"
-                android:textColor="?attr/colorOnSurface" />
+                android:textColor="@color/brand_dark"
+                tools:text="Alex Carter" />
 
-            <!-- User Email -->
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/text_user_email"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="6dp"
                 android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                android:textColor="@color/brand_slate"
+                tools:text="alex@example.com" />
 
-        </LinearLayout>
-
-        <!-- Stats Row -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:orientation="horizontal">
-
-            <!-- Reports Count Card -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_reports_count"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:layout_weight="1"
-                app:cardBackgroundColor="?attr/colorPrimaryContainer"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp">
+                android:layout_marginTop="20dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_reports_count"
+                    style="@style/Widget.ReClaim.Card"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    app:cardBackgroundColor="@color/md_theme_surfaceContainerLowest">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="18dp">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_reports_count"
+                            android:textAppearance="?attr/textAppearanceLabelMedium"
+                            android:textColor="@color/brand_slate" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/text_reports_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="0"
+                            android:textAppearance="?attr/textAppearanceHeadlineMedium"
+                            android:textColor="@color/brand_dark" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_claims_count"
+                    style="@style/Widget.ReClaim.Card"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    app:cardBackgroundColor="@color/md_theme_surfaceContainerLowest">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="18dp">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_claims_count"
+                            android:textAppearance="?attr/textAppearanceLabelMedium"
+                            android:textColor="@color/brand_slate" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/text_claims_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="0"
+                            android:textAppearance="?attr/textAppearanceHeadlineMedium"
+                            android:textColor="@color/brand_dark" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/section_spacing"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="20dp"
+                    android:background="@color/brand_accent" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/label_my_reports"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:text="@string/profile_my_reports"
+                    android:textAppearance="@style/TextAppearance.ReClaim.SectionTitle" />
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_my_reports"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:nestedScrollingEnabled="false"
+                tools:itemCount="2"
+                tools:listitem="@layout/item_my_report" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/section_spacing"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="20dp"
+                    android:background="@color/brand_accent" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/label_my_claims"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:text="@string/profile_my_claims"
+                    android:textAppearance="@style/TextAppearance.ReClaim.SectionTitle" />
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_my_claims"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:nestedScrollingEnabled="false"
+                tools:itemCount="2"
+                tools:listitem="@layout/item_claim_summary" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.ReClaim.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/section_spacing">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="18dp">
 
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/text_reports_count"
-                        android:layout_width="wrap_content"
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_review_pending_claims"
+                        style="@style/Widget.ReClaim.Button.Primary"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/button_height"
+                        android:text="@string/btn_review_pending_claims" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_edit_profile"
+                        style="@style/Widget.ReClaim.Button.Secondary"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/button_height"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/btn_edit_profile" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_logout"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textAppearance="?attr/textAppearanceHeadlineMedium"
-                        android:textColor="?attr/colorOnPrimaryContainer" />
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/label_reports_count"
-                        android:textAppearance="?attr/textAppearanceLabelMedium"
-                        android:textColor="?attr/colorOnPrimaryContainer" />
-
+                        android:layout_marginTop="8dp"
+                        android:text="@string/btn_logout"
+                        android:textColor="?attr/colorError" />
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- Claims Count Card -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_claims_count"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1"
-                app:cardBackgroundColor="?attr/colorSecondaryContainer"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/text_claims_count"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textAppearance="?attr/textAppearanceHeadlineMedium"
-                        android:textColor="?attr/colorOnSecondaryContainer" />
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="@string/label_claims_count"
-                        android:textAppearance="?attr/textAppearanceLabelMedium"
-                        android:textColor="?attr/colorOnSecondaryContainer" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
         </LinearLayout>
-
-        <!-- Divider -->
-        <com.google.android.material.divider.MaterialDivider
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="12dp" />
-
-        <!-- My Reports Section -->
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/label_my_reports"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/profile_my_reports"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:textColor="?attr/colorOnSurface" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_my_reports"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:nestedScrollingEnabled="false" />
-
-        <!-- Divider -->
-        <com.google.android.material.divider.MaterialDivider
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="12dp" />
-
-        <!-- My Claims Section -->
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/label_my_claims"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/profile_my_claims"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:textColor="?attr/colorOnSurface" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_my_claims"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:nestedScrollingEnabled="false" />
-
-        <!-- Review Pending Claims Button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_review_pending_claims"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/btn_review_pending_claims" />
-
-        <!-- Edit Profile Button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_edit_profile"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/btn_edit_profile" />
-
-        <!-- Log Out Button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_logout"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="12dp"
-            android:text="@string/btn_logout"
-            android:textColor="?attr/colorError" />
-
     </LinearLayout>
-
 </androidx.core.widget.NestedScrollView>

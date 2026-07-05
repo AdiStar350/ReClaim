@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/menu_category"
+        android:title="@string/filter_category_label">
+        <menu>
+            <item android:id="@+id/cat_all" android:title="@string/filter_all" />
+            <item android:id="@+id/cat_electronics" android:title="@string/filter_electronics" />
+            <item android:id="@+id/cat_documents" android:title="@string/filter_documents" />
+            <item android:id="@+id/cat_keys" android:title="@string/filter_keys" />
+            <item android:id="@+id/cat_wallets" android:title="@string/filter_wallets" />
+            <item android:id="@+id/cat_other" android:title="@string/filter_other" />
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/menu_type"
+        android:title="@string/label_report_type">
+        <menu>
+            <item android:id="@+id/type_all" android:title="@string/filter_type_all" />
+            <item android:id="@+id/type_lost" android:title="@string/type_lost" />
+            <item android:id="@+id/type_found" android:title="@string/type_found" />
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/menu_sort"
+        android:title="@string/filter_sort_label">
+        <menu>
+            <item android:id="@+id/sort_date_recent" android:title="@string/sort_date_recent" />
+            <item android:id="@+id/sort_date_oldest" android:title="@string/sort_date_oldest" />
+            <item android:id="@+id/sort_name_az" android:title="@string/sort_name_az" />
+            <item android:id="@+id/sort_name_za" android:title="@string/sort_name_za" />
+            <item android:id="@+id/sort_location_nearer" android:title="@string/sort_location_nearer" />
+            <item android:id="@+id/sort_location_farther" android:title="@string/sort_location_farther" />
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/menu_reset"
+        android:title="@string/filter_reset" />
+
+</menu>

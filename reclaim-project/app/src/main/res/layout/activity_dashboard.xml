@@ -3,35 +3,29 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface">
+    android:background="@color/brand_dark"
+    android:fitsSystemWindows="true">
 
-    <!-- Fragment Container -->
+    <!-- Fragment area — each fragment owns its own top padding/toolbar -->
     <FrameLayout
         android:id="@+id/fragment_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginBottom="80dp" />
+        android:layout_marginBottom="@dimen/bottom_nav_height" />
 
-    <!-- Floating Action Button -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_report"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="96dp"
-        android:contentDescription="@string/btn_report_fab"
-        android:src="@android:drawable/ic_input_add"
-        app:backgroundTint="?attr/colorPrimary"
-        app:tint="?attr/colorOnPrimary" />
-
-    <!-- Bottom Navigation -->
+    <!-- Floating bottom nav with rounded-top cutout -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
+        style="@style/Widget.ReClaim.BottomNavigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:background="?attr/colorSurfaceContainer"
+        android:background="@drawable/bg_bottom_nav"
+        app:elevation="16dp"
+        app:itemActiveIndicatorStyle="@style/Widget.ReClaim.BottomNav.ActiveIndicator"
+        app:itemIconTint="@color/bottom_nav_item_color"
+        app:itemTextColor="@color/bottom_nav_item_color"
+        app:labelVisibilityMode="labeled"
         app:menu="@menu/bottom_nav_menu" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Active: white on the bronze indicator pill -->
+    <item android:color="@color/brand_white" android:state_checked="true" />
+    <!-- Inactive: subdued cream on dark nav -->
+    <item android:color="@color/brand_cream_dark" />
+</selector>

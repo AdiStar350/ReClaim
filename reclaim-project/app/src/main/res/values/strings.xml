@@ -23,10 +23,66 @@
 
     <!-- Dashboard -->
     <string name="dashboard_title">Dashboard</string>
+    <string name="dashboard_greeting">Hello there</string>
+    <string name="dashboard_greeting_named">Hello, %1$s</string>
+    <string name="dashboard_subtitle">Your lost &amp; found hub</string>
+    <string name="stat_total_items">Total</string>
+    <string name="stat_lost">Lost</string>
+    <string name="stat_found">Found</string>
     <string name="nav_home">Home</string>
-    <string name="nav_map">Map</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_my_items">My Items</string>
     <string name="nav_profile">Profile</string>
     <string name="btn_report_fab">Report a Find</string>
+    <string name="btn_new_report">New Report</string>
+    <string name="btn_show_more">Show more</string>
+    <string name="btn_edit">Edit</string>
+    <string name="btn_delete">Delete</string>
+
+    <!-- Home -->
+    <string name="home_nearby_title">In your area</string>
+    <string name="home_nearby_subtitle">Lost &amp; found items reported nearby</string>
+    <string name="home_nearby_empty">No items reported nearby yet.</string>
+    <string name="home_matches_title">Possible matches</string>
+    <string name="home_matches_subtitle">Found items that may match your lost reports</string>
+    <string name="home_matches_empty">No matches yet. Report a lost item to see suggestions.</string>
+    <string name="home_match_for">Matches for \"%1$s\"</string>
+
+    <!-- Search -->
+    <string name="search_title">Search Items</string>
+    <string name="view_list">List</string>
+    <string name="view_map">Map</string>
+    <string name="filter_sort_menu">Sort and filter</string>
+    <string name="filter_sort_default">All · All types</string>
+    <string name="filter_reset">Reset filters</string>
+
+    <!-- My Items -->
+    <string name="my_items_title">My Items</string>
+    <string name="my_items_subtitle">Your lost and found reports</string>
+    <string name="my_items_empty">You haven\'t reported any items yet.</string>
+    <string name="tab_all_reports">All</string>
+    <string name="delete_report_title">Delete report?</string>
+    <string name="delete_report_message">Delete \"%1$s\"? This cannot be undone.</string>
+    <string name="msg_report_deleted">Report deleted</string>
+    <string name="report_edit_title">Edit Report</string>
+    <string name="msg_report_updated">Report updated</string>
+    <string name="msg_report_submitted">Report submitted successfully!</string>
+
+    <!-- Profile & Settings -->
+    <string name="profile_settings_title">Profile &amp; Settings</string>
+    <string name="settings_section">Settings</string>
+    <string name="profile_section_personal">Personal Info</string>
+    <string name="profile_section_account">Account</string>
+    <string name="danger_zone_title">Danger zone</string>
+    <string name="delete_account_warning">Deleting your account removes all your reports and claims permanently.</string>
+    <string name="btn_delete_account">Delete account</string>
+    <string name="delete_account_title">Delete account</string>
+    <string name="delete_account_dialog_message">Enter your full name and password to confirm account deletion.</string>
+    <string name="hint_confirm_name">Confirm your full name</string>
+    <string name="msg_password_required">Password is required</string>
+    <string name="msg_account_deleted">Account deleted</string>
+    <string name="msg_delete_account_failed">Could not delete account. Check your name and password.</string>
+    <string name="app_version_label">ReClaim v%1$s</string>
 
     <!-- List Fragment -->
     <string name="list_title">Recent Finds</string>
@@ -37,6 +93,15 @@
     <string name="filter_keys">Keys</string>
     <string name="filter_wallets">Wallets</string>
     <string name="filter_other">Other</string>
+    <string name="filter_category_label">Category</string>
+    <string name="filter_sort_label">Sort &amp; filter</string>
+    <string name="filter_type_all">All types</string>
+    <string name="sort_location_nearer">Nearer</string>
+    <string name="sort_location_farther">Farther</string>
+    <string name="sort_date_recent">Recent</string>
+    <string name="sort_date_oldest">Oldest</string>
+    <string name="sort_name_az">A-Z</string>
+    <string name="sort_name_za">Z-A</string>
     <string name="search_hint">Search items…</string>
 
     <!-- Map Fragment -->

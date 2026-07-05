@@ -7,8 +7,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -91,8 +93,113 @@ public class ItemService {
      *
      * @param id the item ID
      */
-    public void deleteItem(String id) {
+    public void deleteItem(String id, String userId) {
+        Item item = itemRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Item not found"));
+        if (!userId.equals(item.getOwnerId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Not allowed to delete this item");
+        }
         itemRepository.deleteById(id);
+    }
+
+    /**
+     * Updates an item owned by the authenticated user.
+     */
+    public Item updateItem(String id, String userId, Item updates) {
+        Item item = itemRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Item not found"));
+        if (!userId.equals(item.getOwnerId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Not allowed to update this item");
+        }
+
+        if (updates.getTitle() != null) {
+            item.setTitle(updates.getTitle());
+        }
+        if (updates.getDescription() != null) {
+            item.setDescription(updates.getDescription());
+        }
+        if (updates.getCategory() != null) {
+            item.setCategory(updates.getCategory());
+        }
+        if (updates.getLocation() != null) {
+            item.setLocation(updates.getLocation());
+        }
+        if (updates.getType() != null) {
+            item.setType(updates.getType());
+        }
+        if (updates.getImageUrl() != null) {
+            item.setImageUrl(updates.getImageUrl());
+        }
+        if (updates.getVerificationQuestion() != null) {
+            item.setVerificationQuestion(updates.getVerificationQuestion());
+        }
+        if (updates.getLatitude() != null) {
+            item.setLatitude(updates.getLatitude());
+        }
+        if (updates.getLongitude() != null) {
+            item.setLongitude(updates.getLongitude());
+        }
+
+        return itemRepository.save(item);
+    }
+
+    /**
+     * Finds open found items that may match a user's lost item report.
+     */
+    public List<Item> findMatchesForLostItem(String lostItemId, String userId) {
+        Item lostItem = itemRepository.findById(lostItemId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Item not found"));
+        if (!userId.equals(lostItem.getOwnerId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Not allowed to view matches for this item");
+        }
+        if (!"LOST".equalsIgnoreCase(lostItem.getType())) {
+            return List.of();
+        }
+
+        String category = lostItem.getCategory();
+        List<Item> candidates = itemRepository.findByCategory(category);
+        List<Item> matches = new ArrayList<>();
+
+        for (Item candidate : candidates) {
+            if (!"FOUND".equalsIgnoreCase(candidate.getType())) {
+                continue;
+            }
+            if (!"OPEN".equalsIgnoreCase(candidate.getStatus())) {
+                continue;
+            }
+            if (userId.equals(candidate.getOwnerId())) {
+                continue;
+            }
+            if (lostItem.getId() != null && lostItem.getId().equals(candidate.getId())) {
+                continue;
+            }
+            matches.add(candidate);
+        }
+
+        matches.sort(Comparator.comparingInt(candidate ->
+                -titleOverlapScore(lostItem.getTitle(), candidate.getTitle())));
+        return matches;
+    }
+
+    private int titleOverlapScore(String lostTitle, String foundTitle) {
+        if (lostTitle == null || foundTitle == null) {
+            return 0;
+        }
+        String[] lostWords = lostTitle.toLowerCase().split("\\s+");
+        String foundLower = foundTitle.toLowerCase();
+        int score = 0;
+        for (String word : lostWords) {
+            if (word.length() > 2 && foundLower.contains(word)) {
+                score++;
+            }
+        }
+        return score;
     }
 
     /**

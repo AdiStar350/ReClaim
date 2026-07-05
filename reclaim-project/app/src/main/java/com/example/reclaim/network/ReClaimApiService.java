@@ -156,4 +156,20 @@ public interface ReClaimApiService {
     Call<com.example.reclaim.model.User> updateCurrentUser(
             @Header("Authorization") String authHeader,
             @Body UpdateProfileRequest request);
+
+    @retrofit2.http.DELETE("api/users/me")
+    Call<Void> deleteAccount(
+            @Header("Authorization") String authHeader,
+            @Body DeleteAccountRequest request);
+
+    @PUT("api/items/{id}")
+    Call<Item> updateItem(
+            @Header("Authorization") String authHeader,
+            @retrofit2.http.Path("id") String id,
+            @Body Item item);
+
+    @retrofit2.http.DELETE("api/items/{id}")
+    Call<Void> deleteItem(
+            @Header("Authorization") String authHeader,
+            @retrofit2.http.Path("id") String id);
 }

@@ -1,59 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="12dp"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="0dp"
-    app:strokeColor="?attr/colorOutlineVariant"
-    app:strokeWidth="1dp">
+    android:layout_marginBottom="14dp"
+    app:cardBackgroundColor="@color/md_theme_surfaceContainerLowest"
+    app:cardCornerRadius="18dp"
+    app:cardElevation="2dp"
+    app:strokeColor="@color/md_theme_outlineVariant"
+    app:strokeWidth="0.5dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:orientation="vertical">
 
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/text_item_title"
+        <View
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:textColor="?attr/colorOnSurface" />
-
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/text_validation_answer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="?attr/colorOnSurfaceVariant" />
+            android:layout_height="8dp"
+            android:background="@color/brand_accent" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:padding="18dp">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_reject_claim"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="0dp"
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/text_item_title"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="1"
-                android:text="@string/btn_reject_claim" />
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textColor="@color/brand_dark"
+                tools:text="Black Wallet" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_approve_claim"
-                android:layout_width="0dp"
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/text_validation_answer"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/btn_approve_claim" />
+                android:layout_marginTop="10dp"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="@color/brand_slate"
+                tools:text="Verification answer: Wallpaper with mountains" />
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_reject_claim"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:text="@string/btn_reject_claim"
+                    android:textColor="@color/type_lost"
+                    app:strokeColor="@color/type_lost" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_approve_claim"
+                    style="@style/Widget.ReClaim.Button.Primary"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_weight="1"
+                    android:text="@string/btn_approve_claim" />
+
+            </LinearLayout>
         </LinearLayout>
-
     </LinearLayout>
-
 </com.google.android.material.card.MaterialCardView>

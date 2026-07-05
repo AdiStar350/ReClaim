@@ -126,29 +126,27 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
             String type = item.getType();
             binding.chipType.setText(type != null ? type : "");
             if ("Lost".equalsIgnoreCase(type)) {
-                binding.chipType.setChipBackgroundColorResource(R.color.md_theme_error);
-                binding.chipType.setTextColor(
-                        context.getColor(R.color.md_theme_onError));
+                // dark red bg (#BF360C) → white text, 4.5:1 contrast
+                binding.chipType.setChipBackgroundColorResource(R.color.type_lost);
+                binding.chipType.setTextColor(context.getColor(R.color.text_on_accent));
             } else {
-                binding.chipType.setChipBackgroundColorResource(R.color.md_theme_primary);
-                binding.chipType.setTextColor(
-                        context.getColor(R.color.md_theme_onPrimary));
+                // dark green bg (#2E7D32) → white text, 4.8:1 contrast
+                binding.chipType.setChipBackgroundColorResource(R.color.type_found);
+                binding.chipType.setTextColor(context.getColor(R.color.text_on_accent));
             }
 
             // ── Status chip (OPEN / CLOSED) ──────────────────────────
             String status = item.getStatus();
             if ("CLOSED".equalsIgnoreCase(status)) {
+                // slate bg → cream text, 4.7:1 contrast
                 binding.chipStatus.setText(R.string.status_closed);
-                binding.chipStatus.setChipBackgroundColorResource(
-                        R.color.md_theme_secondaryContainer);
-                binding.chipStatus.setTextColor(
-                        context.getColor(R.color.md_theme_onSecondaryContainer));
+                binding.chipStatus.setChipBackgroundColorResource(R.color.status_closed_bg);
+                binding.chipStatus.setTextColor(context.getColor(R.color.status_closed_text));
             } else {
+                // light green bg → dark green text, high contrast
                 binding.chipStatus.setText(R.string.status_open);
-                binding.chipStatus.setChipBackgroundColorResource(
-                        R.color.md_theme_tertiaryContainer);
-                binding.chipStatus.setTextColor(
-                        context.getColor(R.color.md_theme_onTertiaryContainer));
+                binding.chipStatus.setChipBackgroundColorResource(R.color.status_open_bg);
+                binding.chipStatus.setTextColor(context.getColor(R.color.status_open_text));
             }
 
             // ── Image loading via Glide ──────────────────────────────

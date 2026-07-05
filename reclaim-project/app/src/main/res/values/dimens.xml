@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="screen_padding_horizontal">20dp</dimen>
+    <dimen name="screen_padding_top">24dp</dimen>
+    <dimen name="screen_padding_bottom">24dp</dimen>
+    <dimen name="dashboard_header_radius">24dp</dimen>
+    <dimen name="card_radius">20dp</dimen>
+    <dimen name="item_card_radius">18dp</dimen>
+    <dimen name="bottom_nav_height">62dp</dimen>
+    <dimen name="auth_hero_height">220dp</dimen>
+    <dimen name="button_height">52dp</dimen>
+    <dimen name="section_spacing">24dp</dimen>
+    <dimen name="chip_corner">10dp</dimen>
+</resources>

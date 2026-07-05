@@ -67,6 +67,18 @@
             android:name=".ui.profile.PendingClaimsActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".ui.search.SearchActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.myitems.MyItemsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.profile.ProfileActivity"
+            android:exported="false" />
+
         <!-- FileProvider for camera image capture -->
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -62,6 +62,8 @@ import retrofit2.Response;
  */
 public class ReportActivity extends AppCompatActivity implements OnMapReadyCallback {
 
+    public static final String EXTRA_ITEM_ID = "extra_item_id";
+
     /** Categories available for the item report dropdown. */
     private static final String[] CATEGORIES = {
             "Electronics", "Documents", "Keys", "Wallets",
@@ -90,6 +92,10 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     private Marker currentMarker;
     private FusedLocationProviderClient fusedLocationClient;
     private LatLng selectedLatLng;
+    @androidx.annotation.Nullable
+    private String editingItemId;
+    @androidx.annotation.Nullable
+    private String existingImageUrl;
 
     // ═════════════════════════════════════════════════════════════════════
     //  ACTIVITY RESULT LAUNCHERS (modern replacement for startActivityForResult)
@@ -173,6 +179,65 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         setupImageCapture();
         setupLocationPicker();
         setupSubmitButton();
+
+        editingItemId = getIntent().getStringExtra(EXTRA_ITEM_ID);
+        if (editingItemId != null) {
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setTitle(R.string.report_edit_title);
+            }
+            loadExistingItem(editingItemId);
+        }
+    }
+
+    private void loadExistingItem(String itemId) {
+        String authHeader = TokenManager.getAuthHeader(this);
+        if (authHeader == null) {
+            return;
+        }
+        apiService.getItemById(authHeader, itemId).enqueue(new Callback<Item>() {
+            @Override
+            public void onResponse(@NonNull Call<Item> call, @NonNull Response<Item> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    Toast.makeText(ReportActivity.this,
+                            R.string.error_generic, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                populateForm(response.body());
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<Item> call, @NonNull Throwable t) {
+                Toast.makeText(ReportActivity.this,
+                        R.string.error_generic, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void populateForm(@NonNull Item item) {
+        binding.editItemTitle.setText(item.getTitle());
+        binding.editDescription.setText(item.getDescription());
+        binding.dropdownCategory.setText(item.getCategory(), false);
+        binding.editLocation.setText(item.getLocation());
+        binding.editVerification.setText(item.getVerificationQuestion());
+
+        if ("Lost".equalsIgnoreCase(item.getType())) {
+            binding.chipTypeLost.setChecked(true);
+        } else {
+            binding.chipTypeFound.setChecked(true);
+        }
+
+        existingImageUrl = item.getImageUrl();
+        if (existingImageUrl != null && !existingImageUrl.isEmpty()) {
+            Glide.with(this).load(existingImageUrl).into(binding.imagePreview);
+        }
+
+        if (item.getLatitude() != null && item.getLongitude() != null) {
+            selectedLatLng = new LatLng(item.getLatitude(), item.getLongitude());
+            if (googleMap != null) {
+                placeMarker(selectedLatLng);
+                googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(selectedLatLng, DEFAULT_ZOOM));
+            }
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════
@@ -598,23 +663,29 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
             item.setLocation(location);
             item.setType(reportType);
             item.setVerificationQuestion(verificationQuestion);
-            item.setImageUrl(imageUrl);
+            item.setImageUrl(imageUrl != null ? imageUrl : existingImageUrl);
             item.setLatitude(selectedLatLng.latitude);
             item.setLongitude(selectedLatLng.longitude);
 
-            String finalImageUrl = imageUrl;
+            String finalImageUrl = imageUrl != null ? imageUrl : existingImageUrl;
             runOnUiThread(() -> submitItemToBackend(authHeader, item, finalImageUrl));
         });
     }
 
     private void submitItemToBackend(String authHeader, Item item, String imageUrl) {
-        apiService.createItem(authHeader, item).enqueue(new Callback<Item>() {
+        Call<Item> call = editingItemId != null
+                ? apiService.updateItem(authHeader, editingItemId, item)
+                : apiService.createItem(authHeader, item);
+
+        call.enqueue(new Callback<Item>() {
             @Override
             public void onResponse(@NonNull Call<Item> call, @NonNull Response<Item> response) {
                 setSubmitting(false);
                 if (response.isSuccessful()) {
-                    Toast.makeText(ReportActivity.this,
-                            "Report submitted successfully!", Toast.LENGTH_SHORT).show();
+                    int message = editingItemId != null
+                            ? R.string.msg_report_updated
+                            : R.string.msg_report_submitted;
+                    Toast.makeText(ReportActivity.this, message, Toast.LENGTH_SHORT).show();
                     finish();
                 } else {
                     Toast.makeText(ReportActivity.this,

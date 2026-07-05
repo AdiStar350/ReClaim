@@ -43,6 +43,9 @@ public class ProfileFragment extends Fragment {
     private ItemAdapter reportsAdapter;
     private ClaimSummaryAdapter claimsAdapter;
     private User currentUser;
+    private Call<User> profileUserCall;
+    private Call<List<Item>> profileItemsCall;
+    private Call<List<Claim>> profileClaimsCall;
 
     @Nullable
     @Override
@@ -97,14 +100,24 @@ public class ProfileFragment extends Fragment {
     }
 
     private void loadProfileData() {
+        if (binding == null || !isAdded()) {
+            return;
+        }
+
         String authHeader = TokenManager.getAuthHeader(requireContext());
         if (authHeader == null) {
             return;
         }
 
-        apiService.getCurrentUser(authHeader).enqueue(new Callback<User>() {
+        cancelProfileCalls();
+
+        profileUserCall = apiService.getCurrentUser(authHeader);
+        profileUserCall.enqueue(new Callback<User>() {
             @Override
             public void onResponse(@NonNull Call<User> call, @NonNull Response<User> response) {
+                if (!isActive() || call.isCanceled()) {
+                    return;
+                }
                 if (response.isSuccessful() && response.body() != null) {
                     currentUser = response.body();
                     binding.textUserName.setText(currentUser.getName());
@@ -114,14 +127,21 @@ public class ProfileFragment extends Fragment {
 
             @Override
             public void onFailure(@NonNull Call<User> call, @NonNull Throwable t) {
+                if (!isActive() || call.isCanceled()) {
+                    return;
+                }
                 Toast.makeText(requireContext(),
                         R.string.msg_profile_load_failed, Toast.LENGTH_SHORT).show();
             }
         });
 
-        apiService.getMyItems(authHeader).enqueue(new Callback<List<Item>>() {
+        profileItemsCall = apiService.getMyItems(authHeader);
+        profileItemsCall.enqueue(new Callback<List<Item>>() {
             @Override
             public void onResponse(@NonNull Call<List<Item>> call, @NonNull Response<List<Item>> response) {
+                if (!isActive() || call.isCanceled()) {
+                    return;
+                }
                 if (response.isSuccessful() && response.body() != null) {
                     reportsAdapter.updateItems(response.body());
                     binding.textReportsCount.setText(String.valueOf(response.body().size()));
@@ -133,9 +153,13 @@ public class ProfileFragment extends Fragment {
             }
         });
 
-        apiService.getMyClaims(authHeader).enqueue(new Callback<List<Claim>>() {
+        profileClaimsCall = apiService.getMyClaims(authHeader);
+        profileClaimsCall.enqueue(new Callback<List<Claim>>() {
             @Override
             public void onResponse(@NonNull Call<List<Claim>> call, @NonNull Response<List<Claim>> response) {
+                if (!isActive() || call.isCanceled()) {
+                    return;
+                }
                 if (response.isSuccessful() && response.body() != null) {
                     claimsAdapter.updateClaims(response.body());
                     binding.textClaimsCount.setText(String.valueOf(response.body().size()));
@@ -146,6 +170,25 @@ public class ProfileFragment extends Fragment {
             public void onFailure(@NonNull Call<List<Claim>> call, @NonNull Throwable t) {
             }
         });
+    }
+
+    private boolean isActive() {
+        return binding != null && isAdded();
+    }
+
+    private void cancelProfileCalls() {
+        if (profileUserCall != null) {
+            profileUserCall.cancel();
+            profileUserCall = null;
+        }
+        if (profileItemsCall != null) {
+            profileItemsCall.cancel();
+            profileItemsCall = null;
+        }
+        if (profileClaimsCall != null) {
+            profileClaimsCall.cancel();
+            profileClaimsCall = null;
+        }
     }
 
     private void showEditProfileDialog() {
@@ -194,6 +237,9 @@ public class ProfileFragment extends Fragment {
         apiService.updateCurrentUser(authHeader, request).enqueue(new Callback<User>() {
             @Override
             public void onResponse(@NonNull Call<User> call, @NonNull Response<User> response) {
+                if (!isActive()) {
+                    return;
+                }
                 if (response.isSuccessful() && response.body() != null) {
                     currentUser = response.body();
                     binding.textUserName.setText(currentUser.getName());
@@ -207,6 +253,9 @@ public class ProfileFragment extends Fragment {
 
             @Override
             public void onFailure(@NonNull Call<User> call, @NonNull Throwable t) {
+                if (!isActive()) {
+                    return;
+                }
                 Toast.makeText(requireContext(),
                         R.string.msg_profile_update_failed, Toast.LENGTH_SHORT).show();
             }
@@ -224,6 +273,9 @@ public class ProfileFragment extends Fragment {
                     @Override
                     public void onResponse(@NonNull Call<ContactResponse> call,
                                            @NonNull Response<ContactResponse> response) {
+                        if (!isActive() || call.isCanceled()) {
+                            return;
+                        }
                         if (response.isSuccessful() && response.body() != null) {
                             ContactResponse contact = response.body();
                             new MaterialAlertDialogBuilder(requireContext())
@@ -242,6 +294,9 @@ public class ProfileFragment extends Fragment {
 
                     @Override
                     public void onFailure(@NonNull Call<ContactResponse> call, @NonNull Throwable t) {
+                        if (!isActive() || call.isCanceled()) {
+                            return;
+                        }
                         Toast.makeText(requireContext(),
                                 R.string.msg_contact_unavailable, Toast.LENGTH_SHORT).show();
                     }
@@ -250,6 +305,7 @@ public class ProfileFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        cancelProfileCalls();
         super.onDestroyView();
         binding = null;
     }
