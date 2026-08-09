@@ -1,219 +1,246 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/md_theme_background"
-    android:clipToPadding="false"
-    android:fillViewport="true"
-    android:overScrollMode="never">
+    android:background="@color/md_theme_background">
 
-    <LinearLayout
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingStart="@dimen/screen_padding_horizontal"
-        android:paddingTop="16dp"
-        android:paddingEnd="@dimen/screen_padding_horizontal"
-        android:paddingBottom="32dp">
+        android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:overScrollMode="never">
 
-        <!-- ── Dashboard header ── -->
-        <FrameLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_dashboard_header"
-            android:padding="24dp">
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:orientation="vertical"
+            android:paddingBottom="32dp">
 
-            <!-- decorative orb -->
-            <View
-                android:layout_width="100dp"
-                android:layout_height="100dp"
-                android:layout_gravity="bottom|end"
-                android:layout_marginEnd="-20dp"
-                android:layout_marginBottom="-32dp"
-                android:background="@drawable/bg_header_orb" />
+            <!-- ── Dashboard header ── -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/screen_padding_top"
+                android:background="@drawable/bg_dashboard_header"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:paddingTop="60dp"
+                android:paddingBottom="24dp"
+                android:paddingEnd="24dp"
+                android:paddingStart="24dp">
 
+                <!-- decorative orb -->
+                <View
+                    android:layout_width="150dp"
+                    android:layout_height="150dp"
+                    android:layout_gravity="end"
+                    android:layout_marginEnd="-50dp"
+                    android:layout_marginTop="-50dp"
+                    android:layout_marginBottom="-30dp"
+                    android:background="@drawable/bg_header_orb" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/text_greeting"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/dashboard_greeting"
+                            android:textAppearance="@style/TextAppearance.ReClaim.DashboardTitle"
+                            tools:text="Hello, Alex" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/text_dashboard_subtitle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="@string/dashboard_subtitle"
+                            android:textAppearance="@style/TextAppearance.ReClaim.HeroSubtitle" />
+                    </LinearLayout>
+
+                    <!-- User avatar button -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_marginStart="16dp"
+                        app:cardBackgroundColor="#28F7F5F0"
+                        app:cardCornerRadius="24dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="#40F7F5F0"
+                        app:strokeWidth="1.5dp">
+
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:contentDescription="@string/profile_title"
+                            android:padding="12dp"
+                            android:src="@android:drawable/ic_menu_myplaces"
+                            app:tint="@color/brand_white" />
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- Section: Nearby items -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:layout_margin="24dp">
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="22dp"
+                    android:background="@color/brand_accent"
+                    android:backgroundTint="@color/brand_accent" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:text="@string/home_nearby_title"
+                    android:textAppearance="@style/TextAppearance.ReClaim.SectionTitle" />
+            </LinearLayout>
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="2dp"
+                android:text="@string/home_nearby_subtitle"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="@color/text_secondary" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_nearby"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@color/md_theme_background"
+                android:clipToPadding="false"
+                android:fadingEdgeLength="48dp"
+                android:nestedScrollingEnabled="false"
+                android:orientation="horizontal"
+                android:paddingEnd="8dp"
+                android:requiresFadingEdge="horizontal"
+                tools:itemCount="4"
+                tools:listitem="@layout/item_card_preview" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/text_nearby_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp"
+                android:text="@string/home_nearby_empty"
+                android:textColor="@color/text_secondary"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_show_more"
+                style="@style/Widget.ReClaim.Button.Secondary"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/button_height"
+                android:layout_marginTop="14dp"
+                android:text="@string/btn_show_more"
+                android:visibility="gone" />
+
+            <!-- Section: Possible matches -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:layout_margin="24dp">
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="22dp"
+                    android:background="@color/brand_accent" />
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
                     <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/text_greeting"
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/dashboard_greeting"
-                        android:textAppearance="@style/TextAppearance.ReClaim.DashboardTitle"
-                        tools:text="Hello, Alex" />
+                        android:text="@string/home_matches_title"
+                        android:textAppearance="@style/TextAppearance.ReClaim.SectionTitle" />
 
                     <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/text_dashboard_subtitle"
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/dashboard_subtitle"
-                        android:textAppearance="@style/TextAppearance.ReClaim.HeroSubtitle" />
+                        android:layout_marginTop="2dp"
+                        android:text="@string/home_matches_subtitle"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="@color/text_secondary" />
                 </LinearLayout>
-
-                <!-- User avatar button -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_marginStart="16dp"
-                    app:cardBackgroundColor="#28F7F5F0"
-                    app:cardCornerRadius="24dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="#40F7F5F0"
-                    app:strokeWidth="1.5dp">
-
-                    <ImageView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:contentDescription="@string/profile_title"
-                        android:padding="12dp"
-                        android:src="@android:drawable/ic_menu_myplaces"
-                        app:tint="@color/brand_white" />
-                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
-        </FrameLayout>
-
-        <!-- ── Section: Nearby items ── -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <View
-                android:layout_width="4dp"
-                android:layout_height="22dp"
-                android:background="@color/brand_accent"
-                android:backgroundTint="@color/brand_accent" />
-
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
-                android:text="@string/home_nearby_title"
-                android:textAppearance="@style/TextAppearance.ReClaim.SectionTitle" />
-        </LinearLayout>
-
-        <com.google.android.material.textview.MaterialTextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:layout_marginStart="16dp"
-            android:text="@string/home_nearby_subtitle"
-            android:textAppearance="?attr/textAppearanceBodySmall"
-            android:textColor="@color/text_secondary" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_nearby"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:background="@color/md_theme_background"
-            android:clipToPadding="false"
-            android:fadingEdgeLength="48dp"
-            android:nestedScrollingEnabled="false"
-            android:orientation="horizontal"
-            android:paddingEnd="8dp"
-            android:requiresFadingEdge="horizontal"
-            tools:itemCount="4"
-            tools:listitem="@layout/item_card_preview" />
-
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/text_nearby_empty"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:gravity="center"
-            android:paddingTop="16dp"
-            android:paddingBottom="16dp"
-            android:text="@string/home_nearby_empty"
-            android:textColor="@color/text_secondary"
-            android:visibility="gone" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_show_more"
-            style="@style/Widget.ReClaim.Button.Secondary"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/button_height"
-            android:layout_marginTop="14dp"
-            android:text="@string/btn_show_more" />
-
-        <!-- ── Section: Possible matches ── -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <View
-                android:layout_width="4dp"
-                android:layout_height="22dp"
-                android:background="@color/brand_accent" />
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:id="@+id/layout_matches"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:layout_marginTop="12dp"
+                android:orientation="vertical" />
 
-                <com.google.android.material.textview.MaterialTextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/home_matches_title"
-                    android:textAppearance="@style/TextAppearance.ReClaim.SectionTitle" />
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/text_matches_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp"
+                android:text="@string/home_matches_empty"
+                android:textColor="@color/text_secondary"
+                android:visibility="gone" />
 
-                <com.google.android.material.textview.MaterialTextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="@string/home_matches_subtitle"
-                    android:textAppearance="?attr/textAppearanceBodySmall"
-                    android:textColor="@color/text_secondary" />
-            </LinearLayout>
+            <ProgressBar
+                android:id="@+id/progress_home"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="32dp"
+                android:indeterminateTint="@color/brand_accent"
+                android:visibility="gone" />
         </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
-        <LinearLayout
-            android:id="@+id/layout_matches"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:orientation="vertical" />
+    <!-- FAB: bottom-end, same as My Items -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fab_add_report"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="40dp"
+        android:layout_marginEnd="20dp"
+        android:textColor="@color/text_on_accent"
+        app:backgroundTint="@color/brand_accent"
+        app:icon="@android:drawable/ic_input_add"
+        app:iconTint="@color/text_on_accent" />
 
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/text_matches_empty"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:gravity="center"
-            android:paddingTop="16dp"
-            android:paddingBottom="16dp"
-            android:text="@string/home_matches_empty"
-            android:textColor="@color/text_secondary"
-            android:visibility="gone" />
-
-        <ProgressBar
-            android:id="@+id/progress_home"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="32dp"
-            android:indeterminateTint="@color/brand_accent"
-            android:visibility="gone" />
-    </LinearLayout>
-</androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -4,16 +4,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/brand_dark"
-    android:fitsSystemWindows="true">
+    android:fitsSystemWindows="false">
 
-    <!-- Fragment area — each fragment owns its own top padding/toolbar -->
     <FrameLayout
         android:id="@+id/fragment_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginBottom="@dimen/bottom_nav_height" />
 
-    <!-- Floating bottom nav with rounded-top cutout -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
         style="@style/Widget.ReClaim.BottomNavigation"
@@ -21,11 +19,13 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:background="@drawable/bg_bottom_nav"
-        app:elevation="16dp"
         app:itemActiveIndicatorStyle="@style/Widget.ReClaim.BottomNav.ActiveIndicator"
         app:itemIconTint="@color/bottom_nav_item_color"
         app:itemTextColor="@color/bottom_nav_item_color"
+        app:elevation="12dp"
         app:labelVisibilityMode="labeled"
-        app:menu="@menu/bottom_nav_menu" />
+        app:menu="@menu/bottom_nav_menu"
+        app:paddingBottomSystemWindowInsets="false"
+        app:paddingTopSystemWindowInsets="false" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

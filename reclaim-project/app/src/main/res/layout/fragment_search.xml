@@ -1,184 +1,220 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/md_theme_background"
-    android:orientation="vertical">
+    android:background="@color/md_theme_background">
 
-    <!-- Dark header toolbar with list/map toggle -->
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar_search"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/brand_dark"
-        android:minHeight="60dp"
-        android:paddingStart="16dp"
-        android:paddingEnd="12dp"
-        app:title="@string/search_title"
-        app:titleTextColor="@color/brand_cream">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-        <com.google.android.material.button.MaterialButtonToggleGroup
-            android:id="@+id/toggle_view_mode"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:layout_marginEnd="4dp"
-            app:checkedButton="@+id/btn_view_list"
-            app:selectionRequired="true"
-            app:singleSelection="true">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_view_list"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="38dp"
-                android:minWidth="0dp"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:text="@string/view_list"
-                android:textColor="@color/brand_cream"
-                android:textSize="13sp"
-                app:strokeColor="#80DCD7C9" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_view_map"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="38dp"
-                android:minWidth="0dp"
-                android:paddingStart="14dp"
-                android:paddingEnd="14dp"
-                android:text="@string/view_map"
-                android:textColor="@color/brand_cream"
-                android:textSize="13sp"
-                app:strokeColor="#80DCD7C9" />
-        </com.google.android.material.button.MaterialButtonToggleGroup>
-    </com.google.android.material.appbar.MaterialToolbar>
-
-    <!-- Floating search card — slight overlap with toolbar via negative margin -->
-    <com.google.android.material.card.MaterialCardView
-        style="@style/Widget.ReClaim.Card"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="-10dp"
-        android:layout_marginEnd="16dp"
-        app:cardElevation="6dp">
-
-        <LinearLayout
+        <!-- Dark header toolbar with list/map toggle -->
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar_search"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="12dp"
-            android:paddingTop="10dp"
-            android:paddingEnd="10dp"
-            android:paddingBottom="10dp">
+            android:background="@color/brand_dark"
+            android:minHeight="60dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="24dp"
+            android:paddingBottom="14dp"
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/input_layout_search"
-                style="@style/Widget.ReClaim.TextInput"
-                android:layout_width="0dp"
+            app:title="@string/search_title"
+            app:titleTextColor="@color/brand_cream">
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/toggle_view_mode"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="@string/search_hint"
-                app:startIconDrawable="@android:drawable/ic_menu_search">
+                android:layout_gravity="end"
+                android:layout_marginEnd="4dp"
+                app:checkedButton="@+id/btn_view_list"
+                app:selectionRequired="true"
+                app:singleSelection="true">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edit_search"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="text"
-                    android:textColor="@color/text_primary" />
-            </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_view_list"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:minWidth="0dp"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:text="@string/view_list"
+                    android:textColor="@color/toggle_btn_text"
+                    android:textSize="13sp"
+                    app:backgroundTint="@color/toggle_btn_background"
+                    app:strokeColor="@color/brand_accent" />
 
-            <!-- Filter/sort button — bronze fill, white icon -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_filter_sort"
-                style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="8dp"
-                android:contentDescription="@string/filter_sort_menu"
-                app:backgroundTint="@color/brand_accent"
-                app:icon="@android:drawable/ic_menu_sort_by_size"
-                app:iconTint="@color/text_on_accent" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_view_map"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:minWidth="0dp"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:text="@string/view_map"
+                    android:textColor="@color/toggle_btn_text"
+                    android:textSize="13sp"
+                    app:backgroundTint="@color/toggle_btn_background"
+                    app:strokeColor="@color/brand_accent" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+        </com.google.android.material.appbar.MaterialToolbar>
 
-    <!-- Active-filter summary chip -->
-    <com.google.android.material.chip.Chip
-        android:id="@+id/chip_active_filters"
-        style="@style/Widget.ReClaim.Chip.Sort"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="10dp"
-        android:layout_marginBottom="2dp"
-        android:text="@string/filter_sort_default"
-        android:visibility="gone" />
-
-    <!-- Content area: list OR map -->
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:layout_weight="1">
-
-        <!-- List view -->
-        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-            android:id="@+id/swipe_refresh"
+        <!-- Floating search card -->
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.ReClaim.Card"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recycler_items"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:clipToPadding="false"
-                android:paddingStart="16dp"
-                android:paddingTop="8dp"
-                android:paddingEnd="16dp"
-                android:paddingBottom="24dp" />
-        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-
-        <!-- Map view (rounded card) -->
-        <FrameLayout
-            android:id="@+id/map_container"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:padding="16dp"
-            android:visibility="gone">
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                app:cardCornerRadius="22dp"
-                app:cardElevation="2dp"
-                app:strokeColor="@color/md_theme_outlineVariant"
-                app:strokeWidth="0.5dp">
-
-                <androidx.fragment.app.FragmentContainerView
-                    android:id="@+id/map"
-                    android:name="com.google.android.gms.maps.SupportMapFragment"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
-            </com.google.android.material.card.MaterialCardView>
-        </FrameLayout>
-
-        <!-- Empty state -->
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/text_empty"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:drawablePadding="8dp"
-            android:gravity="center"
-            android:paddingStart="32dp"
-            android:paddingEnd="32dp"
-            android:text="@string/list_empty"
-            android:textColor="@color/text_secondary"
-            android:visibility="gone" />
-    </FrameLayout>
-</LinearLayout>
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="-10dp"
+            android:layout_marginEnd="16dp"
+            app:cardElevation="6dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="12dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="10dp">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/input_layout_search"
+                    style="@style/Widget.ReClaim.TextInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="@string/search_hint"
+                    app:startIconDrawable="@android:drawable/ic_menu_search">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/edit_search"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:textColor="@color/text_primary" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Filter/sort button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_filter_sort"
+                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
+                    android:contentDescription="@string/filter_sort_menu"
+                    app:backgroundTint="@color/brand_accent"
+                    app:icon="@android:drawable/ic_menu_sort_by_size"
+                    app:iconTint="@color/text_on_accent" />
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <RelativeLayout
+            android:id="@+id/search_filter_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:paddingBottom="20dp"
+            android:clipToPadding="false">
+
+            <!-- Active-filter summary chip -->
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_active_filters"
+                style="@style/Widget.ReClaim.Chip.Sort"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:text="@string/filter_sort_default"
+                android:visibility="gone" />
+
+            <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+                android:id="@+id/fab_add_report"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="20dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:textColor="@color/text_on_accent"
+                app:backgroundTint="@color/brand_accent"
+                app:icon="@android:drawable/ic_input_add"
+                app:iconTint="@color/text_on_accent"
+                />
+
+        </RelativeLayout>
+
+        <!-- Content area: list OR map, with FAB anchored top-end -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <!-- List view -->
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                android:id="@+id/swipe_refresh"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recycler_items"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clipToPadding="false"
+                    android:paddingStart="16dp"
+                    android:paddingTop="8dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="96dp" />
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+            <!-- Map view -->
+            <FrameLayout
+                android:id="@+id/map_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="50dp"
+                android:clipToPadding="false"
+                android:visibility="gone">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    app:cardCornerRadius="22dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="@color/md_theme_outlineVariant"
+                    app:strokeWidth="0.5dp">
+
+                    <androidx.fragment.app.FragmentContainerView
+                        android:id="@+id/map"
+                        android:name="com.google.android.gms.maps.SupportMapFragment"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+                </com.google.android.material.card.MaterialCardView>
+            </FrameLayout>
+
+            <!-- Empty state -->
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/text_empty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:paddingStart="32dp"
+                android:paddingEnd="32dp"
+                android:text="@string/list_empty"
+                android:textColor="@color/text_secondary"
+                android:visibility="gone" />
+        </FrameLayout>
+    </LinearLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

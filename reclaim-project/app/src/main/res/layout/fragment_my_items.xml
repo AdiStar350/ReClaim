@@ -7,25 +7,32 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="wrap_content"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:orientation="vertical"
+        android:paddingBottom="32dp">
 
         <!-- Dark header -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/screen_padding_top"
             android:background="@drawable/bg_dashboard_header"
-            android:paddingStart="24dp"
-            android:paddingTop="20dp"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:paddingTop="60dp"
+            android:paddingBottom="24dp"
             android:paddingEnd="24dp"
-            android:paddingBottom="20dp">
+            android:paddingStart="24dp">
 
             <View
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:layout_gravity="bottom|end"
-                android:layout_marginEnd="-14dp"
-                android:layout_marginBottom="-24dp"
+                android:layout_width="150dp"
+                android:layout_height="150dp"
+                android:layout_gravity="end"
+                android:layout_marginEnd="-50dp"
+                android:layout_marginTop="-50dp"
+                android:layout_marginBottom="-30dp"
                 android:background="@drawable/bg_header_orb" />
 
             <LinearLayout
@@ -53,7 +60,7 @@
             android:id="@+id/tab_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/md_theme_surfaceContainerLowest"
+            android:background="@color/md_theme_background"
             app:tabIndicatorColor="@color/brand_accent"
             app:tabIndicatorFullWidth="false"
             app:tabIndicatorHeight="3dp"
@@ -94,8 +101,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="20dp"
-        android:text="@string/btn_new_report"
+        android:layout_marginBottom="40dp"
+        android:layout_marginEnd="20dp"
         android:textColor="@color/text_on_accent"
         app:backgroundTint="@color/brand_accent"
         app:icon="@android:drawable/ic_input_add"

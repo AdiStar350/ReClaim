@@ -10,9 +10,9 @@
               <option name="connection">
                 <ConnectionSetting>
                   <option name="appId" value="com.example.reclaim" />
-                  <option name="mobileSdkAppId" value="1:000000000000:android:abcdef1234567890abcdef" />
-                  <option name="projectId" value="reclaim-placeholder" />
-                  <option name="projectNumber" value="000000000000" />
+                  <option name="mobileSdkAppId" value="1:178379233331:android:4a036c403af96fb6fc2b46" />
+                  <option name="projectId" value="reclaim-5b4fd" />
+                  <option name="projectNumber" value="178379233331" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

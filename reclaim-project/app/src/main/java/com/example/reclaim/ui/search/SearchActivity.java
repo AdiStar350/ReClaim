@@ -20,6 +20,7 @@ public class SearchActivity extends AppCompatActivity {
 
         if (savedInstanceState == null) {
             Fragment fragment = new SearchFragment();
+
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.fragment_host, fragment)
                     .commit();

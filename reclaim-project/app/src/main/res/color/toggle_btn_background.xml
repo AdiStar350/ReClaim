@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Active: warm cream fill matching the chip style -->
+    <item android:color="@color/md_theme_surfaceContainerHigh" android:state_checked="true" />
+    <!-- Inactive: transparent so the dark toolbar shows through -->
+    <item android:color="@android:color/transparent" />
+</selector>

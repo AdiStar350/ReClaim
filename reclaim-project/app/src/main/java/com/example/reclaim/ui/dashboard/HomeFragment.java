@@ -15,10 +15,13 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import android.content.Intent;
+
 import com.example.reclaim.R;
 import com.example.reclaim.adapter.ItemAdapter;
 import com.example.reclaim.adapter.PreviewItemAdapter;
 import com.example.reclaim.databinding.FragmentHomeBinding;
+import com.example.reclaim.ui.report.ReportActivity;
 import com.example.reclaim.model.Item;
 import com.example.reclaim.model.User;
 import com.example.reclaim.network.ReClaimApiService;
@@ -70,15 +73,19 @@ public class HomeFragment extends Fragment {
 
         nearbyAdapter = new PreviewItemAdapter(item ->
                 startActivity(ItemNavigationHelper.createDetailsIntent(requireContext(), item)));
-        binding.recyclerNearby.setLayoutManager(
-                new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
+
+        binding.recyclerNearby.setLayoutManager(new LinearLayoutManager(
+                requireContext(), LinearLayoutManager.HORIZONTAL, false));
+
         binding.recyclerNearby.setAdapter(nearbyAdapter);
 
         binding.btnShowMore.setOnClickListener(v -> {
-            if (requireActivity() instanceof DashboardNavigator navigator) {
+            if (requireActivity() instanceof DashboardNavigator navigator)
                 navigator.selectTab(R.id.nav_search);
-            }
         });
+
+        binding.fabAddReport.setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), ReportActivity.class)));
 
         loadUserGreeting();
         fetchLocationIfAllowed();
@@ -86,28 +93,24 @@ public class HomeFragment extends Fragment {
         observeItems();
 
         if (viewModel.getItems().getValue() == null
-                || viewModel.getItems().getValue().isEmpty()) {
+                || viewModel.getItems().getValue().isEmpty())
             viewModel.loadItems();
-        }
     }
 
     private void loadUserGreeting() {
         String authHeader = TokenManager.getAuthHeader(requireContext());
-        if (authHeader == null) {
-            return;
-        }
+        if (authHeader == null) return;
+
         apiService.getCurrentUser(authHeader).enqueue(new Callback<User>() {
             @Override
             public void onResponse(@NonNull Call<User> call, @NonNull Response<User> response) {
-                if (binding == null || !isAdded()) {
-                    return;
-                }
+                if (binding == null || !isAdded()) return;
+
                 if (response.isSuccessful() && response.body() != null) {
                     String name = response.body().getName();
-                    if (name != null && !name.isEmpty()) {
-                        binding.textGreeting.setText(
-                                getString(R.string.dashboard_greeting_named, name));
-                    }
+
+                    if (name != null && !name.isEmpty())
+                        binding.textGreeting.setText(getString(R.string.dashboard_greeting_named, name));
                 }
             }
 
@@ -120,16 +123,14 @@ public class HomeFragment extends Fragment {
 
     private void loadMyItems() {
         String authHeader = TokenManager.getAuthHeader(requireContext());
-        if (authHeader == null) {
-            return;
-        }
+        if (authHeader == null) return;
+
         apiService.getMyItems(authHeader).enqueue(new Callback<List<Item>>() {
             @Override
             public void onResponse(@NonNull Call<List<Item>> call,
                                    @NonNull Response<List<Item>> response) {
-                if (binding == null || !isAdded()) {
-                    return;
-                }
+                if (binding == null || !isAdded()) return;
+
                 if (response.isSuccessful() && response.body() != null) {
                     myItems = response.body();
                     renderMatches(viewModel.getItems().getValue());
@@ -145,30 +146,26 @@ public class HomeFragment extends Fragment {
 
     private void fetchLocationIfAllowed() {
         if (ContextCompat.checkSelfPermission(requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
-            fusedLocationClient.getLastLocation()
-                    .addOnSuccessListener(location -> {
-                        if (location != null) {
-                            userLatitude = location.getLatitude();
-                            userLongitude = location.getLongitude();
-                            renderNearby(viewModel.getItems().getValue());
-                        }
-                    });
+                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
+                if (location != null) {
+                    userLatitude = location.getLatitude();
+                    userLongitude = location.getLongitude();
+                    renderNearby(viewModel.getItems().getValue());
+                }
+            });
         }
     }
 
     private void observeItems() {
         viewModel.getLoading().observe(getViewLifecycleOwner(), loading -> {
-            if (loading != null && binding != null) {
+            if (loading != null && binding != null)
                 binding.progressHome.setVisibility(loading ? View.VISIBLE : View.GONE);
-            }
         });
 
         viewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
-            if (message != null && !message.isEmpty()) {
+            if (message != null && !message.isEmpty())
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-            }
         });
 
         viewModel.getItems().observe(getViewLifecycleOwner(), items -> {
@@ -178,32 +175,31 @@ public class HomeFragment extends Fragment {
     }
 
     private void renderNearby(List<Item> items) {
-        if (binding == null) {
-            return;
-        }
+        if (binding == null) return;
+
         List<Item> source = items != null ? items : new ArrayList<>();
         List<Item> preview = ItemMatchHelper.nearbyPreview(
                 source, userLatitude, userLongitude, NEARBY_PREVIEW_LIMIT);
+
         nearbyAdapter.updateItems(preview);
         boolean empty = preview.isEmpty();
+
         binding.textNearbyEmpty.setVisibility(empty ? View.VISIBLE : View.GONE);
         binding.recyclerNearby.setVisibility(empty ? View.GONE : View.VISIBLE);
+        binding.btnShowMore.setVisibility(empty ? View.GONE : View.VISIBLE);
     }
 
     private void renderMatches(List<Item> allItems) {
-        if (binding == null) {
-            return;
-        }
-        binding.layoutMatches.removeAllViews();
+        if (binding == null) return;
 
+        binding.layoutMatches.removeAllViews();
         List<Item> lostItems = new ArrayList<>();
-        for (Item item : myItems) {
-            if ("LOST".equalsIgnoreCase(item.getType())) {
-                lostItems.add(item);
-            }
-        }
+
+        for (Item item : myItems)
+            if ("LOST".equalsIgnoreCase(item.getType())) lostItems.add(item);
 
         String userId = TokenManager.getUserId(requireContext());
+
         List<ItemMatchHelper.MatchGroup> groups = ItemMatchHelper.buildMatchGroups(
                 allItems != null ? allItems : new ArrayList<>(), lostItems, userId);
 
@@ -217,18 +213,23 @@ public class HomeFragment extends Fragment {
 
         for (ItemMatchHelper.MatchGroup group : groups) {
             MaterialTextView header = new MaterialTextView(requireContext());
+
             header.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleSmall);
             header.setTextColor(requireContext().getColor(R.color.brand_dark));
             header.setPadding(0, 16, 0, 8);
             header.setText(getString(R.string.home_match_for, group.lostItem.getTitle()));
+
             binding.layoutMatches.addView(header);
 
             androidx.recyclerview.widget.RecyclerView recycler =
                     new androidx.recyclerview.widget.RecyclerView(requireContext());
+
             recycler.setLayoutManager(new LinearLayoutManager(requireContext()));
             recycler.setNestedScrollingEnabled(false);
+
             ItemAdapter adapter = new ItemAdapter(group.matches, item ->
                     startActivity(ItemNavigationHelper.createDetailsIntent(requireContext(), item)));
+
             recycler.setAdapter(adapter);
             binding.layoutMatches.addView(recycler);
         }
