@@ -17,11 +17,10 @@
             android:layout_height="wrap_content"
             android:background="@color/brand_dark"
             android:minHeight="60dp"
-            android:paddingStart="16dp"
-            android:paddingEnd="12dp"
-            android:paddingTop="24dp"
-            android:paddingBottom="14dp"
-
+            android:paddingStart="@dimen/screen_padding_horizontal"
+            android:paddingEnd="@dimen/screen_padding_horizontal"
+            android:paddingTop="@dimen/screen_padding_top"
+            android:paddingBottom="@dimen/screen_padding_bottom"
             app:title="@string/search_title"
             app:titleTextColor="@color/brand_cream">
 
@@ -39,7 +38,7 @@
                     android:id="@+id/btn_view_list"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="38dp"
+                    android:layout_height="48dp"
                     android:minWidth="0dp"
                     android:paddingStart="14dp"
                     android:paddingEnd="14dp"
@@ -53,7 +52,7 @@
                     android:id="@+id/btn_view_map"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="38dp"
+                    android:layout_height="48dp"
                     android:minWidth="0dp"
                     android:paddingStart="14dp"
                     android:paddingEnd="14dp"
@@ -70,9 +69,9 @@
             style="@style/Widget.ReClaim.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/screen_padding_horizontal"
             android:layout_marginTop="-10dp"
-            android:layout_marginEnd="16dp"
+            android:layout_marginEnd="@dimen/screen_padding_horizontal"
             app:cardElevation="6dp">
 
             <LinearLayout
@@ -131,7 +130,7 @@
                 style="@style/Widget.ReClaim.Chip.Sort"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="20dp"
+                android:layout_marginStart="@dimen/screen_padding_horizontal"
                 android:layout_alignParentStart="true"
                 android:layout_centerVertical="true"
                 android:text="@string/filter_sort_default"
@@ -141,7 +140,7 @@
                 android:id="@+id/fab_add_report"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="20dp"
+                android:layout_marginEnd="@dimen/screen_padding_horizontal"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
                 android:textColor="@color/text_on_accent"
@@ -169,9 +168,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:clipToPadding="false"
-                    android:paddingStart="16dp"
+                    android:paddingStart="@dimen/screen_padding_horizontal"
                     android:paddingTop="8dp"
-                    android:paddingEnd="16dp"
+                    android:paddingEnd="@dimen/screen_padding_horizontal"
                     android:paddingBottom="96dp" />
             </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
@@ -180,8 +179,8 @@
                 android:id="@+id/map_container"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
+                android:paddingStart="@dimen/screen_padding_horizontal"
+                android:paddingEnd="@dimen/screen_padding_horizontal"
                 android:paddingBottom="50dp"
                 android:clipToPadding="false"
                 android:visibility="gone">

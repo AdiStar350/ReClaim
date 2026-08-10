@@ -17,23 +17,13 @@
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/screen_padding_top"
             android:background="@drawable/bg_dashboard_header"
             android:clipChildren="false"
             android:clipToPadding="false"
-            android:paddingTop="60dp"
-            android:paddingBottom="24dp"
-            android:paddingEnd="24dp"
-            android:paddingStart="24dp">
-
-            <View
-                android:layout_width="150dp"
-                android:layout_height="150dp"
-                android:layout_gravity="end"
-                android:layout_marginEnd="-50dp"
-                android:layout_marginTop="-50dp"
-                android:layout_marginBottom="-30dp"
-                android:background="@drawable/bg_header_orb" />
+            android:paddingStart="@dimen/screen_padding_horizontal"
+            android:paddingTop="@dimen/screen_padding_top"
+            android:paddingEnd="@dimen/screen_padding_horizontal"
+            android:paddingBottom="@dimen/screen_padding_bottom">
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -66,8 +56,8 @@
             app:tabIndicatorHeight="3dp"
             app:tabRippleColor="@color/chip_filter_background"
             app:tabSelectedTextColor="@color/brand_dark"
-            app:tabTextColor="@color/brand_slate"
-            app:tabTextAppearance="?attr/textAppearanceLabelLarge" />
+            app:tabTextAppearance="?attr/textAppearanceLabelLarge"
+            app:tabTextColor="@color/brand_slate" />
 
         <!-- List of user's reports -->
         <androidx.recyclerview.widget.RecyclerView

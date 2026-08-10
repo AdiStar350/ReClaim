@@ -26,23 +26,22 @@
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/screen_padding_top"
                 android:background="@drawable/bg_dashboard_header"
                 android:clipChildren="false"
                 android:clipToPadding="false"
-                android:paddingTop="60dp"
-                android:paddingBottom="24dp"
-                android:paddingEnd="24dp"
-                android:paddingStart="24dp">
+                android:paddingTop="@dimen/screen_padding_top"
+                android:paddingBottom="@dimen/screen_padding_bottom"
+                android:paddingEnd="@dimen/screen_padding_horizontal"
+                android:paddingStart="@dimen/screen_padding_horizontal">
 
                 <!-- decorative orb -->
                 <View
                     android:layout_width="150dp"
                     android:layout_height="150dp"
                     android:layout_gravity="end"
-                    android:layout_marginEnd="-50dp"
-                    android:layout_marginTop="-50dp"
-                    android:layout_marginBottom="-30dp"
+                    android:layout_marginEnd="-55dp"
+                    android:layout_marginTop="-45dp"
+                    android:layout_marginBottom="-60dp"
                     android:background="@drawable/bg_header_orb" />
 
                 <LinearLayout

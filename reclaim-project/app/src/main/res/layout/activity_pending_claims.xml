@@ -9,12 +9,13 @@
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar_pending_claims"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
+        android:layout_height="wrap_content"
         android:background="@color/brand_dark"
         app:navigationIcon="@drawable/ic_arrow_back_24"
         app:navigationIconTint="@color/brand_cream"
         app:title="@string/pending_claims_title"
-        app:titleTextColor="@color/brand_cream" />
+        app:titleTextColor="@color/brand_cream"
+        android:paddingTop="60dp" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_pending_claims"

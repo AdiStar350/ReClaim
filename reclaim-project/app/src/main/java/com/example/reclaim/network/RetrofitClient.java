@@ -25,13 +25,8 @@ public final class RetrofitClient {
 
     /**
      * Base URL for the ReClaim backend API.
-     * <p>
-     * {@code 10.0.2.2} is the special alias that the Android emulator
-     * uses to reach the host machine's {@code localhost}. Replace with
-     * your production URL before release.
-     * </p>
      */
-    private static final String BASE_URL = "http://10.0.2.2:8080/";
+    private static final String BASE_URL = "http://10.100.102.33:8080/";
     /** The single Retrofit instance. */
     private static Retrofit retrofit;
 
@@ -39,8 +34,7 @@ public final class RetrofitClient {
     private static ReClaimApiService apiService;
 
     // Prevent instantiation
-    private RetrofitClient() {
-    }
+    private RetrofitClient() { }
 
     /**
      * Returns the singleton {@link Retrofit} instance, creating it on

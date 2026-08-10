@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="screen_padding_horizontal">20dp</dimen>
-    <dimen name="screen_padding_top">-24dp</dimen>
+    <dimen name="screen_padding_top">24dp</dimen>
     <dimen name="screen_padding_bottom">24dp</dimen>
     <dimen name="dashboard_header_radius">24dp</dimen>
     <dimen name="card_radius">20dp</dimen>
