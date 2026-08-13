@@ -6,7 +6,7 @@
     <dimen name="dashboard_header_radius">24dp</dimen>
     <dimen name="card_radius">20dp</dimen>
     <dimen name="item_card_radius">18dp</dimen>
-    <dimen name="bottom_nav_height">56dp</dimen>
+    <dimen name="bottom_nav_height">70dp</dimen>
     <dimen name="auth_hero_height">220dp</dimen>
     <dimen name="button_height">52dp</dimen>
     <dimen name="section_spacing">24dp</dimen>

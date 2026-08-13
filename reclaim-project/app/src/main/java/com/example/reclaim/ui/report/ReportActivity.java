@@ -149,8 +149,10 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                     new ActivityResultContracts.RequestMultiplePermissions(), result -> {
                         boolean fineGranted = Boolean.TRUE.equals(
                                 result.get(Manifest.permission.ACCESS_FINE_LOCATION));
+
                         boolean coarseGranted = Boolean.TRUE.equals(
                                 result.get(Manifest.permission.ACCESS_COARSE_LOCATION));
+
                         if (fineGranted || coarseGranted) {
                             fetchCurrentLocation();
                         } else {
@@ -181,19 +183,23 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         setupSubmitButton();
 
         editingItemId = getIntent().getStringExtra(EXTRA_ITEM_ID);
+
         if (editingItemId != null) {
             if (getSupportActionBar() != null) {
                 getSupportActionBar().setTitle(R.string.report_edit_title);
             }
+
             loadExistingItem(editingItemId);
         }
     }
 
     private void loadExistingItem(String itemId) {
         String authHeader = TokenManager.getAuthHeader(this);
+
         if (authHeader == null) {
             return;
         }
+
         apiService.getItemById(authHeader, itemId).enqueue(new Callback<Item>() {
             @Override
             public void onResponse(@NonNull Call<Item> call, @NonNull Response<Item> response) {
@@ -227,12 +233,14 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         }
 
         existingImageUrl = item.getImageUrl();
+
         if (existingImageUrl != null && !existingImageUrl.isEmpty()) {
             Glide.with(this).load(existingImageUrl).into(binding.imagePreview);
         }
 
         if (item.getLatitude() != null && item.getLongitude() != null) {
             selectedLatLng = new LatLng(item.getLatitude(), item.getLongitude());
+
             if (googleMap != null) {
                 placeMarker(selectedLatLng);
                 googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(selectedLatLng, DEFAULT_ZOOM));
@@ -249,6 +257,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
      */
     private void setupToolbar() {
         setSupportActionBar(binding.toolbarReport);
+
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setDisplayShowHomeEnabled(true);
@@ -266,7 +275,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     private void setupCategoryDropdown() {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 this,
-                android.R.layout.simple_dropdown_item_1line,
+                R.layout.item_dropdown_category,
                 CATEGORIES
         );
         binding.dropdownCategory.setAdapter(adapter);
@@ -329,9 +338,11 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
      */
     private void launchCamera() {
         File imageDir = new File(getCacheDir(), "images");
+
         if (!imageDir.exists()) {
             imageDir.mkdirs();
         }
+
         File imageFile = new File(imageDir, "report_" + System.currentTimeMillis() + ".jpg");
 
         cameraImageUri = FileProvider.getUriForFile(
@@ -346,9 +357,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     /**
      * Launches the system gallery/file picker filtered to images.
      */
-    private void launchGallery() {
-        galleryLauncher.launch("image/*");
-    }
+    private void launchGallery() { galleryLauncher.launch("image/*"); }
 
     /**
      * Loads the given URI into the preview ImageView using Glide and
@@ -378,6 +387,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     private void setupLocationPicker() {
         SupportMapFragment mapFragment = (SupportMapFragment)
                 getSupportFragmentManager().findFragmentById(R.id.map_picker);
+
         if (mapFragment != null) {
             mapFragment.getMapAsync(this);
         }
@@ -607,11 +617,6 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
             binding.inputLayoutLocation.setError(null);
         }
 
-        if (selectedLatLng == null) {
-            binding.inputLayoutLocation.setError("Please pick a location on the map");
-            return;
-        }
-
         String verificationQuestion = binding.editVerification.getText() != null
                 ? binding.editVerification.getText().toString().trim() : "";
         if (TextUtils.isEmpty(verificationQuestion)) {
@@ -629,6 +634,67 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         }
 
         String reportType = binding.chipTypeLost.isChecked() ? "Lost" : "Found";
+
+        if (selectedLatLng != null) {
+            // Coordinates already chosen via map tap / current location.
+            startUpload(authHeader, reportType, title, description,
+                    category, location, verificationQuestion);
+            return;
+        }
+
+        // No map pin — resolve the typed address into coordinates first.
+        setSubmitting(true);
+        uploadExecutor.execute(() -> {
+            LatLng resolved = forwardGeocode(location);
+            runOnUiThread(() -> {
+                if (resolved == null) {
+                    setSubmitting(false);
+                    binding.inputLayoutLocation.setError(
+                            getString(R.string.msg_address_not_found_manual));
+                    return;
+                }
+                binding.inputLayoutLocation.setError(null);
+                placeMarker(resolved);
+                if (googleMap != null) {
+                    googleMap.animateCamera(
+                            CameraUpdateFactory.newLatLngZoom(resolved, DEFAULT_ZOOM));
+                }
+                startUpload(authHeader, reportType, title, description,
+                        category, location, verificationQuestion);
+            });
+        });
+    }
+
+    /**
+     * Converts a user-typed address into coordinates using the {@link Geocoder}.
+     *
+     * @param query the free-form address text
+     * @return the resolved coordinates, or {@code null} if the address could
+     *         not be resolved
+     */
+    @androidx.annotation.Nullable
+    private LatLng forwardGeocode(@NonNull String query) {
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        try {
+            List<Address> results = geocoder.getFromLocationName(query, 1);
+            if (results != null && !results.isEmpty()) {
+                Address address = results.get(0);
+                return new LatLng(address.getLatitude(), address.getLongitude());
+            }
+        } catch (IOException ignored) {
+            // Geocoder unavailable — treated as unresolved
+        }
+        return null;
+    }
+
+    /**
+     * Uploads the image (if any) on a background thread, builds the
+     * {@link Item}, and hands it to the backend. Requires
+     * {@link #selectedLatLng} to be set.
+     */
+    private void startUpload(String authHeader, String reportType, String title,
+                             String description, String category, String location,
+                             String verificationQuestion) {
         setSubmitting(true);
 
         uploadExecutor.execute(() -> {

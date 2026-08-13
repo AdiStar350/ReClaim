@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/brand_dark"
-    android:fitsSystemWindows="true">
+    android:fitsSystemWindows="false">
 
     <FrameLayout
         android:id="@+id/fragment_container"
@@ -25,7 +25,7 @@
         app:elevation="12dp"
         app:labelVisibilityMode="labeled"
         app:menu="@menu/bottom_nav_menu"
-        app:paddingBottomSystemWindowInsets="true"
+        app:paddingBottomSystemWindowInsets="false"
         app:paddingTopSystemWindowInsets="false" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

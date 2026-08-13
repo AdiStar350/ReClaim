@@ -134,6 +134,7 @@
     <string name="msg_fetching_location">Fetching your location…</string>
     <string name="msg_location_not_available">Could not determine your location. Please try again.</string>
     <string name="msg_address_not_found">Could not resolve address for this location</string>
+    <string name="msg_address_not_found_manual">Couldn\'t locate this address — refine it or pick a point on the map</string>
 
     <!-- Item Details Screen -->
     <string name="item_details_title">Item Details</string>

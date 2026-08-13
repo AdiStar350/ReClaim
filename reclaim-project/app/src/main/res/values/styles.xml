@@ -139,7 +139,7 @@
         <item name="android:minHeight">@dimen/bottom_nav_height</item>
         <item name="itemIconSize">22dp</item>
         <item name="itemPaddingTop">8dp</item>
-        <item name="itemPaddingBottom">8dp</item>
+        <item name="itemPaddingBottom">18dp</item>
         <item name="itemTextAppearanceActive">@style/TextAppearance.ReClaim.NavLabel</item>
         <item name="itemTextAppearanceInactive">@style/TextAppearance.ReClaim.NavLabel</item>
     </style>
@@ -151,8 +151,8 @@
     <!-- Bronze pill; active icon/text is brand_white via bottom_nav_item_color.xml -->
     <style name="Widget.ReClaim.BottomNav.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
         <item name="android:color">@color/brand_accent</item>
-        <item name="android:width">56dp</item>
-        <item name="android:height">28dp</item>
+        <item name="android:width">46dp</item>
+        <item name="android:height">32dp</item>
         <item name="marginHorizontal">8dp</item>
         <item name="shapeAppearance">@style/ShapeAppearance.ReClaim.BottomNavIndicator</item>
     </style>

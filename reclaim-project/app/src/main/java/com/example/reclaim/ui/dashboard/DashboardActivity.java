@@ -1,11 +1,15 @@
 package com.example.reclaim.ui.dashboard;
 
 import android.os.Bundle;
+import android.view.ViewGroup;
 
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.reclaim.R;
@@ -35,6 +39,8 @@ public class DashboardActivity extends AppCompatActivity implements DashboardNav
         binding = ActivityDashboardBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        applyWindowInsets();
+
         binding.bottomNavigation.setOnItemSelectedListener(item -> {
             showTab(item.getItemId());
             return true;
@@ -45,6 +51,34 @@ public class DashboardActivity extends AppCompatActivity implements DashboardNav
         } else {
             restoreActiveFragment();
         }
+    }
+
+    /**
+     * Applies system bar insets manually: the bottom navigation is padded so it
+     * rests fully above the system navigation area, and the fragment container
+     * is kept below the status bar and above the (now taller) bottom nav.
+     */
+    private void applyWindowInsets() {
+        int baseNavHeight = getResources().getDimensionPixelSize(R.dimen.bottom_nav_height);
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, windowInsets) -> {
+            Insets systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+
+            // Lift the nav items above the system navigation bar; the dark
+            // background still fills the inset strip behind the system UI.
+            binding.bottomNavigation.setPadding(0, 0, 0, systemBars.bottom);
+
+            // Keep fragment content below the status bar.
+            binding.fragmentContainer.setPadding(0, systemBars.top, 0, 0);
+
+            // Push content above the taller bottom nav.
+            ViewGroup.MarginLayoutParams params =
+                    (ViewGroup.MarginLayoutParams) binding.fragmentContainer.getLayoutParams();
+            params.bottomMargin = baseNavHeight + systemBars.bottom;
+            binding.fragmentContainer.setLayoutParams(params);
+
+            return WindowInsetsCompat.CONSUMED;
+        });
     }
 
     @Override
