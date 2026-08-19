@@ -1,12 +1,14 @@
 package com.example.reclaim.ui.report;
 
 import android.Manifest;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
@@ -37,10 +39,16 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.CancellationTokenSource;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.AutocompletePrediction;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.api.net.FetchPlaceRequest;
+import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -61,6 +69,8 @@ import retrofit2.Response;
  * </p>
  */
 public class ReportActivity extends AppCompatActivity implements OnMapReadyCallback {
+
+    private static final String TAG = "ReportActivity";
 
     public static final String EXTRA_ITEM_ID = "extra_item_id";
 
@@ -92,6 +102,10 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     private Marker currentMarker;
     private FusedLocationProviderClient fusedLocationClient;
     private LatLng selectedLatLng;
+    @androidx.annotation.Nullable
+    private PlacesAutocompleteAdapter placesAdapter;
+    @androidx.annotation.Nullable
+    private PlacesClient placesClient;
     @androidx.annotation.Nullable
     private String editingItemId;
     @androidx.annotation.Nullable
@@ -180,6 +194,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         setupCategoryDropdown();
         setupImageCapture();
         setupLocationPicker();
+        setupReportTypeChips();
         setupSubmitButton();
 
         editingItemId = getIntent().getStringExtra(EXTRA_ITEM_ID);
@@ -223,7 +238,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         binding.editItemTitle.setText(item.getTitle());
         binding.editDescription.setText(item.getDescription());
         binding.dropdownCategory.setText(item.getCategory(), false);
-        binding.editLocation.setText(item.getLocation());
+        binding.editLocation.setText(item.getLocation(), false);
         binding.editVerification.setText(item.getVerificationQuestion());
 
         if ("Lost".equalsIgnoreCase(item.getType())) {
@@ -231,6 +246,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         } else {
             binding.chipTypeFound.setChecked(true);
         }
+        updateVerificationVisibility();
 
         existingImageUrl = item.getImageUrl();
 
@@ -392,6 +408,8 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
             mapFragment.getMapAsync(this);
         }
 
+        setupPlacesAutocomplete();
+
         binding.btnUseCurrentLocation.setOnClickListener(v -> {
             if (hasLocationPermission()) {
                 fetchCurrentLocation();
@@ -402,6 +420,76 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                 });
             }
         });
+    }
+
+    /**
+     * Initializes the Places SDK (reusing the Maps API key from the manifest)
+     * and attaches a live address-suggestion dropdown to the location field.
+     * Selecting a suggestion resolves the place and moves the map marker.
+     * <p>
+     * If no API key is configured, autocomplete is silently skipped — manual
+     * typing with geocoding at submit time still works.
+     * </p>
+     */
+    private void setupPlacesAutocomplete() {
+        String apiKey = readMapsApiKey();
+        if (apiKey == null || apiKey.isEmpty()) {
+            return;
+        }
+
+        if (!Places.isInitialized()) {
+            Places.initialize(getApplicationContext(), apiKey);
+        }
+        placesClient = Places.createClient(this);
+        placesAdapter = new PlacesAutocompleteAdapter(this, placesClient);
+        binding.editLocation.setAdapter(placesAdapter);
+
+        binding.editLocation.setOnItemClickListener((parent, view, position, id) -> {
+            AutocompletePrediction prediction = placesAdapter.getPrediction(position);
+            if (prediction == null || placesClient == null) {
+                return;
+            }
+            binding.inputLayoutLocation.setError(null);
+
+            FetchPlaceRequest request = FetchPlaceRequest.builder(
+                            prediction.getPlaceId(),
+                            Arrays.asList(Place.Field.LAT_LNG, Place.Field.ADDRESS))
+                    .setSessionToken(placesAdapter.getSessionToken())
+                    .build();
+
+            placesClient.fetchPlace(request)
+                    .addOnSuccessListener(response -> {
+                        placesAdapter.resetSessionToken();
+                        LatLng latLng = response.getPlace().getLatLng();
+                        if (latLng != null) {
+                            placeMarker(latLng);
+                            if (googleMap != null) {
+                                googleMap.animateCamera(CameraUpdateFactory
+                                        .newLatLngZoom(latLng, DEFAULT_ZOOM));
+                            }
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        placesAdapter.resetSessionToken();
+                        // Coordinates unresolved — submit-time geocoding will retry
+                    });
+        });
+    }
+
+    /**
+     * Reads the Google Maps API key from the application manifest meta-data.
+     */
+    @androidx.annotation.Nullable
+    private String readMapsApiKey() {
+        try {
+            ApplicationInfo info = getPackageManager().getApplicationInfo(
+                    getPackageName(), PackageManager.GET_META_DATA);
+            return info.metaData != null
+                    ? info.metaData.getString("com.google.android.geo.API_KEY")
+                    : null;
+        } catch (PackageManager.NameNotFoundException e) {
+            return null;
+        }
     }
 
     /**
@@ -542,7 +630,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                 }
                 String addressText = sb.toString();
 
-                binding.editLocation.setText(addressText);
+                binding.editLocation.setText(addressText, false);
 
                 // Update the marker snippet with the address
                 if (currentMarker != null) {
@@ -551,7 +639,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
             } else {
                 binding.editLocation.setText(
                         String.format(Locale.US, "%.6f, %.6f",
-                                latLng.latitude, latLng.longitude));
+                                latLng.latitude, latLng.longitude), false);
                 Toast.makeText(this,
                         R.string.msg_address_not_found,
                         Toast.LENGTH_SHORT).show();
@@ -560,8 +648,34 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
             // Geocoder service unavailable — fall back to raw coordinates
             binding.editLocation.setText(
                     String.format(Locale.US, "%.6f, %.6f",
-                            latLng.latitude, latLng.longitude));
+                            latLng.latitude, latLng.longitude), false);
         }
+    }
+
+    // ═════════════════════════════════════════════════════════════════════
+    //  REPORT TYPE (Lost / Found)
+    // ═════════════════════════════════════════════════════════════════════
+
+    /**
+     * Shows the verification-question card only for Found reports.
+     * Lost reports do not collect a verification question.
+     */
+    private void setupReportTypeChips() {
+        binding.chipGroupReportType.setOnCheckedStateChangeListener(
+                (group, checkedIds) -> updateVerificationVisibility());
+        updateVerificationVisibility();
+    }
+
+    private void updateVerificationVisibility() {
+        boolean isLost = binding.chipTypeLost.isChecked();
+        binding.cardVerification.setVisibility(isLost ? View.GONE : View.VISIBLE);
+        if (isLost) {
+            binding.inputLayoutVerification.setError(null);
+        }
+    }
+
+    private boolean isLostReport() {
+        return binding.chipTypeLost.isChecked();
     }
 
     // ═════════════════════════════════════════════════════════════════════
@@ -617,13 +731,19 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
             binding.inputLayoutLocation.setError(null);
         }
 
-        String verificationQuestion = binding.editVerification.getText() != null
-                ? binding.editVerification.getText().toString().trim() : "";
-        if (TextUtils.isEmpty(verificationQuestion)) {
-            binding.inputLayoutVerification.setError("Please enter a verification question");
-            return;
+        final String verificationQuestion;
+        if (!isLostReport()) {
+            String question = binding.editVerification.getText() != null
+                    ? binding.editVerification.getText().toString().trim() : "";
+            if (TextUtils.isEmpty(question)) {
+                binding.inputLayoutVerification.setError("Please enter a verification question");
+                return;
+            }
+            binding.inputLayoutVerification.setError(null);
+            verificationQuestion = question;
         } else {
             binding.inputLayoutVerification.setError(null);
+            verificationQuestion = "";
         }
 
         String authHeader = TokenManager.getAuthHeader(this);
@@ -713,10 +833,13 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                     imageUrl = ImageUploadService.uploadImage(
                             getApplicationContext(), selectedImageUri, userId);
                 } catch (IOException e) {
+                    Log.e(TAG, "Firebase image upload failed uri=" + selectedImageUri, e);
+                    String detail = e.getMessage() != null
+                            ? e.getMessage()
+                            : getString(R.string.msg_image_upload_failed);
                     runOnUiThread(() -> {
                         setSubmitting(false);
-                        Toast.makeText(this,
-                                R.string.msg_image_upload_failed, Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, detail, Toast.LENGTH_LONG).show();
                     });
                     return;
                 }

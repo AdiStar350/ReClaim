@@ -84,10 +84,12 @@ dependencies {
     // Google Maps & Location
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location)
+    implementation(libs.places)
 
-    // Firebase Storage
+    // Firebase Storage (images) + Auth (anonymous session for Storage rules)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.storage)
+    implementation(libs.firebase.auth)
 
     // Testing
     testImplementation(libs.junit)

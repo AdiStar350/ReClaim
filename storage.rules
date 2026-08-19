@@ -1,0 +1,13 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Item photos. The Android app authenticates with a Spring JWT, not
+    // Firebase Auth, so this path cannot require request.auth.
+    // Writes are limited to items/{userId}/{fileName} under 5 MB.
+    match /items/{userId}/{fileName} {
+      allow read: if true;
+      allow create, update: if request.resource.size < 5 * 1024 * 1024;
+      allow delete: if false;
+    }
+  }
+}

@@ -119,7 +119,7 @@
     <string name="hint_item_title">Item Title</string>
     <string name="hint_item_description">Description</string>
     <string name="hint_item_category">Category</string>
-    <string name="hint_item_location">Location Found</string>
+    <string name="hint_item_location">Location</string>
     <string name="hint_verification_question">Verification Question (hidden from public)</string>
     <string name="hint_verification_hint">e.g., What is the lock screen wallpaper?</string>
     <string name="btn_take_photo">Take Photo</string>

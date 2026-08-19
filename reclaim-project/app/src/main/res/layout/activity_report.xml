@@ -236,12 +236,16 @@
                         app:endIconDrawable="@android:drawable/ic_dialog_map"
                         app:endIconMode="custom">
 
-                        <com.google.android.material.textfield.TextInputEditText
+                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
                             android:id="@+id/edit_location"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:completionThreshold="3"
                             android:imeOptions="actionDone"
-                            android:inputType="textPostalAddress|textCapSentences" />
+                            android:inputType="textPostalAddress|textCapSentences"
+                            android:popupBackground="@color/md_theme_surfaceContainerLowest"
+                            android:textColor="@color/text_primary"
+                            android:paddingStart="15dp" />
 
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -290,6 +294,7 @@
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_verification"
                 style="@style/Widget.ReClaim.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
