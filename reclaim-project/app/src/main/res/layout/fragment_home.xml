@@ -89,7 +89,7 @@
                             android:layout_height="match_parent"
                             android:contentDescription="@string/profile_title"
                             android:padding="12dp"
-                            android:src="@android:drawable/ic_menu_myplaces"
+                            android:src="@drawable/ic_settings_person"
                             app:tint="@color/brand_white" />
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
@@ -137,7 +137,8 @@
                 android:fadingEdgeLength="48dp"
                 android:nestedScrollingEnabled="false"
                 android:orientation="horizontal"
-                android:paddingEnd="8dp"
+                android:paddingEnd="@dimen/screen_padding_horizontal"
+                android:paddingStart="@dimen/screen_padding_horizontal"
                 android:requiresFadingEdge="horizontal"
                 tools:itemCount="4"
                 tools:listitem="@layout/item_card_preview" />
@@ -160,8 +161,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/button_height"
                 android:layout_marginTop="14dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginEnd="24dp"
                 android:text="@string/btn_show_more"
-                android:visibility="gone" />
+                android:visibility="visible" />
 
             <!-- Section: Possible matches -->
             <LinearLayout
