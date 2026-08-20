@@ -1,12 +1,18 @@
 package com.example.reclaim.ui.dashboard;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.ViewGroup;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -14,6 +20,7 @@ import androidx.fragment.app.Fragment;
 
 import com.example.reclaim.R;
 import com.example.reclaim.databinding.ActivityDashboardBinding;
+import com.example.reclaim.notifications.FcmTokenRegistrar;
 import com.example.reclaim.ui.myitems.MyItemsFragment;
 import com.example.reclaim.ui.profile.ProfileSettingsFragment;
 import com.example.reclaim.ui.search.SearchFragment;
@@ -32,6 +39,11 @@ public class DashboardActivity extends AppCompatActivity implements DashboardNav
     @Nullable
     private Fragment activeFragment;
 
+    /** Asks for POST_NOTIFICATIONS on Android 13+; pushes are silent if denied. */
+    private final ActivityResultLauncher<String> notificationPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(),
+                    granted -> { /* no-op: system respects the user's choice */ });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,6 +52,8 @@ public class DashboardActivity extends AppCompatActivity implements DashboardNav
         setContentView(binding.getRoot());
 
         applyWindowInsets();
+        requestNotificationPermissionIfNeeded();
+        FcmTokenRegistrar.register(this);
 
         binding.bottomNavigation.setOnItemSelectedListener(item -> {
             showTab(item.getItemId());
@@ -79,6 +93,16 @@ public class DashboardActivity extends AppCompatActivity implements DashboardNav
 
             return WindowInsetsCompat.CONSUMED;
         });
+    }
+
+    private void requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+        }
     }
 
     @Override

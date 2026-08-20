@@ -1,35 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/md_theme_background"
-    android:fillViewport="true">
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    android:overScrollMode="never">
+
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingBottom="32dp">
+        android:orientation="vertical">
 
-        <!-- ── User profile header (dark background) ── -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_dashboard_header"
-            android:paddingStart="24dp"
-            android:paddingTop="24dp"
-            android:paddingEnd="24dp"
-            android:paddingBottom="28dp">
-
-            <!-- Decorative orb -->
-            <View
-                android:layout_width="88dp"
-                android:layout_height="88dp"
-                android:layout_gravity="bottom|end"
-                android:layout_marginEnd="-14dp"
-                android:layout_marginBottom="-26dp"
-                android:background="@drawable/bg_header_orb" />
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:paddingTop="@dimen/screen_padding_top"
+            android:paddingBottom="@dimen/screen_padding_bottom"
+            android:paddingEnd="@dimen/screen_padding_horizontal"
+            android:paddingStart="@dimen/screen_padding_horizontal">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -37,297 +32,351 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <!-- Avatar circle -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    app:cardBackgroundColor="#28F7F5F0"
-                    app:cardCornerRadius="32dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="#50F7F5F0"
-                    app:strokeWidth="1.5dp">
-
-                    <ImageView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:contentDescription="@string/profile_title"
-                        android:padding="16dp"
-                        android:src="@android:drawable/ic_menu_myplaces"
-                        app:tint="@color/brand_white" />
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Name + email -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
                     <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/text_user_display_name"
+                        android:id="@+id/text_greeting"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/profile_title"
+                        android:text="@string/profile_settings_title"
                         android:textAppearance="@style/TextAppearance.ReClaim.DashboardTitle" />
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/text_user_display_email"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:textAppearance="@style/TextAppearance.ReClaim.HeroSubtitle" />
                 </LinearLayout>
             </LinearLayout>
         </FrameLayout>
 
-        <!-- ════════════════════════════════════════
-             Section: Personal Info
-        ════════════════════════════════════════ -->
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/screen_padding_horizontal"
-            android:layout_marginTop="24dp"
-            android:layout_marginEnd="@dimen/screen_padding_horizontal"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:paddingStart="@dimen/screen_padding_horizontal"
+            android:paddingTop="@dimen/screen_padding_top"
+            android:paddingEnd="@dimen/screen_padding_horizontal"
+            android:paddingBottom="32dp">
 
-            <View
-                android:layout_width="4dp"
-                android:layout_height="20dp"
-                android:background="@color/brand_accent" />
-
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:text="@string/profile_section_personal"
-                android:textAppearance="@style/TextAppearance.ReClaim.SectionTitle" />
-        </LinearLayout>
-
-        <com.google.android.material.card.MaterialCardView
-            style="@style/Widget.ReClaim.Card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/screen_padding_horizontal"
-            android:layout_marginTop="12dp"
-            android:layout_marginEnd="@dimen/screen_padding_horizontal">
-
-            <LinearLayout
+            <!-- ── Profile identity card ── -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_profile"
+                style="@style/Widget.ReClaim.SettingsCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/input_layout_name"
-                    style="@style/Widget.ReClaim.TextInput"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="@string/hint_profile_name"
-                    app:startIconDrawable="@android:drawable/ic_menu_myplaces">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/edit_name"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="textPersonName"
-                        android:textColor="@color/text_primary" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/input_layout_email"
-                    style="@style/Widget.ReClaim.TextInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:hint="@string/hint_email"
-                    app:startIconDrawable="@android:drawable/ic_dialog_email">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/edit_email"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="textEmailAddress"
-                        android:textColor="@color/text_primary" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/input_layout_phone"
-                    style="@style/Widget.ReClaim.TextInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:hint="@string/hint_profile_phone"
-                    app:startIconDrawable="@android:drawable/ic_menu_call">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/edit_phone"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="phone"
-                        android:textColor="@color/text_primary" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_save_profile"
-                    style="@style/Widget.ReClaim.Button.Primary"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/button_height"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/btn_save_profile" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- ════════════════════════════════════════
-             Section: Account
-        ════════════════════════════════════════ -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/screen_padding_horizontal"
-            android:layout_marginTop="28dp"
-            android:layout_marginEnd="@dimen/screen_padding_horizontal"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <View
-                android:layout_width="4dp"
-                android:layout_height="20dp"
-                android:background="@color/brand_accent" />
-
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:text="@string/profile_section_account"
-                android:textAppearance="@style/TextAppearance.ReClaim.SectionTitle" />
-        </LinearLayout>
-
-        <com.google.android.material.card.MaterialCardView
-            style="@style/Widget.ReClaim.Card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/screen_padding_horizontal"
-            android:layout_marginTop="12dp"
-            android:layout_marginEnd="@dimen/screen_padding_horizontal">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingStart="4dp"
-                android:paddingTop="6dp"
-                android:paddingEnd="4dp"
-                android:paddingBottom="6dp">
-
-                <!-- Review pending claims row -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_review_claims"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:gravity="start|center_vertical"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
                     android:paddingStart="16dp"
-                    android:text="@string/btn_review_pending_claims"
-                    android:textColor="@color/text_primary" />
+                    android:paddingTop="16dp"
+                    android:paddingEnd="12dp"
+                    android:paddingBottom="16dp">
 
-                <com.google.android.material.divider.MaterialDivider
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginEnd="16dp" />
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        app:cardBackgroundColor="@color/md_theme_primaryContainer"
+                        app:cardCornerRadius="26dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp">
 
-                <!-- Log out row -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_logout"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:gravity="start|center_vertical"
-                    android:paddingStart="16dp"
-                    android:text="@string/btn_logout"
-                    android:textColor="@color/brand_accent" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:contentDescription="@string/cd_profile_avatar"
+                            android:padding="12dp"
+                            android:src="@drawable/ic_settings_person"
+                            app:tint="@color/brand_dark" />
+                    </com.google.android.material.card.MaterialCardView>
 
-        <!-- ════════════════════════════════════════
-             Section: Danger Zone
-        ════════════════════════════════════════ -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/screen_padding_horizontal"
-            android:layout_marginTop="28dp"
-            android:layout_marginEnd="@dimen/screen_padding_horizontal"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
 
-            <View
-                android:layout_width="4dp"
-                android:layout_height="20dp"
-                android:background="@color/type_lost" />
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/text_user_display_name"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textAppearance="@style/TextAppearance.ReClaim.SectionTitle"
+                            tools:text="Alex Morgan" />
 
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:text="@string/danger_zone_title"
-                android:textAppearance="@style/TextAppearance.ReClaim.SectionTitle"
-                android:textColor="@color/type_lost" />
-        </LinearLayout>
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/text_user_display_email"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textAppearance="@style/TextAppearance.ReClaim.BodySecondary"
+                            tools:text="alex@example.com" />
+                    </LinearLayout>
 
-        <com.google.android.material.card.MaterialCardView
-            style="@style/Widget.ReClaim.Card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/screen_padding_horizontal"
-            android:layout_marginTop="12dp"
-            android:layout_marginEnd="@dimen/screen_padding_horizontal"
-            app:strokeColor="@color/status_closed_bg"
-            app:strokeWidth="1dp">
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:contentDescription="@string/cd_navigate"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="@color/text_hint" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
+            <!-- ── Account ── -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="12dp">
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="22dp"
+                    android:background="@color/brand_accent"
+                    android:backgroundTint="@color/brand_accent" />
 
                 <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:text="@string/profile_section_account"
+                    android:textAppearance="@style/TextAppearance.ReClaim.SectionTitle" />
+            </LinearLayout>
+
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.ReClaim.SettingsCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/delete_account_warning"
-                    android:textAppearance="?attr/textAppearanceBodySmall"
-                    android:textColor="@color/text_secondary" />
+                    android:orientation="vertical">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_delete_account"
-                    style="@style/Widget.ReClaim.Button.Destructive"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/button_height"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/btn_delete_account" />
+                    <LinearLayout
+                        android:id="@+id/row_personal_info"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="12dp">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_settings_person"
+                            app:tint="@color/text_primary" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="16dp"
+                            android:layout_weight="1"
+                            android:text="@string/profile_section_personal"
+                            android:textAppearance="?attr/textAppearanceBodyLarge"
+                            android:textColor="@color/text_primary" />
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:contentDescription="@string/cd_navigate"
+                            android:src="@drawable/ic_chevron_right"
+                            app:tint="@color/text_hint" />
+                    </LinearLayout>
+
+                    <com.google.android.material.divider.MaterialDivider
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="54dp"
+                        app:dividerColor="@color/md_theme_outlineVariant" />
+
+                    <LinearLayout
+                        android:id="@+id/row_pending_claims"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="12dp">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_settings_claims"
+                            app:tint="@color/text_primary" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="16dp"
+                            android:layout_weight="1"
+                            android:text="@string/btn_review_pending_claims"
+                            android:textAppearance="?attr/textAppearanceBodyLarge"
+                            android:textColor="@color/text_primary" />
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:contentDescription="@string/cd_navigate"
+                            android:src="@drawable/ic_chevron_right"
+                            app:tint="@color/text_hint" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ── Other ── -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="12dp">
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="22dp"
+                    android:background="@color/brand_accent"
+                    android:backgroundTint="@color/brand_accent" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:text="@string/settings_section_other"
+                    android:textAppearance="@style/TextAppearance.ReClaim.SectionTitle" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
 
-        <!-- App version -->
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/text_app_version"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:gravity="center"
-            android:textAppearance="?attr/textAppearanceBodySmall"
-            android:textColor="@color/text_hint" />
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.ReClaim.SettingsCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-        <ProgressBar
-            android:id="@+id/progress"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="12dp"
-            android:indeterminateTint="@color/brand_accent"
-            android:visibility="gone" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/row_logout"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="12dp">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_settings_logout"
+                            app:tint="@color/text_primary" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="16dp"
+                            android:layout_weight="1"
+                            android:text="@string/btn_logout"
+                            android:textAppearance="?attr/textAppearanceBodyLarge"
+                            android:textColor="@color/text_primary" />
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:contentDescription="@string/cd_navigate"
+                            android:src="@drawable/ic_chevron_right"
+                            app:tint="@color/text_hint" />
+                    </LinearLayout>
+
+                    <com.google.android.material.divider.MaterialDivider
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="54dp"
+                        app:dividerColor="@color/md_theme_outlineVariant" />
+
+                    <LinearLayout
+                        android:id="@+id/row_delete_account"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="12dp">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_settings_delete"
+                            app:tint="@color/type_lost" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="16dp"
+                            android:layout_weight="1"
+                            android:text="@string/btn_delete_account"
+                            android:textAppearance="?attr/textAppearanceBodyLarge"
+                            android:textColor="@color/type_lost" />
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:contentDescription="@string/cd_navigate"
+                            android:src="@drawable/ic_chevron_right"
+                            app:tint="@color/type_lost" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/text_app_version"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:gravity="center"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="@color/text_hint" />
+
+            <ProgressBar
+                android:id="@+id/progress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="12dp"
+                android:indeterminateTint="@color/brand_accent"
+                android:visibility="gone" />
+        </LinearLayout>
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

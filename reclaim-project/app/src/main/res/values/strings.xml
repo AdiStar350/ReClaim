@@ -69,10 +69,14 @@
     <string name="msg_report_submitted">Report submitted successfully!</string>
 
     <!-- Profile & Settings -->
-    <string name="profile_settings_title">Profile &amp; Settings</string>
+    <string name="profile_settings_title">Settings</string>
     <string name="settings_section">Settings</string>
+    <string name="settings_section_other">Other</string>
     <string name="profile_section_personal">Personal Info</string>
     <string name="profile_section_account">Account</string>
+    <string name="edit_profile_title">Personal Info</string>
+    <string name="cd_profile_avatar">Profile photo</string>
+    <string name="cd_navigate">Open</string>
     <string name="danger_zone_title">Danger zone</string>
     <string name="delete_account_warning">Deleting your account removes all your reports and claims permanently.</string>
     <string name="btn_delete_account">Delete account</string>
@@ -115,6 +119,17 @@
     <string name="type_lost">Lost</string>
     <string name="msg_submitting_report">Submitting report…</string>
     <string name="msg_report_failed">Failed to submit report. Please try again.</string>
+    <string name="msg_report_saved_offline">No internet connection. Your report was saved and will be sent automatically when you are back online.</string>
+
+    <!-- Notifications -->
+    <string name="notif_channel_matches">Item matches</string>
+    <string name="notif_channel_matches_desc">Alerts when a reported item matches one of your reports</string>
+    <string name="notif_channel_claims">Ownership claims</string>
+    <string name="notif_channel_claims_desc">Alerts when someone claims an item you reported</string>
+    <string name="notif_channel_sync">Report sync</string>
+    <string name="notif_channel_sync_desc">Confirms when offline reports reach the server</string>
+    <string name="notif_report_synced_title">Report submitted</string>
+    <string name="notif_report_synced_body">Back online — your report \"%1$s\" was sent to the server.</string>
     <string name="msg_image_upload_failed">Failed to upload image. Check your connection.</string>
     <string name="hint_item_title">Item Title</string>
     <string name="hint_item_description">Description</string>

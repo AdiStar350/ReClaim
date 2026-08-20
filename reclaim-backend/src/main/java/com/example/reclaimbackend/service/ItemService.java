@@ -1,8 +1,12 @@
 package com.example.reclaimbackend.service;
 
 import com.example.reclaimbackend.model.Item;
+import com.example.reclaimbackend.model.User;
 import com.example.reclaimbackend.repository.ItemRepository;
+import com.example.reclaimbackend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -15,8 +19,10 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Service layer for item management operations.
@@ -29,8 +35,12 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ItemService {
 
+    private static final Logger log = LoggerFactory.getLogger(ItemService.class);
+
     private final ItemRepository itemRepository;
     private final MongoTemplate mongoTemplate;
+    private final UserRepository userRepository;
+    private final PushNotificationService pushNotificationService;
 
     /**
      * Retrieves all items from the database.
@@ -85,7 +95,48 @@ public class ItemService {
         if (item.getReportedAt() == null) {
             item.setReportedAt(Instant.now());
         }
-        return itemRepository.save(item);
+        Item saved = itemRepository.save(item);
+        notifyOwnersOfPotentialMatches(saved);
+        return saved;
+    }
+
+    /**
+     * Pushes an {@code ITEM_MATCH} notification to owners of open,
+     * opposite-type items in the same category whose titles overlap the
+     * newly created report. Never fails item creation.
+     */
+    private void notifyOwnersOfPotentialMatches(Item newItem) {
+        try {
+            if (newItem.getCategory() == null || newItem.getType() == null) {
+                return;
+            }
+            String oppositeType = "LOST".equalsIgnoreCase(newItem.getType())
+                    ? "FOUND" : "LOST";
+
+            Set<String> notifiedOwners = new HashSet<>();
+            for (Item candidate : itemRepository.findByCategory(newItem.getCategory())) {
+                if (!oppositeType.equalsIgnoreCase(candidate.getType())) {
+                    continue;
+                }
+                if (!"OPEN".equalsIgnoreCase(candidate.getStatus())) {
+                    continue;
+                }
+                if (candidate.getOwnerId() == null
+                        || candidate.getOwnerId().equals(newItem.getOwnerId())
+                        || !notifiedOwners.add(candidate.getOwnerId())) {
+                    continue;
+                }
+                if (titleOverlapScore(candidate.getTitle(), newItem.getTitle()) < 1) {
+                    continue;
+                }
+                Optional<User> owner = userRepository.findById(candidate.getOwnerId());
+                owner.ifPresent(user ->
+                        pushNotificationService.notifyItemMatch(user, candidate, newItem));
+            }
+        } catch (Exception e) {
+            log.warn("Match notification failed for new item {}: {}",
+                    newItem.getId(), e.getMessage());
+        }
     }
 
     /**

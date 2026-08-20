@@ -22,12 +22,14 @@ import androidx.core.content.FileProvider;
 
 import com.bumptech.glide.Glide;
 import com.example.reclaim.R;
+import com.example.reclaim.data.PendingReportStore;
 import com.example.reclaim.databinding.ActivityReportBinding;
 import com.example.reclaim.model.Item;
 import com.example.reclaim.network.ReClaimApiService;
 import com.example.reclaim.network.RetrofitClient;
 import com.example.reclaim.network.TokenManager;
 import com.example.reclaim.storage.ImageUploadService;
+import com.example.reclaim.sync.NetworkMonitor;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
@@ -768,6 +770,15 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
             LatLng resolved = forwardGeocode(location);
             runOnUiThread(() -> {
                 if (resolved == null) {
+                    if (editingItemId == null && !NetworkMonitor.isOnline(this)) {
+                        // Geocoder needs network. Queue the report with the
+                        // typed address; coordinates stay empty until sync.
+                        uploadExecutor.execute(() -> saveReportOffline(
+                                reportType, title, description, category,
+                                location, verificationQuestion,
+                                TokenManager.getUserId(ReportActivity.this)));
+                        return;
+                    }
                     setSubmitting(false);
                     binding.inputLayoutLocation.setError(
                             getString(R.string.msg_address_not_found_manual));
@@ -818,22 +829,37 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         setSubmitting(true);
 
         uploadExecutor.execute(() -> {
+            String userId = TokenManager.getUserId(ReportActivity.this);
+
+            // Offline-first: when creating a new report without connectivity,
+            // cache it locally and let the background worker sync it later.
+            if (editingItemId == null && !NetworkMonitor.isOnline(this)) {
+                saveReportOffline(reportType, title, description, category,
+                        location, verificationQuestion, userId);
+                return;
+            }
+
             String imageUrl = null;
             if (selectedImageUri != null) {
+                if (userId == null) {
+                    runOnUiThread(() -> {
+                        setSubmitting(false);
+                        Toast.makeText(this,
+                                R.string.msg_report_failed, Toast.LENGTH_SHORT).show();
+                    });
+                    return;
+                }
                 try {
-                    String userId = TokenManager.getUserId(ReportActivity.this);
-                    if (userId == null) {
-                        runOnUiThread(() -> {
-                            setSubmitting(false);
-                            Toast.makeText(this,
-                                    R.string.msg_report_failed, Toast.LENGTH_SHORT).show();
-                        });
-                        return;
-                    }
                     imageUrl = ImageUploadService.uploadImage(
                             getApplicationContext(), selectedImageUri, userId);
                 } catch (IOException e) {
                     Log.e(TAG, "Firebase image upload failed uri=" + selectedImageUri, e);
+                    if (editingItemId == null && !NetworkMonitor.isOnline(this)) {
+                        // Connection dropped mid-submit — fall back to the queue.
+                        saveReportOffline(reportType, title, description, category,
+                                location, verificationQuestion, userId);
+                        return;
+                    }
                     String detail = e.getMessage() != null
                             ? e.getMessage()
                             : getString(R.string.msg_image_upload_failed);
@@ -845,20 +871,67 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                 }
             }
 
-            Item item = new Item();
-            item.setTitle(title);
-            item.setDescription(description);
-            item.setCategory(category);
-            item.setLocation(location);
-            item.setType(reportType);
-            item.setVerificationQuestion(verificationQuestion);
-            item.setImageUrl(imageUrl != null ? imageUrl : existingImageUrl);
-            item.setLatitude(selectedLatLng.latitude);
-            item.setLongitude(selectedLatLng.longitude);
+            Item item = buildItem(reportType, title, description, category,
+                    location, verificationQuestion,
+                    imageUrl != null ? imageUrl : existingImageUrl);
 
             String finalImageUrl = imageUrl != null ? imageUrl : existingImageUrl;
             runOnUiThread(() -> submitItemToBackend(authHeader, item, finalImageUrl));
         });
+    }
+
+    /**
+     * Builds the {@link Item} payload from validated form fields. Coordinates
+     * are taken from {@link #selectedLatLng} when a pin was placed; queued
+     * offline reports may carry none until sync.
+     */
+    private Item buildItem(String reportType, String title, String description,
+                           String category, String location,
+                           String verificationQuestion,
+                           @androidx.annotation.Nullable String imageUrl) {
+        Item item = new Item();
+        item.setTitle(title);
+        item.setDescription(description);
+        item.setCategory(category);
+        item.setLocation(location);
+        item.setType(reportType);
+        item.setVerificationQuestion(verificationQuestion);
+        item.setImageUrl(imageUrl);
+        if (selectedLatLng != null) {
+            item.setLatitude(selectedLatLng.latitude);
+            item.setLongitude(selectedLatLng.longitude);
+        }
+        return item;
+    }
+
+    /**
+     * Persists the report to the local queue (with a private copy of the
+     * selected photo) so the sync worker can push it once connectivity
+     * returns. Runs on the upload executor.
+     */
+    private void saveReportOffline(String reportType, String title,
+                                   String description, String category,
+                                   String location, String verificationQuestion,
+                                   @androidx.annotation.Nullable String userId) {
+        Item item = buildItem(reportType, title, description, category,
+                location, verificationQuestion, existingImageUrl);
+        try {
+            PendingReportStore.enqueue(
+                    getApplicationContext(), item, selectedImageUri, userId);
+            runOnUiThread(() -> {
+                setSubmitting(false);
+                Toast.makeText(this,
+                        R.string.msg_report_saved_offline, Toast.LENGTH_LONG).show();
+                finish();
+            });
+        } catch (IOException e) {
+            Log.e(TAG, "Could not save report offline", e);
+            runOnUiThread(() -> {
+                setSubmitting(false);
+                Toast.makeText(this,
+                        R.string.msg_report_failed, Toast.LENGTH_SHORT).show();
+            });
+        }
     }
 
     private void submitItemToBackend(String authHeader, Item item, String imageUrl) {
@@ -884,6 +957,33 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
 
             @Override
             public void onFailure(@NonNull Call<Item> call, @NonNull Throwable t) {
+                // Network dropped between validation and POST — queue new
+                // reports locally instead of failing.
+                if (editingItemId == null && !NetworkMonitor.isOnline(ReportActivity.this)) {
+                    Log.w(TAG, "Create failed offline; queueing report locally", t);
+                    uploadExecutor.execute(() -> {
+                        try {
+                            PendingReportStore.enqueue(
+                                    getApplicationContext(), item, selectedImageUri,
+                                    TokenManager.getUserId(ReportActivity.this));
+                            runOnUiThread(() -> {
+                                setSubmitting(false);
+                                Toast.makeText(ReportActivity.this,
+                                        R.string.msg_report_saved_offline,
+                                        Toast.LENGTH_LONG).show();
+                                finish();
+                            });
+                        } catch (IOException e) {
+                            Log.e(TAG, "Could not queue report after failure", e);
+                            runOnUiThread(() -> {
+                                setSubmitting(false);
+                                Toast.makeText(ReportActivity.this,
+                                        R.string.msg_report_failed, Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    });
+                    return;
+                }
                 setSubmitting(false);
                 Toast.makeText(ReportActivity.this,
                         R.string.msg_report_failed, Toast.LENGTH_SHORT).show();

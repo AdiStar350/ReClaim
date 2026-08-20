@@ -1,6 +1,7 @@
 package com.example.reclaimbackend.controller;
 
 import com.example.reclaimbackend.dto.DeleteAccountRequest;
+import com.example.reclaimbackend.dto.FcmTokenRequest;
 import com.example.reclaimbackend.dto.UpdateProfileRequest;
 import com.example.reclaimbackend.dto.UserResponse;
 import com.example.reclaimbackend.service.UserService;
@@ -37,6 +38,15 @@ public class UserController {
             Authentication authentication) {
         String userId = authentication.getName();
         return ResponseEntity.ok(userService.updateProfile(userId, request));
+    }
+
+    @PutMapping("/me/fcm-token")
+    public ResponseEntity<Void> updateFcmToken(
+            @Valid @RequestBody FcmTokenRequest request,
+            Authentication authentication) {
+        String userId = authentication.getName();
+        userService.updateFcmToken(userId, request.getToken());
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/me")

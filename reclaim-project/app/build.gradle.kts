@@ -86,10 +86,18 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.places)
 
-    // Firebase Storage (images) + Auth (anonymous session for Storage rules)
+    // Firebase: Storage (images), Auth (anonymous session), Messaging (push)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.storage)
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.messaging)
+
+    // Room (offline report queue)
+    implementation(libs.room.runtime)
+    annotationProcessor(libs.room.compiler)
+
+    // WorkManager (background sync when connectivity returns)
+    implementation(libs.work.runtime)
 
     // Testing
     testImplementation(libs.junit)

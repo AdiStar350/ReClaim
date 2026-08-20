@@ -36,4 +36,7 @@ public class User {
 
     private String phoneNumber;
 
+    /** Device FCM registration token for push notifications (nullable). */
+    private String fcmToken;
+
 }

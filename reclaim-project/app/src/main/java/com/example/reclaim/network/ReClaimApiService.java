@@ -157,6 +157,15 @@ public interface ReClaimApiService {
             @Header("Authorization") String authHeader,
             @Body UpdateProfileRequest request);
 
+    /**
+     * Registers the device's FCM token so the backend can send push
+     * notifications (item matches, claim reviews) to this user.
+     */
+    @PUT("api/users/me/fcm-token")
+    Call<Void> updateFcmToken(
+            @Header("Authorization") String authHeader,
+            @Body FcmTokenRequest request);
+
     @retrofit2.http.DELETE("api/users/me")
     Call<Void> deleteAccount(
             @Header("Authorization") String authHeader,

@@ -63,6 +63,15 @@ public class UserService {
     }
 
     /**
+     * Stores the device FCM token used to push notifications to this user.
+     */
+    public void updateFcmToken(String userId, String fcmToken) {
+        User user = getUserEntity(userId);
+        user.setFcmToken(fcmToken);
+        userRepository.save(user);
+    }
+
+    /**
      * Permanently deletes the user after validating name and password.
      * Also removes the user's items and claims.
      */

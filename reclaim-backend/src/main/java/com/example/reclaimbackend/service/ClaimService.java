@@ -33,9 +33,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClaimService {
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(ClaimService.class);
+
     private final ClaimRepository claimRepository;
     private final ItemRepository itemRepository;
     private final UserService userService;
+    private final PushNotificationService pushNotificationService;
 
     // ═════════════════════════════════════════════════════════════════════
     //  SUBMIT CLAIM
@@ -86,8 +90,21 @@ public class ClaimService {
             .status("PENDING")
             .build();
 
+        Claim saved = claimRepository.save(claim);
 
-        return claimRepository.save(claim);
+        // 5. Push a CLAIM_PENDING notification to the item's owner.
+        //    Failures are logged and never block claim submission.
+        try {
+            if (pushNotificationService != null && item.getOwnerId() != null) {
+                User owner = userService.getUserEntity(item.getOwnerId());
+                pushNotificationService.notifyClaimPending(owner, item);
+            }
+        } catch (Exception e) {
+            log.warn("Claim notification failed for item {}: {}",
+                    item.getId(), e.getMessage());
+        }
+
+        return saved;
     }
 
     // ═════════════════════════════════════════════════════════════════════
