@@ -81,9 +81,13 @@ public class MyReportAdapter extends RecyclerView.Adapter<MyReportAdapter.ViewHo
             // White text on dark red/green for sufficient contrast
             binding.chipType.setTextColor(context.getColor(R.color.text_on_accent));
 
+            // Only the dedicated buttons act on the report; the card itself
+            // is intentionally not clickable so a stray tap can't open the
+            // edit form.
             binding.btnEdit.setOnClickListener(v -> listener.onEdit(item));
             binding.btnDelete.setOnClickListener(v -> listener.onDelete(item));
-            binding.getRoot().setOnClickListener(v -> listener.onEdit(item));
+            binding.getRoot().setOnClickListener(null);
+            binding.getRoot().setClickable(false);
         }
     }
 }
