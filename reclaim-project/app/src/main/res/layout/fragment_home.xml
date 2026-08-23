@@ -207,6 +207,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
+                android:paddingEnd="@dimen/screen_padding_horizontal"
+                android:paddingStart="@dimen/screen_padding_horizontal"
                 android:orientation="vertical" />
 
             <com.google.android.material.textview.MaterialTextView

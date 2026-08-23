@@ -216,7 +216,7 @@ public class HomeFragment extends Fragment {
 
             header.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleSmall);
             header.setTextColor(requireContext().getColor(R.color.brand_dark));
-            header.setPadding(0, 16, 0, 8);
+            header.setPadding(0, 16, 0, 10);
             header.setText(getString(R.string.home_match_for, group.lostItem.getTitle()));
 
             binding.layoutMatches.addView(header);
