@@ -1,5 +1,7 @@
 package com.example.reclaim.network;
 
+import java.util.concurrent.TimeUnit;
+
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
@@ -25,8 +27,18 @@ public final class RetrofitClient {
 
     /**
      * Base URL for the ReClaim backend API.
+     * <p>
+     * To work from ANY network (different Wi-Fi, cellular, etc.) point this at
+     * your ngrok static domain, which stays constant across locations, e.g.:
+     * {@code "https://your-name.ngrok-free.app/"}. Start the tunnel with
+     * {@code reclaim-backend/tunnel.sh} (or
+     * {@code ngrok http --url=your-name.ngrok-free.app 8080}).
+     * <p>
+     * For local-only testing you can instead use your Mac's LAN IP
+     * ({@code http://10.100.102.32:8080/}) or the emulator alias
+     * ({@code http://10.0.2.2:8080/}). The trailing slash is required.
      */
-    private static final String BASE_URL = "http://10.100.102.33:8080/";
+    private static final String BASE_URL = "https://decal-magnetism-coherent.ngrok-free.dev/";
     /** The single Retrofit instance. */
     private static Retrofit retrofit;
 
@@ -50,7 +62,18 @@ public final class RetrofitClient {
             loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
 
             OkHttpClient client = new OkHttpClient.Builder()
+                    // ngrok's free tier serves a browser interstitial for
+                    // "browser-like" requests; this header skips it so API
+                    // calls go straight through. Harmless on non-ngrok hosts.
+                    .addInterceptor(chain -> chain.proceed(
+                            chain.request().newBuilder()
+                                    .header("ngrok-skip-browser-warning", "true")
+                                    .build()))
                     .addInterceptor(loggingInterceptor)
+                    // Tunnels/cellular can be slower than LAN — be generous.
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .writeTimeout(30, TimeUnit.SECONDS)
                     .build();
 
             retrofit = new Retrofit.Builder()
