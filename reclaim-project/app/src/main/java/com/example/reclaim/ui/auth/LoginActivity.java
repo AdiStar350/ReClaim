@@ -7,10 +7,13 @@ import android.util.Patterns;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
 
+import com.example.reclaim.R;
 import com.example.reclaim.databinding.ActivityLoginBinding;
+import com.example.reclaim.network.ForgotPasswordRequest;
 import com.example.reclaim.network.LoginRequest;
 import com.example.reclaim.network.LoginResponse;
 import com.example.reclaim.network.ReClaimApiService;
@@ -70,10 +73,56 @@ public class LoginActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        binding.btnForgotPassword.setOnClickListener(v -> {
-            // TODO: Implement forgot-password flow
-            Toast.makeText(this, "Forgot password clicked", Toast.LENGTH_SHORT).show();
-        });
+        binding.btnForgotPassword.setOnClickListener(v -> attemptForgotPassword());
+    }
+
+    /**
+     * Starts the forgot-password flow using the email typed in the email field.
+     * Requests a reset code from the backend, then opens the OTP screen in
+     * reset mode.
+     */
+    private void attemptForgotPassword() {
+        binding.inputLayoutEmail.setError(null);
+
+        String email = binding.editEmail.getText() != null
+                ? binding.editEmail.getText().toString().trim() : "";
+
+        if (TextUtils.isEmpty(email) || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            binding.inputLayoutEmail.setError(getString(R.string.msg_email_required_reset));
+            binding.editEmail.requestFocus();
+            return;
+        }
+
+        setLoadingState(true);
+        apiService.sendPasswordResetOtp(new ForgotPasswordRequest(email))
+                .enqueue(new Callback<Void>() {
+                    @Override
+                    public void onResponse(@NonNull Call<Void> call,
+                                           @NonNull Response<Void> response) {
+                        setLoadingState(false);
+                        if (response.isSuccessful()) {
+                            Toast.makeText(LoginActivity.this,
+                                    R.string.msg_reset_code_sent, Toast.LENGTH_LONG).show();
+                            Intent intent = new Intent(LoginActivity.this,
+                                    VerifyOtpActivity.class);
+                            intent.putExtra(VerifyOtpActivity.EXTRA_EMAIL, email);
+                            intent.putExtra(VerifyOtpActivity.EXTRA_MODE,
+                                    VerifyOtpActivity.MODE_RESET);
+                            startActivity(intent);
+                        } else {
+                            Toast.makeText(LoginActivity.this,
+                                    R.string.error_generic, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
+                        setLoadingState(false);
+                        Toast.makeText(LoginActivity.this,
+                                "Network error: " + t.getLocalizedMessage(),
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
     }
 
     /**

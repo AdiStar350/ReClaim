@@ -1,7 +1,10 @@
 package com.example.reclaimbackend.controller;
 
+import com.example.reclaimbackend.dto.CloseReportRequest;
+import com.example.reclaimbackend.dto.ContactResponse;
 import com.example.reclaimbackend.model.Item;
 import com.example.reclaimbackend.service.ItemService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -31,8 +34,9 @@ public class ItemController {
     private final ItemService itemService;
 
     @GetMapping
-    public ResponseEntity<List<Item>> getAllItems() {
-        return ResponseEntity.ok(itemService.getAllItems());
+    public ResponseEntity<List<Item>> getAllItems(Authentication authentication) {
+        String viewerId = authentication.getName();
+        return ResponseEntity.ok(itemService.getAllItems(viewerId));
     }
 
     @GetMapping("/my-items")
@@ -51,9 +55,11 @@ public class ItemController {
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
             @RequestParam(required = false) Double latitude,
-            @RequestParam(required = false) Double longitude) {
+            @RequestParam(required = false) Double longitude,
+            Authentication authentication) {
         return ResponseEntity.ok(itemService.searchItems(
-                category, type, query, from, to, latitude, longitude));
+                category, type, query, from, to, latitude, longitude,
+                authentication.getName()));
     }
 
     @GetMapping("/category/{category}")
@@ -67,6 +73,12 @@ public class ItemController {
             Authentication authentication) {
         String userId = authentication.getName();
         return ResponseEntity.ok(itemService.findMatchesForLostItem(id, userId));
+    }
+
+    @GetMapping("/{id}/contact")
+    public ResponseEntity<ContactResponse> getLostItemOwnerContact(
+            @PathVariable String id) {
+        return ResponseEntity.ok(itemService.getLostItemOwnerContact(id));
     }
 
     @GetMapping("/{id}")
@@ -91,6 +103,15 @@ public class ItemController {
                                            Authentication authentication) {
         String userId = authentication.getName();
         return ResponseEntity.ok(itemService.updateItem(id, userId, item));
+    }
+
+    @PutMapping("/{id}/close")
+    public ResponseEntity<Item> closeReport(@PathVariable String id,
+                                            @Valid @RequestBody CloseReportRequest request,
+                                            Authentication authentication) {
+        String userId = authentication.getName();
+        return ResponseEntity.ok(
+                itemService.closeReport(id, userId, request.getClosureReason()));
     }
 
     @DeleteMapping("/{id}")

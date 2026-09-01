@@ -56,6 +56,46 @@ public interface ReClaimApiService {
     @POST("api/auth/register")
     Call<com.example.reclaim.model.User> register(@Body RegisterRequest registerRequest);
 
+    /**
+     * Step 1 of OTP registration: stores the payload server-side and emails a
+     * 6-digit verification code to the address provided.
+     */
+    @POST("api/auth/register/send-otp")
+    Call<Void> sendRegistrationOtp(@Body SendOtpRequest request);
+
+    /**
+     * Step 2 of OTP registration: validates the code, creates the user in
+     * MongoDB, and returns a JWT so the client is logged in immediately.
+     */
+    @POST("api/auth/register/verify-otp")
+    Call<LoginResponse> verifyRegistrationOtp(@Body VerifyOtpRequest request);
+
+    /**
+     * Re-sends a fresh OTP for a pending registration.
+     */
+    @POST("api/auth/register/resend-otp")
+    Call<Void> resendRegistrationOtp(@Body ResendOtpRequest request);
+
+    // ─── Forgot password ───────────────────────────────────────────────
+
+    /**
+     * Step 1 of the forgot-password flow: emails a 6-digit reset code.
+     */
+    @POST("api/auth/forgot-password/send-otp")
+    Call<Void> sendPasswordResetOtp(@Body ForgotPasswordRequest request);
+
+    /**
+     * Step 2: validates the reset code and returns an opaque reset token.
+     */
+    @POST("api/auth/forgot-password/verify-otp")
+    Call<ResetTokenResponse> verifyPasswordResetOtp(@Body VerifyOtpRequest request);
+
+    /**
+     * Step 3: sets the new password using the reset token.
+     */
+    @POST("api/auth/forgot-password/reset")
+    Call<Void> resetPassword(@Body ResetPasswordRequest request);
+
     // ═════════════════════════════════════════════════════════════════════
     //  ITEMS
     // ═════════════════════════════════════════════════════════════════════
@@ -105,6 +145,11 @@ public interface ReClaimApiService {
             @Header("Authorization") String authHeader,
             @retrofit2.http.Path("id") String id);
 
+    @GET("api/items/{id}/contact")
+    Call<com.example.reclaim.model.ContactResponse> getLostItemOwnerContact(
+            @Header("Authorization") String authHeader,
+            @retrofit2.http.Path("id") String id);
+
     // ═════════════════════════════════════════════════════════════════════
     //  CLAIMS
     // ═════════════════════════════════════════════════════════════════════
@@ -139,6 +184,11 @@ public interface ReClaimApiService {
             @retrofit2.http.Path("claimId") String claimId,
             @Body ClaimReviewRequest request);
 
+    @PUT("api/claims/{claimId}/acknowledge")
+    Call<com.example.reclaim.model.Claim> acknowledgeClaimDecision(
+            @Header("Authorization") String authHeader,
+            @retrofit2.http.Path("claimId") String claimId);
+
     @GET("api/claims/{claimId}/contact")
     Call<com.example.reclaim.model.ContactResponse> getClaimContact(
             @Header("Authorization") String authHeader,
@@ -166,7 +216,9 @@ public interface ReClaimApiService {
             @Header("Authorization") String authHeader,
             @Body FcmTokenRequest request);
 
-    @retrofit2.http.DELETE("api/users/me")
+    // Retrofit's @DELETE forbids a request body, so use @HTTP with hasBody=true
+    // to send the confirmation credentials in the DELETE body.
+    @retrofit2.http.HTTP(method = "DELETE", path = "api/users/me", hasBody = true)
     Call<Void> deleteAccount(
             @Header("Authorization") String authHeader,
             @Body DeleteAccountRequest request);

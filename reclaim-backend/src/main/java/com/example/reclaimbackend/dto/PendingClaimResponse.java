@@ -23,4 +23,7 @@ public class PendingClaimResponse {
     private String validationAnswer;
     private String status;
 
+    /** The owner's verification question for the claimed item. */
+    private String verificationQuestion;
+
 }

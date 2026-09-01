@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.reclaim.R;
+import com.example.reclaim.util.ConnectionToasts;
 import com.example.reclaim.adapter.PendingClaimAdapter;
 import com.example.reclaim.databinding.ActivityPendingClaimsBinding;
 import com.example.reclaim.model.Claim;
@@ -84,8 +85,8 @@ public class PendingClaimsActivity extends AppCompatActivity {
             @Override
             public void onFailure(@NonNull Call<List<PendingClaimResponse>> call,
                                   @NonNull Throwable t) {
-                Toast.makeText(PendingClaimsActivity.this,
-                        R.string.msg_load_pending_claims_failed, Toast.LENGTH_SHORT).show();
+                ConnectionToasts.showIfOnline(PendingClaimsActivity.this,
+                        R.string.msg_load_pending_claims_failed, Toast.LENGTH_SHORT);
             }
         });
     }

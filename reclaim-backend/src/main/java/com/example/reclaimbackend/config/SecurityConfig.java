@@ -62,9 +62,11 @@ public class SecurityConfig {
 
                 // Endpoint access rules
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints (login + register)
+                        // Public endpoints (login + register, incl. OTP steps)
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/auth/register").permitAll()
+                        .requestMatchers("/api/auth/register/**").permitAll()
+                        .requestMatchers("/api/auth/forgot-password/**").permitAll()
                         // All other endpoints require authentication
                         .anyRequest().authenticated()
                 )

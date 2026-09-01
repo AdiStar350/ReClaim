@@ -33,7 +33,7 @@
                     android:contentDescription="@string/item_details_title"
                     android:fitsSystemWindows="true"
                     android:scaleType="centerCrop"
-                    android:src="@android:drawable/ic_menu_gallery" />
+                    android:src="@drawable/ic_item_placeholder" />
 
                 <View
                     android:layout_width="match_parent"
@@ -225,48 +225,59 @@
                         </LinearLayout>
                     </LinearLayout>
 
-                    <com.google.android.material.divider.MaterialDivider
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:layout_marginBottom="14dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+            <!-- Reported by: display-only profile card (reporter name + picture) -->
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/label_reported_by"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textColor="@color/brand_dark" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_reporter"
+                style="@style/Widget.ReClaim.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:clickable="false"
+                android:focusable="false">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        app:cardCornerRadius="28dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/md_theme_surfaceContainerHigh"
+                        app:strokeWidth="1dp">
 
                         <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:contentDescription="@string/label_reported_by"
-                            android:src="@android:drawable/ic_menu_myplaces"
-                            app:tint="@color/brand_accent" />
+                            android:id="@+id/image_reporter_avatar"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:contentDescription="@string/cd_profile_avatar"
+                            android:scaleType="centerCrop"
+                            android:src="@drawable/ic_settings_person" />
+                    </com.google.android.material.card.MaterialCardView>
 
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="@string/label_reported_by"
-                                android:textAppearance="?attr/textAppearanceLabelMedium"
-                                android:textColor="@color/brand_slate" />
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:id="@+id/text_reported_by"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:textAppearance="?attr/textAppearanceBodyMedium"
-                                android:textColor="@color/brand_dark" />
-                        </LinearLayout>
-                    </LinearLayout>
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/text_reported_by"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_weight="1"
+                        android:textAppearance="?attr/textAppearanceTitleMedium"
+                        android:textColor="@color/brand_dark" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>

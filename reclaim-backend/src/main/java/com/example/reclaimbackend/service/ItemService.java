@@ -1,5 +1,6 @@
 package com.example.reclaimbackend.service;
 
+import com.example.reclaimbackend.dto.ContactResponse;
 import com.example.reclaimbackend.model.Item;
 import com.example.reclaimbackend.model.User;
 import com.example.reclaimbackend.repository.ItemRepository;
@@ -19,8 +20,10 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -43,12 +46,15 @@ public class ItemService {
     private final PushNotificationService pushNotificationService;
 
     /**
-     * Retrieves all items from the database.
-     *
-     * @return list of all items
+     * Global feed for dashboard home and search list/map.
+     * Hides closed reports and the viewer's own reports (those stay on
+     * My Items / Report History). Other users still see this viewer's items.
      */
-    public List<Item> getAllItems() {
-        return itemRepository.findAll();
+    public List<Item> getAllItems(String viewerId) {
+        List<Item> items = itemRepository.findAll();
+        items.removeIf(item -> "CLOSED".equalsIgnoreCase(item.getStatus())
+                || (viewerId != null && viewerId.equals(item.getOwnerId())));
+        return enrichWithOwners(items);
     }
 
     /**
@@ -58,7 +64,35 @@ public class ItemService {
      * @return an {@link Optional} containing the item, or empty
      */
     public Optional<Item> getItemById(String id) {
-        return itemRepository.findById(id);
+        return itemRepository.findById(id).map(this::enrichWithOwner);
+    }
+
+    /**
+     * Returns the reporter's contact details for a lost-item report so
+     * someone who found a matching item can reach them. Found reports
+     * still go through the claim flow instead.
+     */
+    public ContactResponse getLostItemOwnerContact(String itemId) {
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Item not found"));
+        if (!"LOST".equalsIgnoreCase(item.getType())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Contact details are only available for lost-item reports");
+        }
+        if (item.getOwnerId() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Reporter not found");
+        }
+        User owner = userRepository.findById(item.getOwnerId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Reporter not found"));
+        return ContactResponse.builder()
+                .name(owner.getName())
+                .email(owner.getEmail())
+                .phoneNumber(owner.getPhoneNumber())
+                .build();
     }
 
     /**
@@ -68,7 +102,10 @@ public class ItemService {
      * @return list of items reported by the user
      */
     public List<Item> getItemsByOwner(String ownerId) {
-        return itemRepository.findByOwnerId(ownerId);
+        List<Item> items = itemRepository.findByOwnerId(ownerId);
+        items.sort(Comparator.comparing(Item::getReportedAt,
+                Comparator.nullsLast(Comparator.reverseOrder())));
+        return enrichWithOwners(items);
     }
 
     /**
@@ -78,7 +115,7 @@ public class ItemService {
      * @return list of matching items
      */
     public List<Item> getItemsByCategory(String category) {
-        return itemRepository.findByCategory(category);
+        return enrichWithOwners(itemRepository.findByCategory(category));
     }
 
     /**
@@ -199,6 +236,31 @@ public class ItemService {
     }
 
     /**
+     * Closes a report on behalf of its owner, recording why it was closed.
+     * <p>
+     * Used for owner-initiated outcomes ("owner found" / "owner not found").
+     * Claim-driven closures are handled separately in the claim review flow.
+     * </p>
+     *
+     * @param id            the item ID
+     * @param userId        the authenticated user (must be the owner)
+     * @param closureReason the outcome recorded on the report
+     * @return the closed, owner-enriched item
+     */
+    public Item closeReport(String id, String userId, String closureReason) {
+        Item item = itemRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Item not found"));
+        if (!userId.equals(item.getOwnerId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Not allowed to close this report");
+        }
+        item.setStatus("CLOSED");
+        item.setClosureReason(closureReason);
+        return enrichWithOwner(itemRepository.save(item));
+    }
+
+    /**
      * Finds open found items that may match a user's lost item report.
      */
     public List<Item> findMatchesForLostItem(String lostItemId, String userId) {
@@ -235,7 +297,7 @@ public class ItemService {
 
         matches.sort(Comparator.comparingInt(candidate ->
                 -titleOverlapScore(lostItem.getTitle(), candidate.getTitle())));
-        return matches;
+        return enrichWithOwners(matches);
     }
 
     private int titleOverlapScore(String lostTitle, String foundTitle) {
@@ -263,8 +325,18 @@ public class ItemService {
                                   Instant from,
                                   Instant to,
                                   Double latitude,
-                                  Double longitude) {
+                                  Double longitude,
+                                  String viewerId) {
         List<Criteria> criteriaList = new ArrayList<>();
+
+        // Global search feed hides resolved reports: exclude any item whose
+        // status is "closed" (case-insensitive). This scope is intentionally
+        // limited to search — "My Items" and Report History still surface
+        // closed reports.
+        criteriaList.add(Criteria.where("status").not().regex("^closed$", "i"));
+        if (StringUtils.hasText(viewerId)) {
+            criteriaList.add(Criteria.where("ownerId").ne(viewerId));
+        }
 
         if (StringUtils.hasText(category)) {
             criteriaList.add(Criteria.where("category").is(category));
@@ -304,7 +376,45 @@ public class ItemService {
                     latitude, longitude, item.getLatitude(), item.getLongitude())));
         }
 
-        return results;
+        return enrichWithOwners(results);
+    }
+
+    /**
+     * Fills the transient reporter fields ({@code ownerName},
+     * {@code ownerProfilePictureUrl}) on a single item from the users
+     * collection. Never persisted; used only for API responses.
+     */
+    private Item enrichWithOwner(Item item) {
+        if (item != null && item.getOwnerId() != null) {
+            userRepository.findById(item.getOwnerId()).ifPresent(owner -> {
+                item.setOwnerName(owner.getName());
+                item.setOwnerProfilePictureUrl(owner.getProfilePictureUrl());
+            });
+        }
+        return item;
+    }
+
+    /**
+     * Batch variant of {@link #enrichWithOwner(Item)} that caches user
+     * lookups by owner ID to avoid redundant queries for shared reporters.
+     */
+    private List<Item> enrichWithOwners(List<Item> items) {
+        Map<String, User> ownerCache = new HashMap<>();
+        for (Item item : items) {
+            String ownerId = item.getOwnerId();
+            if (ownerId == null) {
+                continue;
+            }
+            if (!ownerCache.containsKey(ownerId)) {
+                ownerCache.put(ownerId, userRepository.findById(ownerId).orElse(null));
+            }
+            User owner = ownerCache.get(ownerId);
+            if (owner != null) {
+                item.setOwnerName(owner.getName());
+                item.setOwnerProfilePictureUrl(owner.getProfilePictureUrl());
+            }
+        }
+        return items;
     }
 
     private double distanceKm(double lat1, double lon1, Double lat2, Double lon2) {

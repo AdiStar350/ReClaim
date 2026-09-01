@@ -50,10 +50,19 @@
             android:name=".ui.auth.RegisterActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".ui.auth.VerifyOtpActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.auth.ResetPasswordActivity"
+            android:exported="false" />
+
         <!-- Dashboard (Main Screen) -->
         <activity
             android:name=".ui.dashboard.DashboardActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:launchMode="singleTop" />
 
         <!-- Report Screen -->
         <activity
@@ -68,6 +77,11 @@
         <!-- Pending Claims Review -->
         <activity
             android:name=".ui.profile.PendingClaimsActivity"
+            android:exported="false" />
+
+        <!-- Report History -->
+        <activity
+            android:name=".ui.profile.ReportHistoryActivity"
             android:exported="false" />
 
         <activity

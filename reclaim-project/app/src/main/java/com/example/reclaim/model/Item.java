@@ -25,6 +25,9 @@ public class Item {
     @SerializedName("status")
     private String status;
 
+    @SerializedName("closureReason")
+    private String closureReason;
+
     @SerializedName("type")
     private String type;
 
@@ -45,6 +48,12 @@ public class Item {
 
     @SerializedName("ownerId")
     private String ownerId;
+
+    @SerializedName("ownerName")
+    private String ownerName;
+
+    @SerializedName("ownerProfilePictureUrl")
+    private String ownerProfilePictureUrl;
 
     public Item() {
     }
@@ -87,6 +96,10 @@ public class Item {
         return status;
     }
 
+    public String getClosureReason() {
+        return closureReason;
+    }
+
     public String getType() {
         return type;
     }
@@ -115,6 +128,22 @@ public class Item {
         return ownerId;
     }
 
+    public String getOwnerName() {
+        return ownerName;
+    }
+
+    public String getOwnerProfilePictureUrl() {
+        return ownerProfilePictureUrl;
+    }
+
+    public void setOwnerName(String ownerName) {
+        this.ownerName = ownerName;
+    }
+
+    public void setOwnerProfilePictureUrl(String ownerProfilePictureUrl) {
+        this.ownerProfilePictureUrl = ownerProfilePictureUrl;
+    }
+
     public void setId(String id) {
         this.id = id;
     }
@@ -137,6 +166,10 @@ public class Item {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public void setClosureReason(String closureReason) {
+        this.closureReason = closureReason;
     }
 
     public void setType(String type) {

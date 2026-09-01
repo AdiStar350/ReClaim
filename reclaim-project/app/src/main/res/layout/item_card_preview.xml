@@ -6,7 +6,6 @@
     android:id="@+id/card_item"
     android:layout_width="200dp"
     android:layout_height="wrap_content"
-    android:layout_marginEnd="12dp"
     android:clickable="true"
     android:focusable="true"
     app:cardBackgroundColor="@color/md_theme_surfaceContainerLowest"
@@ -33,7 +32,7 @@
                 android:background="@color/md_theme_surfaceContainer"
                 android:contentDescription="@string/item_details_title"
                 android:scaleType="centerCrop"
-                android:src="@android:drawable/ic_menu_gallery" />
+                android:src="@drawable/ic_item_placeholder" />
 
             <View
                 android:layout_width="match_parent"

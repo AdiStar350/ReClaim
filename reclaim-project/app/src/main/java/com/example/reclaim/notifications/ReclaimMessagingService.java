@@ -64,7 +64,11 @@ public class ReclaimMessagingService extends FirebaseMessagingService {
         if ("ITEM_MATCH".equals(type)) {
             AppNotifications.showItemMatch(this, title, body, data);
         } else if ("CLAIM_PENDING".equals(type)) {
+            IncomingClaimEvents.notifyReceived();
             AppNotifications.showClaimPending(this, title, body);
+        } else if ("CLAIM_DECISION".equals(type)) {
+            ClaimDecisionEvents.notifyReceived();
+            AppNotifications.showClaimDecision(this, title, body);
         } else {
             Log.w(TAG, "Unknown push type=" + type + "; showing generic notification");
             AppNotifications.showClaimPending(this, title, body);

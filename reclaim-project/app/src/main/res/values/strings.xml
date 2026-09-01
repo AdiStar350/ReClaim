@@ -20,6 +20,36 @@
     <string name="btn_register">Create Account</string>
     <string name="register_has_account">Already have an account?</string>
     <string name="btn_go_login">Sign In</string>
+    <string name="register_add_photo">Add Photo</string>
+
+    <!-- OTP Verification Screen -->
+    <string name="verify_title">Verify your email</string>
+    <string name="verify_subtitle">Enter the 6-digit code we sent to\n%1$s</string>
+    <string name="hint_otp_code">6-digit code</string>
+    <string name="btn_verify">Verify</string>
+    <string name="verify_no_code">Didn\'t get a code?</string>
+    <string name="btn_resend_code">Resend</string>
+    <string name="msg_otp_required">Please enter the 6-digit code</string>
+    <string name="msg_otp_sent">Verification code sent</string>
+    <string name="msg_otp_invalid">Invalid verification code</string>
+    <string name="msg_otp_expired">Code expired. Tap Resend to get a new one.</string>
+    <string name="msg_otp_too_many">Too many attempts. Tap Resend to get a new code.</string>
+    <string name="msg_registration_complete">Account verified! Welcome to ReClaim.</string>
+    <string name="msg_uploading_photo_register">Uploading photo…</string>
+
+    <!-- Forgot / Reset Password -->
+    <string name="verify_title_reset">Reset your password</string>
+    <string name="verify_subtitle_reset">Enter the 6-digit code we sent to\n%1$s</string>
+    <string name="btn_continue">Continue</string>
+    <string name="msg_email_required_reset">Enter your email above, then tap Forgot Password</string>
+    <string name="msg_reset_code_sent">If the email exists, a reset code has been sent</string>
+    <string name="reset_password_title">Create new password</string>
+    <string name="reset_password_subtitle">Choose a new password for your account.</string>
+    <string name="hint_new_password">New Password</string>
+    <string name="hint_confirm_new_password">Confirm New Password</string>
+    <string name="btn_update_password">Update Password</string>
+    <string name="msg_password_updated">Password updated! Please sign in.</string>
+    <string name="msg_reset_invalid">Invalid or expired reset code</string>
 
     <!-- Dashboard -->
     <string name="dashboard_title">Dashboard</string>
@@ -72,8 +102,11 @@
     <string name="profile_settings_title">Settings</string>
     <string name="settings_section">Settings</string>
     <string name="settings_section_other">Other</string>
+    <string name="settings_section_preferences">Preferences</string>
     <string name="profile_section_personal">Personal Info</string>
     <string name="profile_section_account">Account</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_password_update">Password Update</string>
     <string name="edit_profile_title">Personal Info</string>
     <string name="cd_profile_avatar">Profile photo</string>
     <string name="cd_navigate">Open</string>
@@ -120,12 +153,18 @@
     <string name="msg_submitting_report">Submitting report…</string>
     <string name="msg_report_failed">Failed to submit report. Please try again.</string>
     <string name="msg_report_saved_offline">No internet connection. Your report was saved and will be sent automatically when you are back online.</string>
+    <string name="msg_report_saved">The report has been saved</string>
+
+    <!-- Offline connection dialog -->
+    <string name="offline_dialog_message">No active connection. You can still make a report that will upload when the connection returns.</string>
+    <string name="offline_dialog_exit">Exit</string>
+    <string name="offline_dialog_continue">Continue</string>
 
     <!-- Notifications -->
     <string name="notif_channel_matches">Item matches</string>
     <string name="notif_channel_matches_desc">Alerts when a reported item matches one of your reports</string>
     <string name="notif_channel_claims">Ownership claims</string>
-    <string name="notif_channel_claims_desc">Alerts when someone claims an item you reported</string>
+    <string name="notif_channel_claims_desc">Alerts when someone claims an item you reported, or when your claim is reviewed</string>
     <string name="notif_channel_sync">Report sync</string>
     <string name="notif_channel_sync_desc">Confirms when offline reports reach the server</string>
     <string name="notif_report_synced_title">Report submitted</string>
@@ -154,6 +193,7 @@
     <!-- Item Details Screen -->
     <string name="item_details_title">Item Details</string>
     <string name="btn_claim">This is Mine!</string>
+    <string name="btn_show_contact_info">Show contact information</string>
     <string name="label_reported_by">Reported by</string>
     <string name="label_date_found">Date Found</string>
     <string name="label_location">Location</string>
@@ -162,6 +202,44 @@
     <string name="label_status">Status</string>
     <string name="status_open">Open</string>
     <string name="status_closed">Closed</string>
+
+    <!-- Report History -->
+    <string name="report_history_title">Report History</string>
+    <string name="settings_report_history">Report History</string>
+    <string name="report_history_empty">You haven\'t made or claimed any reports yet.</string>
+    <string name="history_role_reported">You reported</string>
+    <string name="history_role_claimed">You claimed</string>
+    <string name="history_status_pending">Pending</string>
+    <string name="history_status_approved">Approved</string>
+    <string name="history_status_declined">Declined</string>
+    <string name="cd_report_history">Report history</string>
+    <string name="home_pending_claims_subtitle">%1$d awaiting your review</string>
+
+    <!-- Incoming claim alert (home dashboard) -->
+    <string name="home_new_claim_title">New ownership claim</string>
+    <string name="home_new_claim_subtitle">Someone claims your item is theirs. Tap to review.</string>
+    <string name="claim_review_title">Review ownership claim</string>
+    <string name="claim_review_question_label">Secret question</string>
+    <string name="claim_review_answer_label">Their answer</string>
+    <string name="btn_decline_claim">Decline</string>
+    <string name="claim_default_question">Describe a unique identifying feature of this item.</string>
+
+    <!-- Claim decision (claimant's home dashboard) -->
+    <string name="home_claim_decision_title_approved">Claim approved</string>
+    <string name="home_claim_decision_title_declined">Claim declined</string>
+    <string name="home_claim_decision_subtitle">Tap to see the decision</string>
+    <string name="claim_decision_approved_body">The owner approved your claim on \"%1$s\". You can view their contact info now, and later from Report History.</string>
+    <string name="claim_decision_declined_body">The owner declined your claim on \"%1$s\".</string>
+    <string name="btn_confirm">Confirm</string>
+    <string name="btn_view_contact_info">View Contact Info</string>
+    <string name="contact_info_title">Owner contact info</string>
+    <string name="contact_info_label_name">Name</string>
+    <string name="contact_info_label_email">Email</string>
+    <string name="contact_info_label_phone">Phone</string>
+    <string name="cd_copy_email">Copy email</string>
+    <string name="cd_copy_phone">Copy phone number</string>
+    <string name="msg_copied">Copied</string>
+    <string name="msg_contact_load_failed">Could not load contact info</string>
 
     <!-- Profile Screen -->
     <string name="profile_title">My Profile</string>
@@ -173,6 +251,8 @@
     <string name="btn_reject_claim">Reject</string>
     <string name="btn_view_contact">View Contact</string>
     <string name="btn_save_profile">Save</string>
+    <string name="btn_change_photo">Change Photo</string>
+    <string name="msg_uploading_photo">Uploading photo…</string>
     <string name="pending_claims_title">Pending Claims</string>
     <string name="hint_profile_name">Full Name</string>
     <string name="hint_profile_phone">Phone Number</string>

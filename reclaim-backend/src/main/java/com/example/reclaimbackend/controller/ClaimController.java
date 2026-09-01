@@ -113,6 +113,17 @@ public class ClaimController {
         return ResponseEntity.ok(updatedClaim);
     }
 
+    /**
+     * Claimant confirms they have seen an approve/decline decision.
+     */
+    @PutMapping("/{claimId}/acknowledge")
+    public ResponseEntity<Claim> acknowledgeClaimDecision(
+            @PathVariable String claimId,
+            Authentication authentication) {
+        String claimantId = authentication.getName();
+        return ResponseEntity.ok(claimService.acknowledgeDecision(claimId, claimantId));
+    }
+
     // ═════════════════════════════════════════════════════════════════════
     //  QUERY ENDPOINTS
     // ═════════════════════════════════════════════════════════════════════

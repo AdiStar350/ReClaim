@@ -22,6 +22,9 @@ public class PendingClaimResponse {
     @SerializedName("status")
     private String status;
 
+    @SerializedName("verificationQuestion")
+    private String verificationQuestion;
+
     public String getClaimId() {
         return claimId;
     }
@@ -44,5 +47,9 @@ public class PendingClaimResponse {
 
     public String getStatus() {
         return status;
+    }
+
+    public String getVerificationQuestion() {
+        return verificationQuestion;
     }
 }

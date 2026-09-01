@@ -9,5 +9,11 @@ service firebase.storage {
       allow create, update: if request.resource.size < 5 * 1024 * 1024;
       allow delete: if false;
     }
+    // Profile pictures. Same public-read / size-limited-write model as items.
+    match /profiles/{userId}/{fileName} {
+      allow read: if true;
+      allow create, update: if request.resource.size < 5 * 1024 * 1024;
+      allow delete: if false;
+    }
   }
 }

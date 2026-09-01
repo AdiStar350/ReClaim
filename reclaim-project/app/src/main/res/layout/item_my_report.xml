@@ -42,12 +42,12 @@
                 app:cardElevation="0dp">
 
                 <ImageView
+                    android:id="@+id/image_thumbnail"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:contentDescription="@string/item_details_title"
-                    android:padding="16dp"
-                    android:src="@android:drawable/ic_menu_gallery"
-                    app:tint="@color/text_secondary" />
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/ic_item_placeholder" />
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Info column -->

@@ -4,6 +4,7 @@ import com.example.reclaimbackend.dto.ClaimRequest;
 import com.example.reclaimbackend.dto.ContactResponse;
 import com.example.reclaimbackend.dto.PendingClaimResponse;
 import com.example.reclaimbackend.model.Claim;
+import com.example.reclaimbackend.model.ClosureReasons;
 import com.example.reclaimbackend.model.Item;
 import com.example.reclaimbackend.model.User;
 import com.example.reclaimbackend.repository.ClaimRepository;
@@ -97,7 +98,7 @@ public class ClaimService {
         try {
             if (pushNotificationService != null && item.getOwnerId() != null) {
                 User owner = userService.getUserEntity(item.getOwnerId());
-                pushNotificationService.notifyClaimPending(owner, item);
+                pushNotificationService.notifyClaimPending(owner, item, saved);
             }
         } catch (Exception e) {
             log.warn("Claim notification failed for item {}: {}",
@@ -171,15 +172,34 @@ public class ClaimService {
                     "Only the item owner can review claims on this item");
         }
 
-        // 5. Update the claim status
+        // 5. Update the claim status (and record its closure outcome)
+        boolean approved = "APPROVED".equalsIgnoreCase(newStatus);
         claim.setStatus(newStatus.toUpperCase());
+        claim.setClosureReason(approved
+                ? ClosureReasons.CLAIM_APPROVED
+                : ClosureReasons.CLAIM_DECLINED);
+        claim.setDecisionAcknowledged(false);
         claimRepository.save(claim);
 
         // 6. If APPROVED → close the item + reject all other pending claims
-        if ("APPROVED".equalsIgnoreCase(newStatus)) {
+        if (approved) {
 
-            // 6a. Close the item
+            // 6a. Close the claimed report. If the claimant (User B) has an
+            //     active matching "lost" report for the same item, close BOTH
+            //     reports as "owner found"; otherwise the claimed report simply
+            //     closes as "claim approved". Runs in this @Transactional method
+            //     so the two updates commit atomically.
             item.setStatus("CLOSED");
+            Item matchingLostReport =
+                    findActiveMatchingLostReport(item, claim.getClaimantId());
+            if (matchingLostReport != null) {
+                item.setClosureReason(ClosureReasons.OWNER_FOUND);
+                matchingLostReport.setStatus("CLOSED");
+                matchingLostReport.setClosureReason(ClosureReasons.OWNER_FOUND);
+                itemRepository.save(matchingLostReport);
+            } else {
+                item.setClosureReason(ClosureReasons.CLAIM_APPROVED);
+            }
             itemRepository.save(item);
 
             // 6b. Reject all other PENDING claims for this item
@@ -190,12 +210,96 @@ public class ClaimService {
                 // Skip the one we just approved (safety check)
                 if (!otherClaim.getId().equals(claimId)) {
                     otherClaim.setStatus("REJECTED");
+                    otherClaim.setClosureReason(ClosureReasons.CLAIM_DECLINED);
+                    otherClaim.setDecisionAcknowledged(false);
                     claimRepository.save(otherClaim);
+                    notifyClaimantOfDecision(otherClaim, item, false);
                 }
             }
         }
 
+        notifyClaimantOfDecision(claim, item, approved);
+
         return claim;
+    }
+
+    /**
+     * Pushes a {@code CLAIM_DECISION} notification to the claimant. Failures
+     * are logged and never roll back the review.
+     */
+    private void notifyClaimantOfDecision(Claim claim, Item item, boolean approved) {
+        try {
+            if (pushNotificationService == null || claim.getClaimantId() == null) {
+                return;
+            }
+            User claimant = userService.getUserEntity(claim.getClaimantId());
+            pushNotificationService.notifyClaimDecision(claimant, item, claim, approved);
+        } catch (Exception e) {
+            log.warn("Claim-decision notification failed for claim {}: {}",
+                    claim.getId(), e.getMessage());
+        }
+    }
+
+    /**
+     * Finds the claimant's active "lost" report that refers to the same item as
+     * the just-approved report.
+     * <p>
+     * Two independent reports have no shared identifier, so "the exact same
+     * item" is resolved with the app's matching heuristic: an {@code OPEN},
+     * opposite-direction ("LOST") report owned by the claimant, in the same
+     * category, whose title overlaps the claimed item's title. When several
+     * qualify, the strongest title overlap wins.
+     * </p>
+     *
+     * @param claimedItem the report whose claim was just approved
+     * @param claimantId  the ID of the user whose claim was approved
+     * @return the best-matching lost report, or {@code null} if none
+     */
+    private Item findActiveMatchingLostReport(Item claimedItem, String claimantId) {
+        if (claimantId == null) {
+            return null;
+        }
+        Item best = null;
+        int bestScore = 0;
+        for (Item candidate : itemRepository.findByOwnerId(claimantId)) {
+            if (!"LOST".equalsIgnoreCase(candidate.getType())) {
+                continue;
+            }
+            if (!"OPEN".equalsIgnoreCase(candidate.getStatus())) {
+                continue;
+            }
+            if (candidate.getId() != null && candidate.getId().equals(claimedItem.getId())) {
+                continue;
+            }
+            if (claimedItem.getCategory() != null
+                    && !claimedItem.getCategory().equalsIgnoreCase(candidate.getCategory())) {
+                continue;
+            }
+            int score = titleOverlapScore(candidate.getTitle(), claimedItem.getTitle());
+            if (score >= 1 && score > bestScore) {
+                best = candidate;
+                bestScore = score;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Counts how many significant words of {@code lostTitle} appear in
+     * {@code foundTitle} (case-insensitive), mirroring the item-match heuristic.
+     */
+    private int titleOverlapScore(String lostTitle, String foundTitle) {
+        if (lostTitle == null || foundTitle == null) {
+            return 0;
+        }
+        String foundLower = foundTitle.toLowerCase();
+        int score = 0;
+        for (String word : lostTitle.toLowerCase().split("\\s+")) {
+            if (word.length() > 2 && foundLower.contains(word)) {
+                score++;
+            }
+        }
+        return score;
     }
 
     // ═════════════════════════════════════════════════════════════════════
@@ -219,7 +323,17 @@ public class ClaimService {
      * @return list of claims submitted by the user
      */
     public List<Claim> getClaimsByClaimant(String claimantId) {
-        return claimRepository.findByClaimantId(claimantId);
+        List<Claim> claims = claimRepository.findByClaimantId(claimantId);
+        for (Claim claim : claims) {
+            if (claim.getItemId() != null) {
+                itemRepository.findById(claim.getItemId()).ifPresent(item -> {
+                    claim.setItemTitle(item.getTitle());
+                    claim.setItemImageUrl(item.getImageUrl());
+                    claim.setItemType(item.getType());
+                });
+            }
+        }
+        return claims;
     }
 
     /**
@@ -254,11 +368,33 @@ public class ClaimService {
                         .claimantId(claim.getClaimantId())
                         .validationAnswer(claim.getValidationAnswer())
                         .status(claim.getStatus())
+                        .verificationQuestion(item.getVerificationQuestion())
                         .build());
             }
         }
 
         return responses;
+    }
+
+    /**
+     * Marks a reviewed claim as seen by the claimant so the home-dashboard
+     * decision card is no longer shown. Does not change {@code status} or
+     * {@code closureReason}.
+     */
+    public Claim acknowledgeDecision(String claimId, String claimantId) {
+        Claim claim = getClaimById(claimId);
+        if (!claimantId.equals(claim.getClaimantId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Only the claimant can acknowledge this decision");
+        }
+        if ("PENDING".equalsIgnoreCase(claim.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "This claim has not been reviewed yet");
+        }
+        claim.setDecisionAcknowledged(true);
+        return claimRepository.save(claim);
     }
 
     /**

@@ -27,6 +27,21 @@ public class Claim {
     @SerializedName("status")
     private String status;
 
+    @SerializedName("closureReason")
+    private String closureReason;
+
+    @SerializedName("itemTitle")
+    private String itemTitle;
+
+    @SerializedName("itemImageUrl")
+    private String itemImageUrl;
+
+    @SerializedName("itemType")
+    private String itemType;
+
+    @SerializedName("decisionAcknowledged")
+    private boolean decisionAcknowledged;
+
     /**
      * Default no-arg constructor required by Gson.
      */
@@ -73,6 +88,26 @@ public class Claim {
         return status;
     }
 
+    public String getClosureReason() {
+        return closureReason;
+    }
+
+    public String getItemTitle() {
+        return itemTitle;
+    }
+
+    public String getItemImageUrl() {
+        return itemImageUrl;
+    }
+
+    public String getItemType() {
+        return itemType;
+    }
+
+    public boolean isDecisionAcknowledged() {
+        return decisionAcknowledged;
+    }
+
     // ── Setters ──────────────────────────────────────────────────────────
 
     public void setId(String id) {
@@ -93,5 +128,9 @@ public class Claim {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public void setClosureReason(String closureReason) {
+        this.closureReason = closureReason;
     }
 }

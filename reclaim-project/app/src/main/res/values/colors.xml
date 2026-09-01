@@ -26,6 +26,8 @@
     <color name="status_open_text">#1B5E20</color>
     <color name="status_closed_bg">#FADADB</color>
     <color name="status_closed_text">#B71C1C</color>
+    <color name="status_pending_bg">#FFF3CD</color>
+    <color name="status_pending_text">#8A6D00</color>
 
     <!-- ════ Item type badges ════ -->
     <color name="type_lost_bg">#FFF3E0</color>

@@ -13,6 +13,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.reclaim.R;
+import com.example.reclaim.util.ConnectionToasts;
 import com.example.reclaim.adapter.MyReportAdapter;
 import com.example.reclaim.databinding.FragmentMyItemsBinding;
 import com.example.reclaim.model.Item;
@@ -24,6 +25,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.tabs.TabLayout;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import retrofit2.Call;
@@ -109,6 +111,8 @@ public class MyItemsFragment extends Fragment implements MyReportAdapter.Listene
                 binding.progress.setVisibility(View.GONE);
                 if (response.isSuccessful() && response.body() != null) {
                     allMyItems = response.body();
+                    allMyItems.sort(Comparator.comparing(Item::getReportedAt,
+                            Comparator.nullsLast(Comparator.reverseOrder())));
                     applyTabFilter();
                 } else {
                     Toast.makeText(requireContext(),
@@ -122,8 +126,8 @@ public class MyItemsFragment extends Fragment implements MyReportAdapter.Listene
                     return;
                 }
                 binding.progress.setVisibility(View.GONE);
-                Toast.makeText(requireContext(),
-                        R.string.error_generic, Toast.LENGTH_SHORT).show();
+                ConnectionToasts.showIfOnline(requireContext(),
+                        R.string.error_generic, Toast.LENGTH_SHORT);
             }
         });
     }
@@ -131,6 +135,9 @@ public class MyItemsFragment extends Fragment implements MyReportAdapter.Listene
     private void applyTabFilter() {
         List<Item> filtered = new ArrayList<>();
         for (Item item : allMyItems) {
+            if ("CLOSED".equalsIgnoreCase(item.getStatus())) {
+                continue;
+            }
             if (currentTab == 1 && !"LOST".equalsIgnoreCase(item.getType())) {
                 continue;
             }

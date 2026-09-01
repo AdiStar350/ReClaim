@@ -152,8 +152,8 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
             // ── Image loading via Glide ──────────────────────────────
             Glide.with(context)
                     .load(item.getImageUrl())
-                    .placeholder(R.drawable.ic_launcher_foreground)
-                    .error(R.drawable.ic_launcher_foreground)
+                    .placeholder(R.drawable.ic_item_placeholder)
+                    .error(R.drawable.ic_item_placeholder)
                     .centerCrop()
                     .transition(DrawableTransitionOptions.withCrossFade(200))
                     .into(binding.imageItem);

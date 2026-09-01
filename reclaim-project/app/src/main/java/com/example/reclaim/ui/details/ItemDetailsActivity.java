@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -13,13 +14,20 @@ import com.bumptech.glide.Glide;
 import com.example.reclaim.R;
 import com.example.reclaim.databinding.ActivityItemDetailsBinding;
 import com.example.reclaim.model.Claim;
+import com.example.reclaim.model.ContactResponse;
 import com.example.reclaim.network.ClaimRequest;
 import com.example.reclaim.network.ReClaimApiService;
 import com.example.reclaim.network.RetrofitClient;
 import com.example.reclaim.network.TokenManager;
+import com.example.reclaim.ui.profile.ContactInfoDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -58,6 +66,10 @@ public class ItemDetailsActivity extends AppCompatActivity {
     public static final String EXTRA_ITEM_IMAGE_URL = "ITEM_IMAGE_URL";
     public static final String EXTRA_ITEM_TYPE = "ITEM_TYPE";
     public static final String EXTRA_ITEM_VERIFICATION_QUESTION = "ITEM_VERIFICATION_QUESTION";
+    public static final String EXTRA_ITEM_OWNER_ID = "ITEM_OWNER_ID";
+    public static final String EXTRA_ITEM_REPORTED_AT = "ITEM_REPORTED_AT";
+    public static final String EXTRA_ITEM_OWNER_NAME = "ITEM_OWNER_NAME";
+    public static final String EXTRA_ITEM_OWNER_PROFILE_URL = "ITEM_OWNER_PROFILE_URL";
 
     private ActivityItemDetailsBinding binding;
     private ReClaimApiService apiService;
@@ -65,6 +77,10 @@ public class ItemDetailsActivity extends AppCompatActivity {
     /** The item's ID — required for claim submission. */
     private String itemId;
     private String verificationQuestion;
+
+    /** The ID of the user who created this report. */
+    private String ownerId;
+    private String itemType;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,7 +93,7 @@ public class ItemDetailsActivity extends AppCompatActivity {
 
         setupToolbar();
         populateFromIntent();
-        setupClaimButton();
+        setupBottomAction();
     }
 
     /**
@@ -90,6 +106,8 @@ public class ItemDetailsActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setDisplayShowHomeEnabled(true);
         }
+        // No item-name overlay on the photo; the title is shown below the image.
+        binding.collapsingToolbar.setTitleEnabled(false);
     }
 
     /**
@@ -99,6 +117,8 @@ public class ItemDetailsActivity extends AppCompatActivity {
     private void populateFromIntent() {
         itemId = getIntent().getStringExtra(EXTRA_ITEM_ID);
         verificationQuestion = getIntent().getStringExtra(EXTRA_ITEM_VERIFICATION_QUESTION);
+        ownerId = getIntent().getStringExtra(EXTRA_ITEM_OWNER_ID);
+        itemType = getIntent().getStringExtra(EXTRA_ITEM_TYPE);
 
         String title = getIntent().getStringExtra(EXTRA_ITEM_TITLE);
         String description = getIntent().getStringExtra(EXTRA_ITEM_DESCRIPTION);
@@ -106,10 +126,11 @@ public class ItemDetailsActivity extends AppCompatActivity {
         String status = getIntent().getStringExtra(EXTRA_ITEM_STATUS);
         String category = getIntent().getStringExtra(EXTRA_ITEM_CATEGORY);
         String imageUrl = getIntent().getStringExtra(EXTRA_ITEM_IMAGE_URL);
+        String reportedAt = getIntent().getStringExtra(EXTRA_ITEM_REPORTED_AT);
+        String ownerName = getIntent().getStringExtra(EXTRA_ITEM_OWNER_NAME);
+        String ownerProfileUrl = getIntent().getStringExtra(EXTRA_ITEM_OWNER_PROFILE_URL);
 
-        // Title
-        binding.collapsingToolbar.setTitle(
-                title != null ? title : "Item Details");
+        // Title (shown below the photo only; no overlay on the image)
         binding.textItemTitle.setText(
                 title != null ? title : "Item Details");
 
@@ -120,6 +141,19 @@ public class ItemDetailsActivity extends AppCompatActivity {
         // Location
         binding.textLocation.setText(
                 location != null ? location : "Location not specified");
+
+        // Date found
+        binding.textDateFound.setText(formatReportedDate(reportedAt));
+
+        // Reported by — display-only profile card (name + picture)
+        binding.textReportedBy.setText(
+                !TextUtils.isEmpty(ownerName) ? ownerName : "Unknown reporter");
+        Glide.with(this)
+                .load(!TextUtils.isEmpty(ownerProfileUrl) ? ownerProfileUrl : null)
+                .centerCrop()
+                .placeholder(R.drawable.ic_settings_person)
+                .error(R.drawable.ic_settings_person)
+                .into(binding.imageReporterAvatar);
 
         // Status & Category chips
         if ("CLOSED".equalsIgnoreCase(status)) {
@@ -137,22 +171,103 @@ public class ItemDetailsActivity extends AppCompatActivity {
             Glide.with(this)
                     .load(imageUrl)
                     .centerCrop()
-                    .placeholder(R.drawable.ic_launcher_foreground)
-                    .error(R.drawable.ic_launcher_foreground)
+                    .placeholder(R.drawable.ic_item_placeholder)
+                    .error(R.drawable.ic_item_placeholder)
                     .into(binding.imageItem);
         } else {
             Glide.with(this)
-                    .load(R.drawable.ic_launcher_foreground)
+                    .load(R.drawable.ic_item_placeholder)
                     .centerCrop()
                     .into(binding.imageItem);
         }
     }
 
     /**
-     * Configures the claim button to show a verification dialog when tapped.
+     * Formats an ISO-8601 timestamp (e.g. {@code 2026-09-01T06:30:00Z}) into a
+     * human-readable date. Falls back to the raw date portion, then to a
+     * placeholder, so it never throws on unexpected input.
      */
-    private void setupClaimButton() {
+    private String formatReportedDate(String isoTimestamp) {
+        if (TextUtils.isEmpty(isoTimestamp)) {
+            return "Date not available";
+        }
+        try {
+            String trimmed = isoTimestamp.length() >= 19
+                    ? isoTimestamp.substring(0, 19) : isoTimestamp;
+            SimpleDateFormat parser =
+                    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
+            parser.setTimeZone(TimeZone.getTimeZone("UTC"));
+            Date parsed = parser.parse(trimmed);
+            if (parsed != null) {
+                SimpleDateFormat formatter =
+                        new SimpleDateFormat("MMM d, yyyy", Locale.getDefault());
+                return formatter.format(parsed);
+            }
+        } catch (Exception ignored) {
+            // Fall through to the raw date portion below.
+        }
+        return isoTimestamp.length() >= 10 ? isoTimestamp.substring(0, 10) : isoTimestamp;
+    }
+
+    /**
+     * Lost reports: show the reporter's contact info.
+     * Found reports: "This is Mine!" claim flow (hidden for the reporter).
+     */
+    private void setupBottomAction() {
+        if (isCurrentUserOwner()) {
+            binding.bottomClaimContainer.setVisibility(View.GONE);
+            return;
+        }
+        if ("LOST".equalsIgnoreCase(itemType)) {
+            binding.btnClaim.setText(R.string.btn_show_contact_info);
+            binding.btnClaim.setOnClickListener(v -> loadReporterContact());
+            return;
+        }
+        binding.btnClaim.setText(R.string.btn_claim);
         binding.btnClaim.setOnClickListener(v -> showClaimDialog());
+    }
+
+    private void loadReporterContact() {
+        String authHeader = TokenManager.getAuthHeader(this);
+        if (authHeader == null || TextUtils.isEmpty(itemId)) {
+            Toast.makeText(this, R.string.msg_contact_load_failed, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        binding.btnClaim.setEnabled(false);
+        apiService.getLostItemOwnerContact(authHeader, itemId)
+                .enqueue(new Callback<ContactResponse>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ContactResponse> call,
+                                           @NonNull Response<ContactResponse> response) {
+                        binding.btnClaim.setEnabled(true);
+                        if (response.isSuccessful() && response.body() != null) {
+                            ContactInfoDialog.show(ItemDetailsActivity.this, response.body());
+                        } else {
+                            Toast.makeText(ItemDetailsActivity.this,
+                                    R.string.msg_contact_load_failed, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<ContactResponse> call,
+                                          @NonNull Throwable t) {
+                        binding.btnClaim.setEnabled(true);
+                        Toast.makeText(ItemDetailsActivity.this,
+                                R.string.msg_contact_load_failed, Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    /**
+     * @return {@code true} when the authenticated user's ID matches the
+     * creator's ID of the currently displayed item.
+     */
+    private boolean isCurrentUserOwner() {
+        if (TextUtils.isEmpty(ownerId)) {
+            return false;
+        }
+        String currentUserId = TokenManager.getUserId(this);
+        return !TextUtils.isEmpty(currentUserId) && ownerId.equals(currentUserId);
     }
 
     /**

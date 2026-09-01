@@ -7,6 +7,8 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.example.reclaim.R;
 import com.example.reclaim.databinding.ItemMyReportBinding;
 import com.example.reclaim.model.Item;
@@ -70,6 +72,14 @@ public class MyReportAdapter extends RecyclerView.Adapter<MyReportAdapter.ViewHo
             binding.textTitle.setText(item.getTitle());
             binding.textCategory.setText(item.getCategory());
             binding.textLocation.setText(item.getLocation());
+
+            Glide.with(context)
+                    .load(item.getImageUrl())
+                    .placeholder(R.drawable.ic_item_placeholder)
+                    .error(R.drawable.ic_item_placeholder)
+                    .centerCrop()
+                    .transition(DrawableTransitionOptions.withCrossFade(200))
+                    .into(binding.imageThumbnail);
 
             String type = item.getType() != null ? item.getType() : "";
             binding.chipType.setText(type);

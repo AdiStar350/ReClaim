@@ -20,4 +20,6 @@ public class UpdateProfileRequest {
 
     private String phoneNumber;
 
+    private String profilePictureUrl;
+
 }

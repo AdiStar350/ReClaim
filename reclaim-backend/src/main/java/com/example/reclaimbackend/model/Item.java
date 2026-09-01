@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -42,6 +43,13 @@ public class Item {
     @Indexed
     private String status;
 
+    /**
+     * Why the report was closed. One of the values in {@link ClosureReasons}
+     * ("owner found", "owner not found", "claim approved", "claim declined").
+     * Null while the report is still open.
+     */
+    private String closureReason;
+
     /** Type of report: "Lost" or "Found". */
     @Indexed
     private String type;
@@ -61,5 +69,13 @@ public class Item {
 
     /** ID of the user who reported this item. */
     private String ownerId;
+
+    /** Reporter's display name — populated on read from the users collection, not persisted. */
+    @Transient
+    private String ownerName;
+
+    /** Reporter's profile picture URL — populated on read, not persisted. */
+    @Transient
+    private String ownerProfilePictureUrl;
 
 }

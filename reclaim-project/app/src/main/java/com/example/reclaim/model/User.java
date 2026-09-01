@@ -23,6 +23,9 @@ public class User {
     @SerializedName("phoneNumber")
     private String phoneNumber;
 
+    @SerializedName("profilePictureUrl")
+    private String profilePictureUrl;
+
     /**
      * Default no-arg constructor required by Gson.
      */
@@ -62,6 +65,10 @@ public class User {
         return phoneNumber;
     }
 
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
+    }
+
     // ── Setters ──────────────────────────────────────────────────────────
 
     public void setId(String id) {
@@ -78,5 +85,9 @@ public class User {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
     }
 }

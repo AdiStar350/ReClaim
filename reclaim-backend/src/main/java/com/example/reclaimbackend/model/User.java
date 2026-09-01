@@ -39,4 +39,7 @@ public class User {
     /** Device FCM registration token for push notifications (nullable). */
     private String fcmToken;
 
+    /** Download URL of the user's profile picture in Firebase Storage (nullable). */
+    private String profilePictureUrl;
+
 }

@@ -82,8 +82,8 @@ public class PreviewItemAdapter extends RecyclerView.Adapter<PreviewItemAdapter.
 
             Glide.with(ctx)
                     .load(item.getImageUrl())
-                    .placeholder(R.drawable.ic_launcher_foreground)
-                    .error(R.drawable.ic_launcher_foreground)
+                    .placeholder(R.drawable.ic_item_placeholder)
+                    .error(R.drawable.ic_item_placeholder)
                     .centerCrop()
                     .transition(DrawableTransitionOptions.withCrossFade(200))
                     .into(binding.imageItem);

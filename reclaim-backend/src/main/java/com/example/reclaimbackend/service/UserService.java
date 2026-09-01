@@ -53,6 +53,11 @@ public class UserService {
             user.setPhoneNumber(request.getPhoneNumber().trim());
         }
 
+        if (request.getProfilePictureUrl() != null) {
+            String url = request.getProfilePictureUrl().trim();
+            user.setProfilePictureUrl(url.isEmpty() ? null : url);
+        }
+
         return toResponse(userRepository.save(user));
     }
 
@@ -101,6 +106,7 @@ public class UserService {
                 .email(user.getEmail())
                 .name(user.getName())
                 .phoneNumber(user.getPhoneNumber())
+                .profilePictureUrl(user.getProfilePictureUrl())
                 .build();
     }
 }

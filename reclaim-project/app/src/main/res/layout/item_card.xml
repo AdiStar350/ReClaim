@@ -32,7 +32,7 @@
                 android:background="@color/md_theme_surfaceContainer"
                 android:contentDescription="@string/item_details_title"
                 android:scaleType="centerCrop"
-                android:src="@android:drawable/ic_menu_gallery" />
+                android:src="@drawable/ic_item_placeholder" />
 
             <!-- Bottom-to-top gradient scrim so white chips remain readable -->
             <View

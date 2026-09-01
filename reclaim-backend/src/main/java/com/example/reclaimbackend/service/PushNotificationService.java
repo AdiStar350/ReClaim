@@ -1,5 +1,6 @@
 package com.example.reclaimbackend.service;
 
+import com.example.reclaimbackend.model.Claim;
 import com.example.reclaimbackend.model.Item;
 import com.example.reclaimbackend.model.User;
 import com.google.firebase.FirebaseApp;
@@ -33,6 +34,9 @@ public class PushNotificationService {
 
     /** Payload type: someone claimed the user's item; validation required. */
     public static final String TYPE_CLAIM_PENDING = "CLAIM_PENDING";
+
+    /** Payload type: the owner's approve/decline decision on the user's claim. */
+    public static final String TYPE_CLAIM_DECISION = "CLAIM_DECISION";
 
     /**
      * Notifies the owner of {@code existingItem} that {@code newItem}
@@ -68,18 +72,48 @@ public class PushNotificationService {
 
     /**
      * Notifies an item's owner that a new ownership claim is waiting
-     * for their validation.
+     * for their validation. The Android client surfaces this as a
+     * high-priority home-dashboard card plus a system notification.
      */
-    public void notifyClaimPending(User owner, Item item) {
+    public void notifyClaimPending(User owner, Item item, Claim claim) {
         Map<String, String> data = new HashMap<>();
         data.put("type", TYPE_CLAIM_PENDING);
         data.put("title", "New claim on \"" + item.getTitle() + "\"");
         data.put("body", "Someone says this item is theirs. "
-                + "Review their verification answer to approve or reject the claim.");
+                + "Open the app to review their answer and approve or decline.");
         data.put("itemId", safe(item.getId()));
         data.put("itemTitle", safe(item.getTitle()));
+        data.put("claimId", claim != null ? safe(claim.getId()) : "");
+        data.put("validationAnswer", claim != null ? safe(claim.getValidationAnswer()) : "");
+        data.put("verificationQuestion", safe(item.getVerificationQuestion()));
 
         send(owner, data);
+    }
+
+    /**
+     * Notifies the claimant that the item owner approved or declined their
+     * claim. The Android client shows a decision card on the home dashboard.
+     */
+    public void notifyClaimDecision(User claimant, Item item, Claim claim, boolean approved) {
+        String itemTitle = item != null ? item.getTitle() : "";
+        String title = approved
+                ? "Your claim was approved"
+                : "Your claim was declined";
+        String body = approved
+                ? "The owner approved your claim on \"" + itemTitle
+                        + "\". Open the app to view their contact info."
+                : "The owner declined your claim on \"" + itemTitle + "\".";
+
+        Map<String, String> data = new HashMap<>();
+        data.put("type", TYPE_CLAIM_DECISION);
+        data.put("title", title);
+        data.put("body", body);
+        data.put("claimId", claim != null ? safe(claim.getId()) : "");
+        data.put("itemId", item != null ? safe(item.getId()) : "");
+        data.put("itemTitle", safe(itemTitle));
+        data.put("decision", approved ? "APPROVED" : "REJECTED");
+
+        send(claimant, data);
     }
 
     private void send(User recipient, Map<String, String> data) {

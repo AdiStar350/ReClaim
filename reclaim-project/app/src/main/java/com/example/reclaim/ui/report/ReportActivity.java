@@ -253,7 +253,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         existingImageUrl = item.getImageUrl();
 
         if (existingImageUrl != null && !existingImageUrl.isEmpty()) {
-            Glide.with(this).load(existingImageUrl).into(binding.imagePreview);
+            displayImage(existingImageUrl);
         }
 
         if (item.getLatitude() != null && item.getLongitude() != null) {
@@ -310,6 +310,10 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     private void setupImageCapture() {
         // Tapping the card shows the chooser dialog
         binding.cardImageCapture.setOnClickListener(v -> showImageChooserDialog());
+
+        // Tapping the existing/selected photo also opens the chooser so the
+        // user can replace it (the preview covers the whole card once shown).
+        binding.imagePreview.setOnClickListener(v -> showImageChooserDialog());
 
         // Tapping "Choose from Gallery" goes straight to gallery
         binding.btnChoosePhoto.setOnClickListener(v -> launchGallery());
@@ -384,12 +388,23 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
      * @param uri the content URI of the image to display
      */
     private void displaySelectedImage(@NonNull Uri uri) {
+        displayImage(uri);
+    }
+
+    /**
+     * Renders an image (a content {@link Uri} or a remote URL string) into the
+     * preview slot, hiding the placeholder so the photo is visible and the
+     * container becomes tappable to replace the photo.
+     *
+     * @param model any model Glide can load (e.g. {@link Uri} or {@link String})
+     */
+    private void displayImage(@NonNull Object model) {
         // Hide placeholder, show the preview ImageView
         binding.layoutPhotoPlaceholder.setVisibility(View.GONE);
         binding.imagePreview.setVisibility(View.VISIBLE);
 
         Glide.with(this)
-                .load(uri)
+                .load(model)
                 .centerCrop()
                 .into(binding.imagePreview);
     }
@@ -918,12 +933,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         try {
             PendingReportStore.enqueue(
                     getApplicationContext(), item, selectedImageUri, userId);
-            runOnUiThread(() -> {
-                setSubmitting(false);
-                Toast.makeText(this,
-                        R.string.msg_report_saved_offline, Toast.LENGTH_LONG).show();
-                finish();
-            });
+            runOnUiThread(this::finishAfterOfflineSave);
         } catch (IOException e) {
             Log.e(TAG, "Could not save report offline", e);
             runOnUiThread(() -> {
@@ -932,6 +942,18 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                         R.string.msg_report_failed, Toast.LENGTH_SHORT).show();
             });
         }
+    }
+
+    /**
+     * Shows a single confirmation toast for an offline-saved report, then closes
+     * the app entirely — the queued report syncs automatically once connectivity
+     * returns. The toast persists after the task is finished.
+     */
+    private void finishAfterOfflineSave() {
+        setSubmitting(false);
+        Toast.makeText(getApplicationContext(),
+                R.string.msg_report_saved, Toast.LENGTH_LONG).show();
+        finishAffinity();
     }
 
     private void submitItemToBackend(String authHeader, Item item, String imageUrl) {
@@ -966,13 +988,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                             PendingReportStore.enqueue(
                                     getApplicationContext(), item, selectedImageUri,
                                     TokenManager.getUserId(ReportActivity.this));
-                            runOnUiThread(() -> {
-                                setSubmitting(false);
-                                Toast.makeText(ReportActivity.this,
-                                        R.string.msg_report_saved_offline,
-                                        Toast.LENGTH_LONG).show();
-                                finish();
-                            });
+                            runOnUiThread(ReportActivity.this::finishAfterOfflineSave);
                         } catch (IOException e) {
                             Log.e(TAG, "Could not queue report after failure", e);
                             runOnUiThread(() -> {

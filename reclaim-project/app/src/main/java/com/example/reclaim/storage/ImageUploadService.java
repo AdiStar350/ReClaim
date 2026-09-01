@@ -48,8 +48,13 @@ public final class ImageUploadService {
     private ImageUploadService() {
     }
 
+    /** Storage folder for item report photos. */
+    public static final String FOLDER_ITEMS = "items";
+    /** Storage folder for user profile pictures. */
+    public static final String FOLDER_PROFILES = "profiles";
+
     /**
-     * Compresses and uploads an image, returning its Firebase download URL.
+     * Compresses and uploads an item image, returning its Firebase download URL.
      *
      * @param context application context
      * @param imageUri local content URI of the image
@@ -61,7 +66,27 @@ public final class ImageUploadService {
     public static String uploadImage(@NonNull Context context,
                                      @NonNull Uri imageUri,
                                      @NonNull String userId) throws IOException {
-        Log.d(TAG, "Starting upload uri=" + imageUri + " userId=" + userId);
+        return uploadImage(context, imageUri, userId, FOLDER_ITEMS);
+    }
+
+    /**
+     * Compresses and uploads an image into the given top-level storage folder
+     * (e.g. {@link #FOLDER_ITEMS} or {@link #FOLDER_PROFILES}), returning its
+     * Firebase download URL.
+     *
+     * @param context application context
+     * @param imageUri local content URI of the image
+     * @param userId   authenticated user ID used in the storage path
+     * @param folder   top-level storage folder ({@code items} / {@code profiles})
+     * @return download URL on success
+     * @throws IOException if the image cannot be read or the network upload fails
+     */
+    @NonNull
+    public static String uploadImage(@NonNull Context context,
+                                     @NonNull Uri imageUri,
+                                     @NonNull String userId,
+                                     @NonNull String folder) throws IOException {
+        Log.d(TAG, "Starting upload uri=" + imageUri + " userId=" + userId + " folder=" + folder);
 
         byte[] compressed = compressImage(context, imageUri);
         if (compressed == null || compressed.length == 0) {
@@ -80,7 +105,7 @@ public final class ImageUploadService {
 
         for (String gsUri : candidateBuckets(app)) {
             try {
-                String url = uploadToBucket(app, gsUri, compressed, safeUserId, fileName);
+                String url = uploadToBucket(app, gsUri, compressed, safeUserId, fileName, folder);
                 Log.d(TAG, "Upload complete bucket=" + gsUri + " url=" + url);
                 return url;
             } catch (DownloadUrlFallbackException e) {
@@ -90,7 +115,7 @@ public final class ImageUploadService {
                         + " after putBytes; trying Storage domain alias. fallback=" + e.mediaUrl);
             } catch (Exception e) {
                 lastError = e;
-                logStorageFailure("uploadToBucket " + gsUri, "items/" + safeUserId + "/" + fileName, e);
+                logStorageFailure("uploadToBucket " + gsUri, folder + "/" + safeUserId + "/" + fileName, e);
                 if (!isMissingObjectOrBucket(e)) {
                     throw new IOException(describeFailure(e), e);
                 }
@@ -112,10 +137,11 @@ public final class ImageUploadService {
                                          @NonNull String gsUri,
                                          @NonNull byte[] compressed,
                                          @NonNull String userId,
-                                         @NonNull String fileName) throws Exception {
+                                         @NonNull String fileName,
+                                         @NonNull String folder) throws Exception {
         FirebaseStorage storage = FirebaseStorage.getInstance(app, gsUri);
         StorageReference reference = storage.getReference()
-                .child("items")
+                .child(folder)
                 .child(userId)
                 .child(fileName);
         String gsPath = reference.toString();

@@ -26,6 +26,11 @@ public final class ItemNavigationHelper {
         intent.putExtra(ItemDetailsActivity.EXTRA_ITEM_TYPE, item.getType());
         intent.putExtra(ItemDetailsActivity.EXTRA_ITEM_VERIFICATION_QUESTION,
                 item.getVerificationQuestion());
+        intent.putExtra(ItemDetailsActivity.EXTRA_ITEM_OWNER_ID, item.getOwnerId());
+        intent.putExtra(ItemDetailsActivity.EXTRA_ITEM_REPORTED_AT, item.getReportedAt());
+        intent.putExtra(ItemDetailsActivity.EXTRA_ITEM_OWNER_NAME, item.getOwnerName());
+        intent.putExtra(ItemDetailsActivity.EXTRA_ITEM_OWNER_PROFILE_URL,
+                item.getOwnerProfilePictureUrl());
         return intent;
     }
 }

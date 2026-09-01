@@ -13,9 +13,9 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 import com.example.reclaim.R;
+import com.example.reclaim.ui.dashboard.DashboardActivity;
 import com.example.reclaim.ui.details.ItemDetailsActivity;
 import com.example.reclaim.ui.myitems.MyItemsActivity;
-import com.example.reclaim.ui.profile.PendingClaimsActivity;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -86,18 +86,30 @@ public final class AppNotifications {
         intent.putExtra(ItemDetailsActivity.EXTRA_ITEM_TYPE, data.get("itemType"));
         intent.putExtra(ItemDetailsActivity.EXTRA_ITEM_VERIFICATION_QUESTION,
                 data.get("itemVerificationQuestion"));
+        intent.putExtra(ItemDetailsActivity.EXTRA_ITEM_OWNER_ID, data.get("itemOwnerId"));
         post(context, CHANNEL_MATCHES, title, body, intent);
     }
 
     /**
-     * Push payload {@code type=CLAIM_PENDING}: opens the pending claims
-     * screen where the owner validates the claimant's answer.
+     * Push payload {@code type=CLAIM_PENDING}: opens the home dashboard so the
+     * owner sees the high-priority incoming-claim card.
      */
     public static void showClaimPending(@NonNull Context context,
                                         @NonNull String title,
                                         @NonNull String body) {
-        post(context, CHANNEL_CLAIMS, title, body,
-                new Intent(context, PendingClaimsActivity.class));
+        Intent intent = new Intent(context, DashboardActivity.class);
+        intent.putExtra(DashboardActivity.EXTRA_FOCUS_HOME, true);
+        post(context, CHANNEL_CLAIMS, title, body, intent);
+    }
+
+    /**
+     * Push payload {@code type=CLAIM_DECISION}: opens the home dashboard so
+     * the claimant sees the approve/decline card.
+     */
+    public static void showClaimDecision(@NonNull Context context,
+                                         @NonNull String title,
+                                         @NonNull String body) {
+        showClaimPending(context, title, body);
     }
 
     /** Local notification: a queued offline report reached the server. */

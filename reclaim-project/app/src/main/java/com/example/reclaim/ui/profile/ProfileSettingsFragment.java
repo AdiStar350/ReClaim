@@ -2,6 +2,7 @@ package com.example.reclaim.ui.profile;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,14 +13,18 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.bumptech.glide.Glide;
 import com.example.reclaim.R;
+import com.example.reclaim.util.ConnectionToasts;
 import com.example.reclaim.databinding.FragmentProfileSettingsBinding;
 import com.example.reclaim.model.User;
 import com.example.reclaim.network.DeleteAccountRequest;
+import com.example.reclaim.network.ForgotPasswordRequest;
 import com.example.reclaim.network.ReClaimApiService;
 import com.example.reclaim.network.RetrofitClient;
 import com.example.reclaim.network.TokenManager;
 import com.example.reclaim.ui.auth.LoginActivity;
+import com.example.reclaim.ui.auth.VerifyOtpActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -37,6 +42,7 @@ public class ProfileSettingsFragment extends Fragment {
     private FragmentProfileSettingsBinding binding;
     private ReClaimApiService apiService;
     private boolean showInitialProgress = true;
+    private String currentEmail;
 
     @Nullable
     @Override
@@ -54,12 +60,14 @@ public class ProfileSettingsFragment extends Fragment {
         apiService = RetrofitClient.getApiService();
         binding.textAppVersion.setText(getString(R.string.app_version_label, "1.0"));
 
-        View.OnClickListener openPersonalInfo = v ->
-                startActivity(new Intent(requireContext(), EditProfileActivity.class));
-        binding.cardProfile.setOnClickListener(openPersonalInfo);
-        binding.rowPersonalInfo.setOnClickListener(openPersonalInfo);
-        binding.rowPendingClaims.setOnClickListener(v ->
-                startActivity(new Intent(requireContext(), PendingClaimsActivity.class)));
+        // Unified "Profile Details" card — the single entry point for editing
+        // all user data.
+        binding.cardProfile.setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), EditProfileActivity.class)));
+        binding.rowReportHistory.setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), ReportHistoryActivity.class)));
+        binding.rowNotifications.setOnClickListener(v -> openNotificationSettings());
+        binding.rowPasswordUpdate.setOnClickListener(v -> startPasswordUpdate());
         binding.rowLogout.setOnClickListener(v -> logout());
         binding.rowDeleteAccount.setOnClickListener(v -> showDeleteAccountDialog());
     }
@@ -93,8 +101,10 @@ public class ProfileSettingsFragment extends Fragment {
                         binding.textUserDisplayName.setText(user.getName());
                     }
                     if (user.getEmail() != null) {
+                        currentEmail = user.getEmail();
                         binding.textUserDisplayEmail.setText(user.getEmail());
                     }
+                    loadAvatar(user.getProfilePictureUrl());
                 }
             }
 
@@ -105,10 +115,90 @@ public class ProfileSettingsFragment extends Fragment {
                 }
                 binding.progress.setVisibility(View.GONE);
                 showInitialProgress = false;
-                Toast.makeText(requireContext(),
-                        R.string.msg_profile_load_failed, Toast.LENGTH_SHORT).show();
+                ConnectionToasts.showIfOnline(requireContext(),
+                        R.string.msg_profile_load_failed, Toast.LENGTH_SHORT);
             }
         });
+    }
+
+    private void loadAvatar(@Nullable String url) {
+        if (binding == null || url == null || url.isEmpty()) {
+            return;
+        }
+        binding.imageSettingsAvatar.setPadding(0, 0, 0, 0);
+        binding.imageSettingsAvatar.setImageTintList(null);
+        Glide.with(this)
+                .load(url)
+                .circleCrop()
+                .placeholder(R.drawable.ic_settings_person)
+                .error(R.drawable.ic_settings_person)
+                .into(binding.imageSettingsAvatar);
+    }
+
+    /**
+     * Opens the system notification settings for this app.
+     */
+    private void openNotificationSettings() {
+        Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, requireContext().getPackageName());
+        try {
+            startActivity(intent);
+        } catch (Exception e) {
+            // Fallback to the app's details page if the exact screen is unavailable.
+            startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    android.net.Uri.parse("package:" + requireContext().getPackageName())));
+        }
+    }
+
+    /**
+     * Triggers the same password-reset (OTP) flow as the "Forgot password"
+     * button on the login screen, pre-filled with the signed-in user's email.
+     */
+    private void startPasswordUpdate() {
+        if (TextUtils.isEmpty(currentEmail)) {
+            Toast.makeText(requireContext(),
+                    R.string.msg_profile_load_failed, Toast.LENGTH_SHORT).show();
+            loadProfile();
+            return;
+        }
+
+        final String email = currentEmail;
+        binding.progress.setVisibility(View.VISIBLE);
+        apiService.sendPasswordResetOtp(new ForgotPasswordRequest(email))
+                .enqueue(new Callback<Void>() {
+                    @Override
+                    public void onResponse(@NonNull Call<Void> call,
+                                           @NonNull Response<Void> response) {
+                        if (binding == null || !isAdded()) {
+                            return;
+                        }
+                        binding.progress.setVisibility(View.GONE);
+                        if (response.isSuccessful()) {
+                            Toast.makeText(requireContext(),
+                                    R.string.msg_reset_code_sent, Toast.LENGTH_LONG).show();
+                            Intent intent = new Intent(requireContext(),
+                                    VerifyOtpActivity.class);
+                            intent.putExtra(VerifyOtpActivity.EXTRA_EMAIL, email);
+                            intent.putExtra(VerifyOtpActivity.EXTRA_MODE,
+                                    VerifyOtpActivity.MODE_RESET);
+                            startActivity(intent);
+                        } else {
+                            Toast.makeText(requireContext(),
+                                    R.string.error_generic, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
+                        if (binding == null || !isAdded()) {
+                            return;
+                        }
+                        binding.progress.setVisibility(View.GONE);
+                        Toast.makeText(requireContext(),
+                                "Network error: " + t.getLocalizedMessage(),
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
     }
 
     private void logout() {

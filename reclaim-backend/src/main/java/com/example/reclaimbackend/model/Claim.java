@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
@@ -38,5 +39,30 @@ public class Claim {
 
     /** Claim status: "Pending", "Approved", or "Rejected". */
     private String status;
+
+    /**
+     * Why the claim reached its terminal state. One of the values in
+     * {@link ClosureReasons} — "claim approved" when approved, or
+     * "claim declined" when rejected. Null while the claim is still pending.
+     */
+    private String closureReason;
+
+    /**
+     * Whether the claimant has dismissed the decision card on their
+     * dashboard. False (or unset) until they tap Confirm.
+     */
+    private boolean decisionAcknowledged;
+
+    /** Title of the claimed item — populated on read, not persisted. */
+    @Transient
+    private String itemTitle;
+
+    /** Image URL of the claimed item — populated on read, not persisted. */
+    @Transient
+    private String itemImageUrl;
+
+    /** Type ("Lost"/"Found") of the claimed item — populated on read, not persisted. */
+    @Transient
+    private String itemType;
 
 }
