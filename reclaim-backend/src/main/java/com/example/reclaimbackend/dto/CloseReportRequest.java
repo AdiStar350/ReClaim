@@ -10,14 +10,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Request DTO for an owner-initiated report closure
- * ({@code PUT /api/items/{id}/close}).
- * <p>
- * Only the report's owner may close it. The closure reason must be one of
- * the owner-initiated outcomes: {@code "owner found"} or
- * {@code "owner not found"}. Claim-driven closures ("claim approved" /
- * "claim declined") are set automatically by the claim review flow.
- * </p>
+ * Body for the owner closing a report.
+ * Reason is {@code "owner found"} or {@code "owner not found"}.
  */
 @Getter
 @Setter

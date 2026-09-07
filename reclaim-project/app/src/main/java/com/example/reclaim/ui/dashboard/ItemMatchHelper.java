@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Finds found items that may match a user's lost report.
+ * Looks for found items that might match a lost report.
  */
 public final class ItemMatchHelper {
 

@@ -15,13 +15,7 @@ import java.io.IOException;
 import java.util.Collections;
 
 /**
- * JWT authentication filter that intercepts every HTTP request and
- * validates the {@code Authorization: Bearer <token>} header.
- * <p>
- * If a valid token is present, the filter sets the authenticated
- * principal (user ID) into the Spring Security context so that
- * downstream controllers can access it.
- * </p>
+ * Reads the Bearer token on each request and, if it is good, sets the user id.
  */
 @Component
 @RequiredArgsConstructor
@@ -42,9 +36,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
-                            userId,       // principal = user ID
-                            null,         // credentials
-                            Collections.emptyList()  // authorities
+                            userId,       // the user id
+                            null,         // no password here
+                            Collections.emptyList()  // no roles
                     );
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -54,10 +48,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Extracts the Bearer token from the Authorization header.
+     * Reads the Bearer token from the Authorization header.
      *
-     * @param request the HTTP request
-     * @return the token string, or {@code null} if not present
+     * @param request the request
+     * @return the token, or {@code null} if missing
      */
     private String extractTokenFromHeader(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");

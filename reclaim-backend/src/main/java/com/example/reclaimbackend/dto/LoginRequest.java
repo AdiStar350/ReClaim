@@ -9,7 +9,7 @@ import lombok.Setter;
 import jakarta.validation.constraints.NotBlank;
 
 /**
- * Request DTO for the {@code POST /api/auth/login} endpoint.
+ * Email and password for login.
  */
 @Getter
 @Setter

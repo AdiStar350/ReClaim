@@ -3,7 +3,7 @@ package com.example.reclaim.network;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Request body for {@code DELETE /api/users/me}.
+ * Body for {@code DELETE /api/users/me}.
  */
 public class DeleteAccountRequest {
 

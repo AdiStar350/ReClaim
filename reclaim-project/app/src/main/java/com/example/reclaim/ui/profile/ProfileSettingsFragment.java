@@ -16,6 +16,7 @@ import androidx.fragment.app.Fragment;
 import com.bumptech.glide.Glide;
 import com.example.reclaim.R;
 import com.example.reclaim.util.ConnectionToasts;
+import com.example.reclaim.data.AppDataRefresh;
 import com.example.reclaim.databinding.FragmentProfileSettingsBinding;
 import com.example.reclaim.model.User;
 import com.example.reclaim.network.DeleteAccountRequest;
@@ -34,8 +35,8 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Settings hub: profile summary, account actions, logout, and delete account.
- * Personal information is edited on {@link EditProfileActivity}.
+ * Settings: profile summary, account actions, logout, and delete.
+ * Personal info is edited on {@link EditProfileActivity}.
  */
 public class ProfileSettingsFragment extends Fragment {
 
@@ -60,8 +61,7 @@ public class ProfileSettingsFragment extends Fragment {
         apiService = RetrofitClient.getApiService();
         binding.textAppVersion.setText(getString(R.string.app_version_label, "1.0"));
 
-        // Unified "Profile Details" card — the single entry point for editing
-        // all user data.
+        // Opens the screen where the user edits their details.
         binding.cardProfile.setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), EditProfileActivity.class)));
         binding.rowReportHistory.setOnClickListener(v ->
@@ -70,6 +70,7 @@ public class ProfileSettingsFragment extends Fragment {
         binding.rowPasswordUpdate.setOnClickListener(v -> startPasswordUpdate());
         binding.rowLogout.setOnClickListener(v -> logout());
         binding.rowDeleteAccount.setOnClickListener(v -> showDeleteAccountDialog());
+        AppDataRefresh.observeNew(getViewLifecycleOwner(), this::loadProfile);
     }
 
     @Override
@@ -136,7 +137,7 @@ public class ProfileSettingsFragment extends Fragment {
     }
 
     /**
-     * Opens the system notification settings for this app.
+     * Opens this app's notification settings.
      */
     private void openNotificationSettings() {
         Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
@@ -144,15 +145,14 @@ public class ProfileSettingsFragment extends Fragment {
         try {
             startActivity(intent);
         } catch (Exception e) {
-            // Fallback to the app's details page if the exact screen is unavailable.
+            // Fall back to the app details page.
             startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                     android.net.Uri.parse("package:" + requireContext().getPackageName())));
         }
     }
 
     /**
-     * Triggers the same password-reset (OTP) flow as the "Forgot password"
-     * button on the login screen, pre-filled with the signed-in user's email.
+     * Starts the same reset-password flow as login, with the user's email filled in.
      */
     private void startPasswordUpdate() {
         if (TextUtils.isEmpty(currentEmail)) {
@@ -194,9 +194,9 @@ public class ProfileSettingsFragment extends Fragment {
                             return;
                         }
                         binding.progress.setVisibility(View.GONE);
-                        Toast.makeText(requireContext(),
-                                "Network error: " + t.getLocalizedMessage(),
-                                Toast.LENGTH_LONG).show();
+                        ConnectionToasts.showIfOnline(requireContext(),
+                                getString(R.string.msg_network_error, t.getLocalizedMessage()),
+                                Toast.LENGTH_LONG);
                     }
                 });
     }

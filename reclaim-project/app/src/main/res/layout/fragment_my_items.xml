@@ -11,9 +11,9 @@
         android:clipChildren="false"
         android:clipToPadding="false"
         android:orientation="vertical"
-        android:paddingBottom="32dp">
+        android:paddingBottom="@dimen/space_32">
 
-        <!-- Dark header -->
+        <!-- Header -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -39,13 +39,13 @@
                 <com.google.android.material.textview.MaterialTextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="@dimen/space_4"
                     android:text="@string/my_items_subtitle"
                     android:textAppearance="@style/TextAppearance.ReClaim.HeroSubtitle" />
             </LinearLayout>
         </FrameLayout>
 
-        <!-- Tab bar: All / Lost / Found -->
+        <!-- Tabs: All / Lost / Found -->
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tab_layout"
             android:layout_width="match_parent"
@@ -53,23 +53,23 @@
             android:background="@color/md_theme_background"
             app:tabIndicatorColor="@color/brand_accent"
             app:tabIndicatorFullWidth="false"
-            app:tabIndicatorHeight="3dp"
+            app:tabIndicatorHeight="@dimen/space_3"
             app:tabRippleColor="@color/chip_filter_background"
             app:tabSelectedTextColor="@color/brand_dark"
             app:tabTextAppearance="?attr/textAppearanceLabelLarge"
             app:tabTextColor="@color/brand_slate" />
 
-        <!-- List of user's reports -->
+        <!-- Reports -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_my_items"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/space_8"
             android:layout_weight="1"
             android:clipToPadding="false"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="96dp" />
+            android:paddingStart="@dimen/space_16"
+            android:paddingEnd="@dimen/space_16"
+            android:paddingBottom="@dimen/space_96" />
 
         <!-- Empty state -->
         <com.google.android.material.textview.MaterialTextView
@@ -78,21 +78,21 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:gravity="center"
-            android:paddingTop="48dp"
-            android:paddingBottom="48dp"
+            android:paddingTop="@dimen/space_48"
+            android:paddingBottom="@dimen/space_48"
             android:text="@string/my_items_empty"
             android:textColor="@color/text_secondary"
             android:visibility="gone" />
     </LinearLayout>
 
-    <!-- Add report FAB — bronze fill, white text/icon -->
+    <!-- Add report -->
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/fab_add_report"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_marginBottom="40dp"
-        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="@dimen/space_40"
+        android:layout_marginEnd="@dimen/space_20"
         android:textColor="@color/text_on_accent"
         app:backgroundTint="@color/brand_accent"
         app:icon="@android:drawable/ic_input_add"

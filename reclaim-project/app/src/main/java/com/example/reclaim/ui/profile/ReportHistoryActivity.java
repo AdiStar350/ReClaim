@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.reclaim.R;
 import com.example.reclaim.adapter.HistoryAdapter;
+import com.example.reclaim.data.AppDataRefresh;
 import com.example.reclaim.databinding.ActivityReportHistoryBinding;
 import com.example.reclaim.model.Claim;
 import com.example.reclaim.model.ContactResponse;
@@ -27,9 +28,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Shows every report the user has made or claimed, each tagged with its
- * resolution status (pending / approved / declined). Data is aggregated from
- * two backend calls: the user's reported items and the claims they submitted.
+ * Lists reports the user made or claimed, with a simple status for each.
  */
 public class ReportHistoryActivity extends AppCompatActivity {
 
@@ -60,6 +59,12 @@ public class ReportHistoryActivity extends AppCompatActivity {
         binding.recyclerReportHistory.setLayoutManager(new LinearLayoutManager(this));
         binding.recyclerReportHistory.setAdapter(adapter);
 
+        AppDataRefresh.observeNew(this, this::loadHistory);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
         loadHistory();
     }
 
@@ -126,8 +131,7 @@ public class ReportHistoryActivity extends AppCompatActivity {
     }
 
     /**
-     * Called once per completed section request. When both the reports and the
-     * claims have returned, the combined list is rendered.
+     * Called when one of the two requests finishes. Draws the list when both are done.
      */
     private void onSectionLoaded() {
         if (binding == null || isFinishing()) {
@@ -149,14 +153,14 @@ public class ReportHistoryActivity extends AppCompatActivity {
                 combined.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
-    /** A report is "pending" while OPEN and "approved" (resolved) once CLOSED. */
+    /** Open reports are pending. Closed ones are approved. */
     private HistoryAdapter.Status statusForReport(Item item) {
         return "CLOSED".equalsIgnoreCase(item.getStatus())
                 ? HistoryAdapter.Status.APPROVED
                 : HistoryAdapter.Status.PENDING;
     }
 
-    /** Maps a claim's status to its resolution badge. */
+    /** Status badge for a claim. */
     private HistoryAdapter.Status statusForClaim(Claim claim) {
         String status = claim.getStatus();
         if ("APPROVED".equalsIgnoreCase(status)) {
@@ -169,8 +173,7 @@ public class ReportHistoryActivity extends AppCompatActivity {
     }
 
     /**
-     * Permanently available for approved claims the user submitted: loads the
-     * item owner's name, email, and phone.
+     * Loads the owner's name, email, and phone for an approved claim.
      */
     private void showOwnerContact(String claimId) {
         String authHeader = TokenManager.getAuthHeader(this);
@@ -186,7 +189,16 @@ public class ReportHistoryActivity extends AppCompatActivity {
                             return;
                         }
                         if (response.isSuccessful() && response.body() != null) {
-                            ContactInfoDialog.show(ReportHistoryActivity.this, response.body());
+                            ContactInfoDialog.show(ReportHistoryActivity.this, response.body(),
+                                    ReportHistoryActivity.this,
+                                    callback -> {
+                                        String header = TokenManager.getAuthHeader(
+                                                ReportHistoryActivity.this);
+                                        if (header == null) {
+                                            return;
+                                        }
+                                        apiService.getClaimContact(header, claimId).enqueue(callback);
+                                    });
                         } else {
                             Toast.makeText(ReportHistoryActivity.this,
                                     R.string.msg_contact_load_failed, Toast.LENGTH_SHORT).show();

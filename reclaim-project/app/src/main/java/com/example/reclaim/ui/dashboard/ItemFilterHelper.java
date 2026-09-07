@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Applies category, type, search, and sort filters to item lists.
+ * Filters the item list by category, type, search, and sort.
  */
 public final class ItemFilterHelper {
 

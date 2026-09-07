@@ -24,7 +24,7 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * REST controller for item management endpoints.
+ * Lost and found item endpoints.
  */
 @RestController
 @RequestMapping("/api/items")

@@ -10,11 +10,8 @@ import com.example.reclaim.ui.auth.LoginActivity;
 import com.example.reclaim.ui.dashboard.DashboardActivity;
 
 /**
- * Main entry point for the ReClaim application.
- * <p>
- * Routes authenticated users to {@link DashboardActivity} and others to
- * {@link LoginActivity}.
- * </p>
+ * First screen. Sends signed-in users to {@link DashboardActivity},
+ * others to {@link LoginActivity}.
  */
 public class MainActivity extends AppCompatActivity {
 

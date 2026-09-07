@@ -16,19 +16,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * REST controller for the Claims module.
- * <p>
- * Manages the "Ownership Claim" flow:
- * <ul>
- *   <li>{@code POST /api/claims} — Submit a new claim (any authenticated user).</li>
- *   <li>{@code PUT /api/claims/{claimId}/review} — Approve or reject a claim
- *       (item owner only).</li>
- *   <li>{@code GET /api/claims/item/{itemId}} — List all claims on an item.</li>
- *   <li>{@code GET /api/claims/my-claims} — List claims by the authenticated user.</li>
- * </ul>
- * All endpoints require a valid JWT token in the
- * {@code Authorization: Bearer <token>} header.
- * </p>
+ * Submit, review, and list ownership claims.
+ * All routes need a signed-in user.
  */
 @RestController
 @RequestMapping("/api/claims")
@@ -37,26 +26,16 @@ public class ClaimController {
 
     private final ClaimService claimService;
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  SUBMIT CLAIM
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    // Submit claim
+    // ---
 
     /**
-     * Submits a new ownership claim on an item.
-     * <p>
-     * <b>Endpoint:</b> {@code POST /api/claims}<br>
-     * <b>Auth:</b> Required (Bearer token)<br>
-     * <b>Request body:</b> {@link ClaimRequest} (itemId + validationAnswer)<br>
-     * <b>Response:</b> 201 Created with the persisted claim
-     * </p>
-     * <p>
-     * The {@code claimantId} is automatically extracted from the JWT
-     * token — it is never provided by the client.
-     * </p>
+     * Saves a new claim. The claimant comes from the token, not the body.
      *
-     * @param request        the claim submission data
-     * @param authentication the Spring Security authentication context
-     * @return 201 Created with the new claim
+     * @param request        item id and answer
+     * @param authentication the signed-in user
+     * @return 201 with the new claim
      */
     @PostMapping
     public ResponseEntity<Claim> submitClaim(
@@ -69,36 +48,17 @@ public class ClaimController {
         return ResponseEntity.status(HttpStatus.CREATED).body(claim);
     }
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  REVIEW CLAIM (Approve / Reject)
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    // Review claim
+    // ---
 
     /**
-     * Reviews a pending claim by approving or rejecting it.
-     * <p>
-     * <b>Endpoint:</b> {@code PUT /api/claims/{claimId}/review}<br>
-     * <b>Auth:</b> Required (Bearer token) — <em>must be the item owner</em><br>
-     * <b>Request body:</b> {@link ClaimReviewRequest} (status: APPROVED | REJECTED)<br>
-     * <b>Response:</b> 200 OK with the updated claim
-     * </p>
-     * <p>
-     * <b>Security:</b> The service verifies that the authenticated user
-     * is the {@code ownerId} of the item associated with this claim.
-     * Returns 403 Forbidden if the user is not the owner.
-     * </p>
-     * <p>
-     * <b>Business logic — APPROVED:</b>
-     * <ol>
-     *   <li>Claim status → {@code APPROVED}</li>
-     *   <li>Item status → {@code CLOSED}</li>
-     *   <li>All other PENDING claims on the item → {@code REJECTED}</li>
-     * </ol>
-     * </p>
+     * Approves or declines a claim. Only the item owner can do this.
      *
-     * @param claimId        the ID of the claim to review
-     * @param request        the review decision (APPROVED or REJECTED)
-     * @param authentication the Spring Security authentication context
-     * @return 200 OK with the updated claim
+     * @param claimId        the claim
+     * @param request        APPROVED or REJECTED
+     * @param authentication the signed-in user
+     * @return 200 with the updated claim
      */
     @PutMapping("/{claimId}/review")
     public ResponseEntity<Claim> reviewClaim(
@@ -114,7 +74,7 @@ public class ClaimController {
     }
 
     /**
-     * Claimant confirms they have seen an approve/decline decision.
+     * Claimant marks the decision as seen.
      */
     @PutMapping("/{claimId}/acknowledge")
     public ResponseEntity<Claim> acknowledgeClaimDecision(
@@ -124,19 +84,15 @@ public class ClaimController {
         return ResponseEntity.ok(claimService.acknowledgeDecision(claimId, claimantId));
     }
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  QUERY ENDPOINTS
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    // Lookups
+    // ---
 
     /**
-     * Retrieves all claims on a specific item.
-     * <p>
-     * <b>Endpoint:</b> {@code GET /api/claims/item/{itemId}}<br>
-     * <b>Auth:</b> Required (Bearer token)
-     * </p>
+     * All claims on one item.
      *
-     * @param itemId the item ID
-     * @return 200 OK with the list of claims
+     * @param itemId the item
+     * @return 200 with the claims
      */
     @GetMapping("/item/{itemId}")
     public ResponseEntity<List<Claim>> getClaimsByItem(@PathVariable String itemId) {
@@ -145,14 +101,10 @@ public class ClaimController {
     }
 
     /**
-     * Retrieves all claims submitted by the authenticated user.
-     * <p>
-     * <b>Endpoint:</b> {@code GET /api/claims/my-claims}<br>
-     * <b>Auth:</b> Required (Bearer token)
-     * </p>
+     * Claims made by the signed-in user.
      *
-     * @param authentication the Spring Security authentication context
-     * @return 200 OK with the user's claims
+     * @param authentication the signed-in user
+     * @return 200 with that user's claims
      */
     @GetMapping("/my-claims")
     public ResponseEntity<List<Claim>> getMyClaims(Authentication authentication) {
@@ -162,14 +114,10 @@ public class ClaimController {
     }
 
     /**
-     * Retrieves a single claim by ID.
-     * <p>
-     * <b>Endpoint:</b> {@code GET /api/claims/{claimId}}<br>
-     * <b>Auth:</b> Required (Bearer token)
-     * </p>
+     * One claim by id.
      *
-     * @param claimId the claim ID
-     * @return 200 OK with the claim
+     * @param claimId the claim
+     * @return 200 with the claim
      */
     @GetMapping("/{claimId}")
     public ResponseEntity<Claim> getClaimById(@PathVariable String claimId) {
@@ -178,7 +126,7 @@ public class ClaimController {
     }
 
     /**
-     * Retrieves pending claims on items owned by the authenticated user.
+     * Pending claims on items the signed-in user reported.
      */
     @GetMapping("/pending-on-my-items")
     public ResponseEntity<List<PendingClaimResponse>> getPendingClaimsOnMyItems(
@@ -188,7 +136,7 @@ public class ClaimController {
     }
 
     /**
-     * Returns contact details for an approved claim (claimant only).
+     * Owner contact for an approved claim. Claimant only.
      */
     @GetMapping("/{claimId}/contact")
     public ResponseEntity<ContactResponse> getClaimContact(

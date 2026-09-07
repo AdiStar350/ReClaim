@@ -4,12 +4,12 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:padding="@dimen/space_8">
 
     <com.google.android.material.textview.MaterialTextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="@dimen/space_12"
         android:text="@string/delete_account_dialog_message"
         android:textColor="@color/brand_slate" />
 
@@ -32,7 +32,7 @@
         style="@style/Widget.ReClaim.TextInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="@dimen/space_12"
         android:hint="@string/hint_password"
         app:endIconMode="password_toggle">
 

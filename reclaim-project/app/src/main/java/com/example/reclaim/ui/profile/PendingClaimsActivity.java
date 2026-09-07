@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.reclaim.R;
 import com.example.reclaim.util.ConnectionToasts;
 import com.example.reclaim.adapter.PendingClaimAdapter;
+import com.example.reclaim.data.AppDataRefresh;
 import com.example.reclaim.databinding.ActivityPendingClaimsBinding;
 import com.example.reclaim.model.Claim;
 import com.example.reclaim.model.PendingClaimResponse;
@@ -60,6 +61,12 @@ public class PendingClaimsActivity extends AppCompatActivity {
         binding.recyclerPendingClaims.setLayoutManager(new LinearLayoutManager(this));
         binding.recyclerPendingClaims.setAdapter(adapter);
 
+        AppDataRefresh.observeNew(this, this::loadPendingClaims);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
         loadPendingClaims();
     }
 

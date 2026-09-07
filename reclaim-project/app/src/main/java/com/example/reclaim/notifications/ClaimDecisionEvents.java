@@ -4,8 +4,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 /**
- * Process-wide signal that a {@code CLAIM_DECISION} push arrived, so the
- * claimant's home dashboard can show the decision card immediately.
+ * App-wide note that a {@code CLAIM_DECISION} push arrived.
  */
 public final class ClaimDecisionEvents {
 

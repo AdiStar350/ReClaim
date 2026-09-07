@@ -1,81 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- ════════════════════════════════════════
-         CHIPS
-    ════════════════════════════════════════ -->
+    <!-- Chips -->
 
-    <!-- Filter chip: toggleable, used in list/search screens -->
+    <!-- Filter chip -->
     <style name="Widget.ReClaim.Chip.Filter" parent="Widget.Material3.Chip.Filter">
         <item name="chipBackgroundColor">@color/chip_filter_background</item>
         <item name="android:textColor">@color/chip_filter_text</item>
         <item name="checkedIconVisible">false</item>
         <item name="chipStrokeWidth">0dp</item>
         <item name="chipCornerRadius">@dimen/chip_corner</item>
-        <item name="chipMinHeight">36dp</item>
-        <item name="chipStartPadding">12dp</item>
-        <item name="chipEndPadding">12dp</item>
+        <item name="chipMinHeight">@dimen/space_36</item>
+        <item name="chipStartPadding">@dimen/space_12</item>
+        <item name="chipEndPadding">@dimen/space_12</item>
     </style>
 
-    <!-- Sort/status chip: non-interactive, shows current filter state -->
+    <!-- Sort chip. Shows the current filter. -->
     <style name="Widget.ReClaim.Chip.Sort" parent="Widget.Material3.Chip.Assist">
         <item name="chipBackgroundColor">@color/md_theme_surfaceContainerHigh</item>
         <item name="android:textColor">@color/text_primary</item>
         <item name="chipStrokeColor">@color/brand_accent</item>
-        <item name="chipStrokeWidth">1dp</item>
+        <item name="chipStrokeWidth">@dimen/space_1</item>
         <item name="chipCornerRadius">@dimen/chip_corner</item>
-        <item name="chipMinHeight">34dp</item>
+        <item name="chipMinHeight">@dimen/space_34</item>
     </style>
 
-    <!-- Badge chip on item cards (type: Lost / Found, status: Available / Claimed) -->
+    <!-- Badge on item cards. Lost/found, available/claimed. -->
     <style name="Widget.ReClaim.Chip.Badge" parent="Widget.Material3.Chip.Suggestion">
         <item name="chipCornerRadius">@dimen/chip_corner</item>
-        <item name="chipMinHeight">28dp</item>
-        <item name="chipStartPadding">10dp</item>
-        <item name="chipEndPadding">10dp</item>
+        <item name="chipMinHeight">@dimen/space_28</item>
+        <item name="chipStartPadding">@dimen/space_10</item>
+        <item name="chipEndPadding">@dimen/space_10</item>
         <item name="chipStrokeWidth">0dp</item>
     </style>
 
-    <!-- ════════════════════════════════════════
-         TEXT INPUTS
-    ════════════════════════════════════════ -->
+    <!-- Text inputs -->
 
     <style name="Widget.ReClaim.TextInput" parent="Widget.Material3.TextInputLayout.OutlinedBox">
         <item name="boxBackgroundColor">@color/md_theme_surfaceContainerLowest</item>
         <item name="boxStrokeColor">@color/brand_accent</item>
-        <item name="boxStrokeWidth">1dp</item>
-        <item name="boxStrokeWidthFocused">2dp</item>
-        <item name="boxCornerRadiusTopStart">14dp</item>
-        <item name="boxCornerRadiusTopEnd">14dp</item>
-        <item name="boxCornerRadiusBottomStart">14dp</item>
-        <item name="boxCornerRadiusBottomEnd">14dp</item>
+        <item name="boxStrokeWidth">@dimen/space_1</item>
+        <item name="boxStrokeWidthFocused">@dimen/space_2</item>
+        <item name="boxCornerRadiusTopStart">@dimen/space_14</item>
+        <item name="boxCornerRadiusTopEnd">@dimen/space_14</item>
+        <item name="boxCornerRadiusBottomStart">@dimen/space_14</item>
+        <item name="boxCornerRadiusBottomEnd">@dimen/space_14</item>
         <item name="hintTextColor">@color/brand_slate</item>
         <item name="startIconTint">@color/brand_accent</item>
         <item name="endIconTint">@color/brand_accent</item>
         <item name="android:textColorHint">@color/text_hint</item>
     </style>
 
-    <!-- ════════════════════════════════════════
-         CARDS
-    ════════════════════════════════════════ -->
+    <!-- Cards -->
 
     <style name="Widget.ReClaim.Card" parent="Widget.Material3.CardView.Elevated">
         <item name="cardCornerRadius">@dimen/card_radius</item>
-        <item name="cardElevation">2dp</item>
+        <item name="cardElevation">@dimen/space_2</item>
         <item name="cardBackgroundColor">@color/md_theme_surfaceContainerLowest</item>
         <item name="strokeColor">@color/md_theme_outlineVariant</item>
-        <item name="strokeWidth">0.5dp</item>
+        <item name="strokeWidth">@dimen/space_0_5</item>
     </style>
 
-    <!-- ════════════════════════════════════════
-         BUTTONS
-    ════════════════════════════════════════ -->
+    <!-- Buttons -->
 
     <style name="Widget.ReClaim.Button.Primary" parent="Widget.Material3.Button">
         <item name="backgroundTint">@color/brand_accent</item>
         <item name="android:textColor">@color/text_on_accent</item>
         <item name="iconTint">@color/text_on_accent</item>
-        <item name="cornerRadius">14dp</item>
+        <item name="cornerRadius">@dimen/space_14</item>
         <item name="android:letterSpacing">0.02</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
@@ -84,7 +76,7 @@
     <style name="Widget.ReClaim.Button.Secondary" parent="Widget.Material3.Button.OutlinedButton">
         <item name="strokeColor">@color/brand_accent</item>
         <item name="android:textColor">@color/brand_accent</item>
-        <item name="cornerRadius">14dp</item>
+        <item name="cornerRadius">@dimen/space_14</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
     </style>
@@ -92,34 +84,32 @@
     <style name="Widget.ReClaim.Button.Destructive" parent="Widget.Material3.Button.OutlinedButton">
         <item name="strokeColor">@color/type_lost</item>
         <item name="android:textColor">@color/type_lost</item>
-        <item name="cornerRadius">14dp</item>
+        <item name="cornerRadius">@dimen/space_14</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
     </style>
 
-    <!-- ════════════════════════════════════════
-         TYPOGRAPHY
-    ════════════════════════════════════════ -->
+    <!-- Typography -->
 
-    <!-- Large white title used in dark header cards -->
+    <!-- Big title on dark headers -->
     <style name="TextAppearance.ReClaim.AuthHero" parent="TextAppearance.Material3.HeadlineMedium">
         <item name="android:textColor">@color/brand_cream</item>
         <item name="android:letterSpacing">0.02</item>
         <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
-    <!-- Subtitle under the AuthHero title -->
+    <!-- Subtitle under the auth title -->
     <style name="TextAppearance.ReClaim.HeroSubtitle" parent="TextAppearance.Material3.BodyMedium">
         <item name="android:textColor">#B3DCD7C9</item>
     </style>
 
-    <!-- Main title inside dark dashboard header cards -->
+    <!-- Title in the dashboard header -->
     <style name="TextAppearance.ReClaim.DashboardTitle" parent="TextAppearance.Material3.HeadlineSmall">
         <item name="android:textColor">@color/brand_white</item>
         <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
-    <!-- Section divider labels (e.g. "In your area", "My reports") -->
+    <!-- Section labels. "In your area", "My reports", etc. -->
     <style name="TextAppearance.ReClaim.SectionTitle" parent="TextAppearance.Material3.TitleMedium">
         <item name="android:textColor">@color/text_primary</item>
         <item name="android:fontFamily">sans-serif-medium</item>
@@ -140,46 +130,68 @@
     </style>
 
     <style name="Widget.ReClaim.SettingsCard" parent="Widget.ReClaim.Card">
-        <item name="cardCornerRadius">16dp</item>
+        <item name="cardCornerRadius">@dimen/space_16</item>
         <item name="cardElevation">0dp</item>
         <item name="strokeWidth">0dp</item>
         <item name="cardBackgroundColor">@color/md_theme_surfaceContainerLowest</item>
     </style>
 
-    <!-- Muted body label (secondary/meta info) on light backgrounds -->
+    <!-- Secondary text on light backgrounds -->
     <style name="TextAppearance.ReClaim.BodySecondary" parent="TextAppearance.Material3.BodyMedium">
         <item name="android:textColor">@color/text_secondary</item>
     </style>
 
-    <!-- ════════════════════════════════════════
-         BOTTOM NAVIGATION
-    ════════════════════════════════════════ -->
+    <!-- Dark text on a white popup. -->
+    <style name="TextAppearance.ReClaim.PopupMenu" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textColor">@color/text_primary</item>
+    </style>
+
+    <style name="Widget.ReClaim.PopupMenu" parent="Widget.Material3.PopupMenu">
+        <item name="android:popupBackground">@drawable/bg_popup_menu</item>
+    </style>
+
+    <style name="ThemeOverlay.ReClaim.PopupMenu" parent="ThemeOverlay.Material3.Light">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:itemTextAppearance">@style/TextAppearance.ReClaim.PopupMenu</item>
+        <item name="textAppearanceLargePopupMenu">@style/TextAppearance.ReClaim.PopupMenu</item>
+        <item name="textAppearanceSmallPopupMenu">@style/TextAppearance.ReClaim.PopupMenu</item>
+        <item name="android:popupMenuStyle">@style/Widget.ReClaim.PopupMenu</item>
+        <item name="popupMenuStyle">@style/Widget.ReClaim.PopupMenu</item>
+        <item name="popupMenuBackground">@drawable/bg_popup_menu</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurface">@color/md_theme_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainer">@color/md_theme_surfaceContainerLowest</item>
+    </style>
+
+    <!-- Bottom navigation -->
 
     <style name="Widget.ReClaim.BottomNavigation" parent="Widget.Material3.BottomNavigationView">
         <item name="android:minHeight">@dimen/bottom_nav_height</item>
-        <item name="itemIconSize">22dp</item>
-        <item name="itemPaddingTop">8dp</item>
-        <item name="itemPaddingBottom">18dp</item>
+        <item name="itemIconSize">@dimen/space_22</item>
+        <item name="itemPaddingTop">@dimen/space_8</item>
+        <item name="itemPaddingBottom">@dimen/space_18</item>
         <item name="itemTextAppearanceActive">@style/TextAppearance.ReClaim.NavLabel</item>
         <item name="itemTextAppearanceInactive">@style/TextAppearance.ReClaim.NavLabel</item>
     </style>
 
     <style name="TextAppearance.ReClaim.NavLabel" parent="TextAppearance.Material3.LabelMedium">
-        <item name="android:textSize">11sp</item>
+        <item name="android:textSize">@dimen/text_size_11</item>
     </style>
 
-    <!-- Bronze pill; active icon/text is brand_white via bottom_nav_item_color.xml -->
+    <!-- Bronze pill -->
     <style name="Widget.ReClaim.BottomNav.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
         <item name="android:color">@color/brand_accent</item>
-        <item name="android:width">46dp</item>
-        <item name="android:height">32dp</item>
-        <item name="marginHorizontal">8dp</item>
+        <item name="android:width">@dimen/space_46</item>
+        <item name="android:height">@dimen/space_32</item>
+        <item name="marginHorizontal">@dimen/space_8</item>
         <item name="shapeAppearance">@style/ShapeAppearance.ReClaim.BottomNavIndicator</item>
     </style>
 
     <style name="ShapeAppearance.ReClaim.BottomNavIndicator" parent="">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">14dp</item>
+        <item name="cornerSize">@dimen/space_14</item>
     </style>
 
 </resources>

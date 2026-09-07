@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <!-- Temp directory for camera-captured images -->
+    <!-- Temp folder for camera photos -->
     <cache-path
         name="captured_images"
         path="images/" />

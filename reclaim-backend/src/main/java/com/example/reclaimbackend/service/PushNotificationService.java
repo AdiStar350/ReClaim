@@ -16,31 +16,26 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Sends FCM push notifications to user devices.
- * <p>
- * Messages are <b>data-only</b> so the Android client builds the
- * notification itself and behaves identically in foreground and
- * background. Sends are asynchronous and never fail the calling
- * request; when Firebase Admin is not configured they are skipped.
- * </p>
+ * Sends push messages to user devices.
+ * The app builds the notification. Sends are in the background and
+ * are skipped if Firebase is not set up.
  */
 @Service
 public class PushNotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(PushNotificationService.class);
 
-    /** Payload type: an item matching one of the user's reports was posted. */
+    /** A new item that may match one of the user's reports. */
     public static final String TYPE_ITEM_MATCH = "ITEM_MATCH";
 
-    /** Payload type: someone claimed the user's item; validation required. */
+    /** Someone claimed the user's item and needs a review. */
     public static final String TYPE_CLAIM_PENDING = "CLAIM_PENDING";
 
-    /** Payload type: the owner's approve/decline decision on the user's claim. */
+    /** The owner approved or declined the user's claim. */
     public static final String TYPE_CLAIM_DECISION = "CLAIM_DECISION";
 
     /**
-     * Notifies the owner of {@code existingItem} that {@code newItem}
-     * (opposite type, same category) may be the item they reported.
+     * Tells the owner of {@code existingItem} that {@code newItem} may be a match.
      */
     public void notifyItemMatch(User recipient, Item existingItem, Item newItem) {
         boolean newIsFound = "FOUND".equalsIgnoreCase(newItem.getType());
@@ -71,9 +66,7 @@ public class PushNotificationService {
     }
 
     /**
-     * Notifies an item's owner that a new ownership claim is waiting
-     * for their validation. The Android client surfaces this as a
-     * high-priority home-dashboard card plus a system notification.
+     * Tells the owner a new claim is waiting for them to review.
      */
     public void notifyClaimPending(User owner, Item item, Claim claim) {
         Map<String, String> data = new HashMap<>();
@@ -91,8 +84,7 @@ public class PushNotificationService {
     }
 
     /**
-     * Notifies the claimant that the item owner approved or declined their
-     * claim. The Android client shows a decision card on the home dashboard.
+     * Tells the claimant the owner approved or declined their claim.
      */
     public void notifyClaimDecision(User claimant, Item item, Claim claim, boolean approved) {
         String itemTitle = item != null ? item.getTitle() : "";

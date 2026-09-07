@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Pending claim enriched with item title for owner review screens.
+ * A pending claim plus the item title, for the owner's review list.
  */
 @Getter
 @Setter
@@ -23,7 +23,7 @@ public class PendingClaimResponse {
     private String validationAnswer;
     private String status;
 
-    /** The owner's verification question for the claimed item. */
+    /** The owner's hidden question for this item. */
     private String verificationQuestion;
 
 }

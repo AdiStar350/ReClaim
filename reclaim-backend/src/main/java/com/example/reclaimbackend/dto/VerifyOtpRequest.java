@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Request DTO for {@code POST /api/auth/register/verify-otp}.
+ * Email and 6-digit code.
  */
 @Getter
 @Setter

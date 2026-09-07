@@ -22,7 +22,7 @@
         app:itemActiveIndicatorStyle="@style/Widget.ReClaim.BottomNav.ActiveIndicator"
         app:itemIconTint="@color/bottom_nav_item_color"
         app:itemTextColor="@color/bottom_nav_item_color"
-        app:elevation="12dp"
+        app:elevation="@dimen/space_12"
         app:labelVisibilityMode="labeled"
         app:menu="@menu/bottom_nav_menu"
         app:paddingBottomSystemWindowInsets="false"

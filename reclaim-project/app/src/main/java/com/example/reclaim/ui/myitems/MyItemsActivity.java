@@ -9,7 +9,7 @@ import androidx.fragment.app.Fragment;
 import com.example.reclaim.R;
 
 /**
- * Standalone my-items activity hosting {@link MyItemsFragment}.
+ * My items screen. Hosts {@link MyItemsFragment}.
  */
 public class MyItemsActivity extends AppCompatActivity {
 

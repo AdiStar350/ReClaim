@@ -7,19 +7,23 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.example.reclaim.R;
+import com.example.reclaim.data.AppDataRefresh;
 import com.example.reclaim.databinding.ActivityItemDetailsBinding;
 import com.example.reclaim.model.Claim;
 import com.example.reclaim.model.ContactResponse;
+import com.example.reclaim.model.Item;
 import com.example.reclaim.network.ClaimRequest;
 import com.example.reclaim.network.ReClaimApiService;
 import com.example.reclaim.network.RetrofitClient;
 import com.example.reclaim.network.TokenManager;
 import com.example.reclaim.ui.profile.ContactInfoDialog;
+import com.example.reclaim.util.ConnectionToasts;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -34,29 +38,11 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Displays detailed information about a specific lost or found item.
- * <p>
- * Features a {@link com.google.android.material.appbar.CollapsingToolbarLayout}
- * with a header image loaded via Glide, item metadata (title, description,
- * location, date, status, category), and a "This is Mine!" claim button
- * that presents a verification dialog before submitting a claim to the
- * backend via Retrofit.
- * </p>
- *
- * <h3>Intent extras:</h3>
- * <ul>
- *   <li>{@code ITEM_ID} — the item's unique identifier (required for claim submission)</li>
- *   <li>{@code ITEM_TITLE} — the item's title</li>
- *   <li>{@code ITEM_DESCRIPTION} — the item's description</li>
- *   <li>{@code ITEM_LOCATION} — the item's location</li>
- *   <li>{@code ITEM_STATUS} — the item's status ("Lost" / "Found")</li>
- *   <li>{@code ITEM_CATEGORY} — the item's category</li>
- *   <li>{@code ITEM_IMAGE_URL} — the item's image URL</li>
- * </ul>
+ * Shows one lost or found item: photo, details, and a claim button.
  */
 public class ItemDetailsActivity extends AppCompatActivity {
 
-    /** Intent extra key for the item's unique ID. */
+    /** Extra key for the item id. */
     public static final String EXTRA_ITEM_ID = "ITEM_ID";
     public static final String EXTRA_ITEM_TITLE = "ITEM_TITLE";
     public static final String EXTRA_ITEM_DESCRIPTION = "ITEM_DESCRIPTION";
@@ -74,13 +60,14 @@ public class ItemDetailsActivity extends AppCompatActivity {
     private ActivityItemDetailsBinding binding;
     private ReClaimApiService apiService;
 
-    /** The item's ID — required for claim submission. */
+    /** Item id, used when sending a claim. */
     private String itemId;
     private String verificationQuestion;
 
-    /** The ID of the user who created this report. */
+    /** Who created this report. */
     private String ownerId;
     private String itemType;
+    private boolean claimSubmitting;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,11 +81,17 @@ public class ItemDetailsActivity extends AppCompatActivity {
         setupToolbar();
         populateFromIntent();
         setupBottomAction();
+        AppDataRefresh.observeNew(this, this::refreshFromServer);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refreshFromServer();
     }
 
     /**
-     * Sets up the {@link com.google.android.material.appbar.CollapsingToolbarLayout}
-     * and its inner toolbar with back navigation.
+     * Sets the toolbar and a back button.
      */
     private void setupToolbar() {
         setSupportActionBar(binding.toolbarItemDetails);
@@ -106,13 +99,12 @@ public class ItemDetailsActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setDisplayShowHomeEnabled(true);
         }
-        // No item-name overlay on the photo; the title is shown below the image.
+        // Title sits below the photo, not on it.
         binding.collapsingToolbar.setTitleEnabled(false);
     }
 
     /**
-     * Populates the UI with data passed via Intent extras.
-     * Falls back to placeholder text if extras are missing.
+     * Fills the screen from the extras. Uses placeholder text if something is missing.
      */
     private void populateFromIntent() {
         itemId = getIntent().getStringExtra(EXTRA_ITEM_ID);
@@ -120,34 +112,91 @@ public class ItemDetailsActivity extends AppCompatActivity {
         ownerId = getIntent().getStringExtra(EXTRA_ITEM_OWNER_ID);
         itemType = getIntent().getStringExtra(EXTRA_ITEM_TYPE);
 
-        String title = getIntent().getStringExtra(EXTRA_ITEM_TITLE);
-        String description = getIntent().getStringExtra(EXTRA_ITEM_DESCRIPTION);
-        String location = getIntent().getStringExtra(EXTRA_ITEM_LOCATION);
-        String status = getIntent().getStringExtra(EXTRA_ITEM_STATUS);
-        String category = getIntent().getStringExtra(EXTRA_ITEM_CATEGORY);
-        String imageUrl = getIntent().getStringExtra(EXTRA_ITEM_IMAGE_URL);
-        String reportedAt = getIntent().getStringExtra(EXTRA_ITEM_REPORTED_AT);
-        String ownerName = getIntent().getStringExtra(EXTRA_ITEM_OWNER_NAME);
-        String ownerProfileUrl = getIntent().getStringExtra(EXTRA_ITEM_OWNER_PROFILE_URL);
+        bindFields(
+                getIntent().getStringExtra(EXTRA_ITEM_TITLE),
+                getIntent().getStringExtra(EXTRA_ITEM_DESCRIPTION),
+                getIntent().getStringExtra(EXTRA_ITEM_LOCATION),
+                getIntent().getStringExtra(EXTRA_ITEM_STATUS),
+                getIntent().getStringExtra(EXTRA_ITEM_CATEGORY),
+                getIntent().getStringExtra(EXTRA_ITEM_IMAGE_URL),
+                getIntent().getStringExtra(EXTRA_ITEM_REPORTED_AT),
+                getIntent().getStringExtra(EXTRA_ITEM_OWNER_NAME),
+                getIntent().getStringExtra(EXTRA_ITEM_OWNER_PROFILE_URL));
+    }
 
-        // Title (shown below the photo only; no overlay on the image)
+    private void refreshFromServer() {
+        if (TextUtils.isEmpty(itemId)) {
+            return;
+        }
+        String authHeader = TokenManager.getAuthHeader(this);
+        if (authHeader == null) {
+            return;
+        }
+        apiService.getItemById(authHeader, itemId).enqueue(new Callback<Item>() {
+            @Override
+            public void onResponse(@NonNull Call<Item> call, @NonNull Response<Item> response) {
+                if (isFinishing()) {
+                    return;
+                }
+                if (response.isSuccessful() && response.body() != null) {
+                    applyItem(response.body());
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<Item> call, @NonNull Throwable t) {
+                // Keep what was already shown.
+            }
+        });
+    }
+
+    private void applyItem(@NonNull Item item) {
+        if (!TextUtils.isEmpty(item.getId())) {
+            itemId = item.getId();
+        }
+        verificationQuestion = item.getVerificationQuestion();
+        ownerId = item.getOwnerId();
+        itemType = item.getType();
+        bindFields(
+                item.getTitle(),
+                item.getDescription(),
+                item.getLocation(),
+                item.getStatus(),
+                item.getCategory(),
+                item.getImageUrl(),
+                item.getReportedAt(),
+                item.getOwnerName(),
+                item.getOwnerProfilePictureUrl());
+        setupBottomAction();
+    }
+
+    private void bindFields(@Nullable String title,
+                            @Nullable String description,
+                            @Nullable String location,
+                            @Nullable String status,
+                            @Nullable String category,
+                            @Nullable String imageUrl,
+                            @Nullable String reportedAt,
+                            @Nullable String ownerName,
+                            @Nullable String ownerProfileUrl) {
+        // Title under the photo
         binding.textItemTitle.setText(
-                title != null ? title : "Item Details");
+                title != null ? title : getString(R.string.item_details_title));
 
-        // Description
+        // What it is
         binding.textDescription.setText(
-                description != null ? description : "No description provided.");
+                description != null ? description : getString(R.string.placeholder_no_description));
 
-        // Location
+        // Where it was
         binding.textLocation.setText(
-                location != null ? location : "Location not specified");
+                location != null ? location : getString(R.string.placeholder_location_unspecified));
 
-        // Date found
+        // When
         binding.textDateFound.setText(formatReportedDate(reportedAt));
 
-        // Reported by — display-only profile card (name + picture)
+        // Who reported it
         binding.textReportedBy.setText(
-                !TextUtils.isEmpty(ownerName) ? ownerName : "Unknown reporter");
+                !TextUtils.isEmpty(ownerName) ? ownerName : getString(R.string.placeholder_unknown_reporter));
         Glide.with(this)
                 .load(!TextUtils.isEmpty(ownerProfileUrl) ? ownerProfileUrl : null)
                 .centerCrop()
@@ -155,18 +204,18 @@ public class ItemDetailsActivity extends AppCompatActivity {
                 .error(R.drawable.ic_settings_person)
                 .into(binding.imageReporterAvatar);
 
-        // Status & Category chips
+        // Status and category
         if ("CLOSED".equalsIgnoreCase(status)) {
             binding.chipStatus.setText(R.string.status_closed);
         } else if ("OPEN".equalsIgnoreCase(status)) {
             binding.chipStatus.setText(R.string.status_open);
         } else {
-            binding.chipStatus.setText(status != null ? status : "Unknown");
+            binding.chipStatus.setText(status != null ? status : getString(R.string.placeholder_unknown));
         }
         binding.chipCategory.setText(
-                category != null ? category : "General");
+                category != null ? category : getString(R.string.placeholder_general_category));
 
-        // Header image
+        // Photo
         if (imageUrl != null && !imageUrl.isEmpty()) {
             Glide.with(this)
                     .load(imageUrl)
@@ -183,13 +232,11 @@ public class ItemDetailsActivity extends AppCompatActivity {
     }
 
     /**
-     * Formats an ISO-8601 timestamp (e.g. {@code 2026-09-01T06:30:00Z}) into a
-     * human-readable date. Falls back to the raw date portion, then to a
-     * placeholder, so it never throws on unexpected input.
+     * Turns a timestamp into a short date. If that fails, it uses the raw text.
      */
     private String formatReportedDate(String isoTimestamp) {
         if (TextUtils.isEmpty(isoTimestamp)) {
-            return "Date not available";
+            return getString(R.string.placeholder_date_unavailable);
         }
         try {
             String trimmed = isoTimestamp.length() >= 19
@@ -204,20 +251,23 @@ public class ItemDetailsActivity extends AppCompatActivity {
                 return formatter.format(parsed);
             }
         } catch (Exception ignored) {
-            // Fall through to the raw date portion below.
+            // Use the raw date below.
         }
         return isoTimestamp.length() >= 10 ? isoTimestamp.substring(0, 10) : isoTimestamp;
     }
 
     /**
-     * Lost reports: show the reporter's contact info.
-     * Found reports: "This is Mine!" claim flow (hidden for the reporter).
+     * Lost reports show the reporter's contact. Found reports show a claim button, hidden if you own it.
      */
     private void setupBottomAction() {
+        if (claimSubmitting) {
+            return;
+        }
         if (isCurrentUserOwner()) {
             binding.bottomClaimContainer.setVisibility(View.GONE);
             return;
         }
+        binding.bottomClaimContainer.setVisibility(View.VISIBLE);
         if ("LOST".equalsIgnoreCase(itemType)) {
             binding.btnClaim.setText(R.string.btn_show_contact_info);
             binding.btnClaim.setOnClickListener(v -> loadReporterContact());
@@ -241,10 +291,20 @@ public class ItemDetailsActivity extends AppCompatActivity {
                                            @NonNull Response<ContactResponse> response) {
                         binding.btnClaim.setEnabled(true);
                         if (response.isSuccessful() && response.body() != null) {
-                            ContactInfoDialog.show(ItemDetailsActivity.this, response.body());
+                            ContactInfoDialog.show(ItemDetailsActivity.this, response.body(),
+                                    ItemDetailsActivity.this,
+                                    callback -> {
+                                        String header = TokenManager.getAuthHeader(
+                                                ItemDetailsActivity.this);
+                                        if (header == null || TextUtils.isEmpty(itemId)) {
+                                            return;
+                                        }
+                                        apiService.getLostItemOwnerContact(header, itemId)
+                                                .enqueue(callback);
+                                    });
                         } else {
-                            Toast.makeText(ItemDetailsActivity.this,
-                                    R.string.msg_contact_load_failed, Toast.LENGTH_SHORT).show();
+                            ConnectionToasts.showIfOnline(ItemDetailsActivity.this,
+                                    R.string.msg_contact_load_failed, Toast.LENGTH_SHORT);
                         }
                     }
 
@@ -252,15 +312,14 @@ public class ItemDetailsActivity extends AppCompatActivity {
                     public void onFailure(@NonNull Call<ContactResponse> call,
                                           @NonNull Throwable t) {
                         binding.btnClaim.setEnabled(true);
-                        Toast.makeText(ItemDetailsActivity.this,
-                                R.string.msg_contact_load_failed, Toast.LENGTH_SHORT).show();
+                        ConnectionToasts.showIfOnline(ItemDetailsActivity.this,
+                                R.string.msg_contact_load_failed, Toast.LENGTH_SHORT);
                     }
                 });
     }
 
     /**
-     * @return {@code true} when the authenticated user's ID matches the
-     * creator's ID of the currently displayed item.
+     * @return {@code true} if this is the current user's report
      */
     private boolean isCurrentUserOwner() {
         if (TextUtils.isEmpty(ownerId)) {
@@ -271,17 +330,10 @@ public class ItemDetailsActivity extends AppCompatActivity {
     }
 
     /**
-     * Presents a Material Design 3 dialog asking the user to answer
-     * a verification question before submitting their ownership claim.
-     * <p>
-     * The dialog contains a {@link TextInputLayout} with an
-     * {@link TextInputEditText} for the answer, a "Cancel" button,
-     * and a "Submit" button. Validation is performed on submit —
-     * the dialog stays open if the answer is empty.
-     * </p>
+     * Asks a small question before sending the claim. The box stays open if the answer is empty.
      */
     private void showClaimDialog() {
-        // Inflate a custom view with Material TextInputLayout for better UX
+        // Custom view for the answer field
         View dialogView = LayoutInflater.from(this)
                 .inflate(R.layout.dialog_claim_verification, null);
 
@@ -290,34 +342,33 @@ public class ItemDetailsActivity extends AppCompatActivity {
 
         String questionText = !TextUtils.isEmpty(verificationQuestion)
                 ? verificationQuestion
-                : "Describe a unique identifying feature of this item.";
+                : getString(R.string.claim_default_question);
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-                .setTitle("Claim This Item")
-                .setMessage("To verify ownership, please answer the following question:\n\n"
-                        + questionText)
+                .setTitle(R.string.claim_dialog_title)
+                .setMessage(getString(R.string.claim_dialog_message, questionText))
                 .setView(dialogView)
-                .setPositiveButton("Submit", null)  // set to null — we override below
-                .setNegativeButton("Cancel", null)
+                .setPositiveButton(R.string.btn_submit, null)  // we handle the click ourselves
+                .setNegativeButton(R.string.btn_cancel, null)
                 .create();
 
-        // Override the positive button click to prevent auto-dismiss on empty input
+        // Stay open if the answer is empty
         dialog.setOnShowListener(dialogInterface -> {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
                 String answer = editAnswer.getText() != null
                         ? editAnswer.getText().toString().trim() : "";
 
                 if (TextUtils.isEmpty(answer)) {
-                    inputLayout.setError("Please provide a verification answer");
+                    inputLayout.setError(getString(R.string.msg_claim_answer_required));
                     editAnswer.requestFocus();
                     return;
                 }
 
-                // Clear error and dismiss dialog
+                // Close the dialog
                 inputLayout.setError(null);
                 dialog.dismiss();
 
-                // Submit the claim
+                // Send the claim
                 submitClaimToBackend(answer);
             });
         });
@@ -326,37 +377,32 @@ public class ItemDetailsActivity extends AppCompatActivity {
     }
 
     /**
-     * Submits the ownership claim to the backend via Retrofit.
-     * <p>
-     * Disables the claim button and changes its text during the request.
-     * On success, shows a Toast and finishes the activity. On failure,
-     * re-enables the button and shows an error Toast.
-     * </p>
+     * Sends the claim to the server. The button is disabled while waiting.
      *
-     * @param validationAnswer the user's answer to the verification question
+     * @param validationAnswer the user's answer
      */
     private void submitClaimToBackend(String validationAnswer) {
-        // Validate item ID
+        // Need an item id
         if (TextUtils.isEmpty(itemId)) {
             Toast.makeText(this,
-                    "Error: Item ID is missing",
+                    R.string.msg_item_id_missing,
                     Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Get the auth header
+        // Need to be signed in
         String authHeader = TokenManager.getAuthHeader(this);
         if (authHeader == null) {
             Toast.makeText(this,
-                    "Please log in to submit a claim",
+                    R.string.msg_login_to_claim,
                     Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Disable the claim button to prevent double-clicks
+        // Avoid a second tap
         setClaimButtonLoading(true);
 
-        // Build and send the request
+        // Send the request
         ClaimRequest request = new ClaimRequest(itemId, validationAnswer);
 
         apiService.submitClaim(authHeader, request).enqueue(new Callback<Claim>() {
@@ -366,7 +412,7 @@ public class ItemDetailsActivity extends AppCompatActivity {
 
                 if (response.isSuccessful() && response.body() != null) {
                     Toast.makeText(ItemDetailsActivity.this,
-                            "Claim submitted successfully! The reporter will be notified.",
+                            R.string.msg_claim_submitted,
                             Toast.LENGTH_LONG).show();
                     finish();
                 } else {
@@ -377,37 +423,36 @@ public class ItemDetailsActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<Claim> call, Throwable t) {
                 setClaimButtonLoading(false);
-
-                Toast.makeText(ItemDetailsActivity.this,
-                        "Network error: " + t.getLocalizedMessage(),
-                        Toast.LENGTH_LONG).show();
+                ConnectionToasts.showIfOnline(ItemDetailsActivity.this,
+                        getString(R.string.msg_network_error, t.getLocalizedMessage()),
+                        Toast.LENGTH_LONG);
             }
         });
     }
 
     /**
-     * Displays a contextual error Toast based on the HTTP status code.
+     * Shows a short error based on the server status.
      *
-     * @param statusCode the HTTP status code from the server response
+     * @param statusCode the status from the server
      */
     private void handleClaimError(int statusCode) {
         String errorMsg;
 
         switch (statusCode) {
             case 400:
-                errorMsg = "This item has already been claimed or you cannot claim your own item.";
+                errorMsg = getString(R.string.msg_claim_already_claimed);
                 break;
             case 401:
-                errorMsg = "Session expired. Please log in again.";
+                errorMsg = getString(R.string.msg_session_expired);
                 break;
             case 404:
-                errorMsg = "Item not found.";
+                errorMsg = getString(R.string.msg_item_not_found);
                 break;
             default:
                 if (statusCode >= 500) {
-                    errorMsg = "Server error. Please try again later.";
+                    errorMsg = getString(R.string.msg_server_error);
                 } else {
-                    errorMsg = "Failed to submit claim (Error " + statusCode + ")";
+                    errorMsg = getString(R.string.msg_claim_submit_failed, statusCode);
                 }
                 break;
         }
@@ -416,13 +461,18 @@ public class ItemDetailsActivity extends AppCompatActivity {
     }
 
     /**
-     * Toggles the claim button between loading and interactive states.
+     * Disables the button while the claim is sending.
      *
-     * @param isLoading {@code true} to show loading state
+     * @param isLoading {@code true} while sending
      */
     private void setClaimButtonLoading(boolean isLoading) {
+        claimSubmitting = isLoading;
         binding.btnClaim.setEnabled(!isLoading);
-        binding.btnClaim.setText(isLoading ? "Submitting…" : "This is Mine!");
+        if (isLoading) {
+            binding.btnClaim.setText(R.string.btn_submitting);
+        } else {
+            setupBottomAction();
+        }
     }
 
     @Override

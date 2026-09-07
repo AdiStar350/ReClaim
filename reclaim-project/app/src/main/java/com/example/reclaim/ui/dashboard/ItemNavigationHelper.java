@@ -7,7 +7,7 @@ import com.example.reclaim.model.Item;
 import com.example.reclaim.ui.details.ItemDetailsActivity;
 
 /**
- * Builds navigation intents for the item details screen.
+ * Opens the item details screen.
  */
 public final class ItemNavigationHelper {
 

@@ -12,125 +12,102 @@ import retrofit2.http.POST;
 import retrofit2.http.PUT;
 
 /**
- * Retrofit API service interface for the ReClaim backend.
- * <p>
- * Defines the HTTP endpoints the app communicates with. Each method
- * returns a {@link Call} wrapper for asynchronous execution via
- * {@link Call#enqueue}.
- * </p>
- *
- * <h3>Authentication:</h3>
- * All authenticated endpoints require an {@code Authorization} header
- * in the format {@code Bearer <token>}. The token is obtained from the
- * login endpoint and stored in {@link android.content.SharedPreferences}.
+ * HTTP calls to the backend.
+ * Signed-in calls need {@code Authorization: Bearer <token>}.
  */
 public interface ReClaimApiService {
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  AUTHENTICATION
-    // ═════════════════════════════════════════════════════════════════════
+    // ──
+    // Auth
+    // ──
 
     /**
-     * Authenticates a user with email and password.
-     * <p>
-     * On success, the server returns a {@link LoginResponse} containing
-     * a JWT access token.
-     * </p>
+     * Signs in with email and password.
      *
-     * @param loginRequest the login credentials
-     * @return a {@link Call} wrapping the {@link LoginResponse}
+     * @param loginRequest email and password
+     * @return the login response
      */
     @POST("api/auth/login")
     Call<LoginResponse> login(@Body LoginRequest loginRequest);
 
     /**
-     * Registers a new user account.
-     * <p>
-     * On success, the server returns the created {@link com.example.reclaim.model.User}
-     * object (without the password field).
-     * </p>
+     * Creates a new account.
      *
-     * @param registerRequest the registration data
-     * @return a {@link Call} wrapping the created user
+     * @param registerRequest sign-up fields
+     * @return the new user
      */
     @POST("api/auth/register")
     Call<com.example.reclaim.model.User> register(@Body RegisterRequest registerRequest);
 
     /**
-     * Step 1 of OTP registration: stores the payload server-side and emails a
-     * 6-digit verification code to the address provided.
+     * Sends a sign-up code to the given email.
      */
     @POST("api/auth/register/send-otp")
     Call<Void> sendRegistrationOtp(@Body SendOtpRequest request);
 
     /**
-     * Step 2 of OTP registration: validates the code, creates the user in
-     * MongoDB, and returns a JWT so the client is logged in immediately.
+     * Checks the sign-up code and signs the user in.
      */
     @POST("api/auth/register/verify-otp")
     Call<LoginResponse> verifyRegistrationOtp(@Body VerifyOtpRequest request);
 
     /**
-     * Re-sends a fresh OTP for a pending registration.
+     * Sends a new sign-up code.
      */
     @POST("api/auth/register/resend-otp")
     Call<Void> resendRegistrationOtp(@Body ResendOtpRequest request);
 
-    // ─── Forgot password ───────────────────────────────────────────────
+    // Forgot password
 
     /**
-     * Step 1 of the forgot-password flow: emails a 6-digit reset code.
+     * Sends a password-reset code.
      */
     @POST("api/auth/forgot-password/send-otp")
     Call<Void> sendPasswordResetOtp(@Body ForgotPasswordRequest request);
 
     /**
-     * Step 2: validates the reset code and returns an opaque reset token.
+     * Checks the reset code and returns a reset token.
      */
     @POST("api/auth/forgot-password/verify-otp")
     Call<ResetTokenResponse> verifyPasswordResetOtp(@Body VerifyOtpRequest request);
 
     /**
-     * Step 3: sets the new password using the reset token.
+     * Sets a new password with the reset token.
      */
     @POST("api/auth/forgot-password/reset")
     Call<Void> resetPassword(@Body ResetPasswordRequest request);
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  ITEMS
-    // ═════════════════════════════════════════════════════════════════════
+    // ──
+    // Items
+    // ──
 
     /**
-     * Retrieves the list of all reported lost and found items.
-     * <p>
-     * Requires a valid JWT token in the {@code Authorization} header.
-     * </p>
+     * All lost and found items.
      *
-     * @param authHeader the authorization header value, e.g.
-     *                   {@code "Bearer eyJhbGciOi..."}
-     * @return a {@link Call} wrapping a list of {@link Item} objects
+     * @param authHeader {@code "Bearer <token>"}
+     * @return the item list
      */
     @GET("api/items")
     Call<List<Item>> getItems(@Header("Authorization") String authHeader);
 
     /**
-     * Creates a new lost or found item report.
+     * Posts a new item.
      *
-     * @param authHeader the authorization header ({@code "Bearer <token>"})
-     * @param item       the item payload (ownerId is set server-side)
-     * @return a {@link Call} wrapping the created {@link Item}
+     * @param authHeader {@code "Bearer <token>"}
+     * @param item       the item (owner is set on the server)
+     * @return the created item
      */
     @POST("api/items")
     Call<Item> createItem(@Header("Authorization") String authHeader, @Body Item item);
 
     /**
-     * Retrieves items reported by the authenticated user.
+     * Items the signed-in user reported.
      */
     @GET("api/items/my-items")
     Call<List<Item>> getMyItems(@Header("Authorization") String authHeader);
 
     /**
-     * Retrieves items filtered by category.
+     * Items in one category.
      */
     @GET("api/items/category/{category}")
     Call<List<Item>> getItemsByCategory(
@@ -138,7 +115,7 @@ public interface ReClaimApiService {
             @retrofit2.http.Path("category") String category);
 
     /**
-     * Retrieves a single item by ID.
+     * One item by id.
      */
     @GET("api/items/{id}")
     Call<Item> getItemById(
@@ -150,20 +127,16 @@ public interface ReClaimApiService {
             @Header("Authorization") String authHeader,
             @retrofit2.http.Path("id") String id);
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  CLAIMS
-    // ═════════════════════════════════════════════════════════════════════
+    // ──
+    // Claims
+    // ──
 
     /**
-     * Submits an ownership claim on an item.
-     * <p>
-     * The server extracts the {@code claimantId} from the JWT token
-     * and sets the initial claim status to {@code PENDING}.
-     * </p>
+     * Sends a claim on an item.
      *
-     * @param authHeader   the authorization header ({@code "Bearer <token>"})
-     * @param claimRequest the claim data (itemId + validationAnswer)
-     * @return a {@link Call} wrapping the created {@link com.example.reclaim.model.Claim}
+     * @param authHeader   {@code "Bearer <token>"}
+     * @param claimRequest item id and answer
+     * @return the created claim
      */
     @POST("api/claims")
     Call<com.example.reclaim.model.Claim> submitClaim(
@@ -194,9 +167,9 @@ public interface ReClaimApiService {
             @Header("Authorization") String authHeader,
             @retrofit2.http.Path("claimId") String claimId);
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  USERS
-    // ═════════════════════════════════════════════════════════════════════
+    // ──
+    // Users
+    // ──
 
     @GET("api/users/me")
     Call<com.example.reclaim.model.User> getCurrentUser(
@@ -208,16 +181,15 @@ public interface ReClaimApiService {
             @Body UpdateProfileRequest request);
 
     /**
-     * Registers the device's FCM token so the backend can send push
-     * notifications (item matches, claim reviews) to this user.
+     * Saves this device's push token.
      */
     @PUT("api/users/me/fcm-token")
     Call<Void> updateFcmToken(
             @Header("Authorization") String authHeader,
             @Body FcmTokenRequest request);
 
-    // Retrofit's @DELETE forbids a request body, so use @HTTP with hasBody=true
-    // to send the confirmation credentials in the DELETE body.
+    // @DELETE cannot carry a body, so @HTTP sends
+    // the confirm fields with the delete.
     @retrofit2.http.HTTP(method = "DELETE", path = "api/users/me", hasBody = true)
     Call<Void> deleteAccount(
             @Header("Authorization") String authHeader,

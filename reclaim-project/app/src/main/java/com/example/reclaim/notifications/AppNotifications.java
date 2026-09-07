@@ -21,8 +21,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Notification channels and builders for the three push scenarios:
- * item matches, pending claims, and offline-report sync confirmations.
+ * Channels and builders for matches, claims, and sync notices.
  */
 public final class AppNotifications {
 
@@ -38,7 +37,7 @@ public final class AppNotifications {
     private AppNotifications() {
     }
 
-    /** Creates all channels; safe to call repeatedly. */
+    /** Makes the channels. Fine to call more than once. */
     public static void createChannels(@NonNull Context context) {
         NotificationManager manager = context.getSystemService(NotificationManager.class);
         if (manager == null) {
@@ -68,8 +67,7 @@ public final class AppNotifications {
     }
 
     /**
-     * Push payload {@code type=ITEM_MATCH}: opens the matched item's
-     * details screen so the user can review and claim it.
+     * {@code ITEM_MATCH}: opens the matched item.
      */
     public static void showItemMatch(@NonNull Context context,
                                      @NonNull String title,
@@ -91,8 +89,7 @@ public final class AppNotifications {
     }
 
     /**
-     * Push payload {@code type=CLAIM_PENDING}: opens the home dashboard so the
-     * owner sees the high-priority incoming-claim card.
+     * {@code CLAIM_PENDING}: opens home so the owner sees the claim card.
      */
     public static void showClaimPending(@NonNull Context context,
                                         @NonNull String title,
@@ -103,8 +100,7 @@ public final class AppNotifications {
     }
 
     /**
-     * Push payload {@code type=CLAIM_DECISION}: opens the home dashboard so
-     * the claimant sees the approve/decline card.
+     * {@code CLAIM_DECISION}: opens home so the claimant sees the result.
      */
     public static void showClaimDecision(@NonNull Context context,
                                          @NonNull String title,
@@ -112,7 +108,7 @@ public final class AppNotifications {
         showClaimPending(context, title, body);
     }
 
-    /** Local notification: a queued offline report reached the server. */
+    /** Local notice: a queued report reached the server. */
     public static void showReportSynced(@NonNull Context context,
                                         @Nullable String reportTitle) {
         String body = context.getString(

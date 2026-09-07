@@ -11,11 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 /**
- * Utility class for creating and validating JWT tokens.
- * <p>
- * Uses the HMAC-SHA256 signing algorithm with a secret key configured
- * via the {@code jwt.secret} application property.
- * </p>
+ * Makes and checks tokens. Signed with {@code jwt.secret}.
  */
 @Component
 public class JwtUtil {
@@ -24,10 +20,10 @@ public class JwtUtil {
     private final long expirationMs;
 
     /**
-     * Constructs the JWT utility with the configured secret and expiration.
+     * Loads the signing key and how long tokens last.
      *
-     * @param secret     the signing key from {@code jwt.secret}
-     * @param expiration the token lifetime in milliseconds from {@code jwt.expiration}
+     * @param secret     from {@code jwt.secret}
+     * @param expiration lifetime in milliseconds from {@code jwt.expiration}
      */
     public JwtUtil(@Value("${jwt.secret}") String secret,
                    @Value("${jwt.expiration}") long expiration) {
@@ -36,11 +32,11 @@ public class JwtUtil {
     }
 
     /**
-     * Generates a signed JWT token for the given user ID and email.
+     * Makes a signed token for this user.
      *
-     * @param userId the user's MongoDB document ID (set as the subject)
-     * @param email  the user's email (stored as a custom claim)
-     * @return the signed JWT string
+     * @param userId the user id (subject)
+     * @param email  the user's email
+     * @return the token
      */
     public String generateToken(String userId, String email) {
         Date now = new Date();
@@ -56,31 +52,30 @@ public class JwtUtil {
     }
 
     /**
-     * Extracts the user ID (subject) from a valid JWT token.
+     * Reads the user id from a token.
      *
-     * @param token the JWT string
-     * @return the user ID
+     * @param token the token
+     * @return the user id
      */
     public String getUserIdFromToken(String token) {
         return parseClaims(token).getSubject();
     }
 
     /**
-     * Extracts the email claim from a valid JWT token.
+     * Reads the email from a token.
      *
-     * @param token the JWT string
-     * @return the email address
+     * @param token the token
+     * @return the email
      */
     public String getEmailFromToken(String token) {
         return parseClaims(token).get("email", String.class);
     }
 
     /**
-     * Validates a JWT token by verifying its signature and checking
-     * that it has not expired.
+     * Checks the signature and that the token has not expired.
      *
-     * @param token the JWT string
-     * @return {@code true} if the token is valid and not expired
+     * @param token the token
+     * @return {@code true} if it is still good
      */
     public boolean validateToken(String token) {
         try {
@@ -92,10 +87,10 @@ public class JwtUtil {
     }
 
     /**
-     * Parses and verifies the JWT token, returning the claims payload.
+     * Reads the token body after checking the signature.
      *
-     * @param token the JWT string
-     * @return the parsed {@link Claims}
+     * @param token the token
+     * @return the claims
      */
     private Claims parseClaims(String token) {
         return Jwts.parser()

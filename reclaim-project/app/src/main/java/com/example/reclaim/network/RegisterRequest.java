@@ -3,11 +3,7 @@ package com.example.reclaim.network;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Request body for the registration endpoint
- * ({@code POST /api/auth/register}).
- * <p>
- * Contains the new user's email, password, full name, and phone number.
- * </p>
+ * Body for {@code POST /api/auth/register}.
  */
 public class RegisterRequest {
 
@@ -24,12 +20,12 @@ public class RegisterRequest {
     private final String phoneNumber;
 
     /**
-     * Creates a new registration request.
+     * Sign-up fields.
      *
-     * @param email       the user's email address
-     * @param password    the user's chosen password
-     * @param name        the user's full name
-     * @param phoneNumber the user's phone number
+     * @param email       email
+     * @param password    password
+     * @param name        name
+     * @param phoneNumber phone
      */
     public RegisterRequest(String email, String password,
                            String name, String phoneNumber) {

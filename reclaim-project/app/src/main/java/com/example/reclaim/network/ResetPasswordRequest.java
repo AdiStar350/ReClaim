@@ -3,7 +3,7 @@ package com.example.reclaim.network;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Request body for {@code POST /api/auth/forgot-password/reset}.
+ * Body for {@code POST /api/auth/forgot-password/reset}.
  */
 public class ResetPasswordRequest {
 

@@ -13,7 +13,7 @@ import androidx.work.WorkManager;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Enqueues unique WorkManager work that runs only when the device is online.
+ * Queues unique work that runs only when the device is online.
  */
 public final class ReportSyncScheduler {
 
@@ -23,6 +23,18 @@ public final class ReportSyncScheduler {
     }
 
     public static void enqueue(@NonNull Context context) {
+        enqueue(context, ExistingWorkPolicy.KEEP);
+    }
+
+    /**
+     * Replaces any older work so a new session can retry
+     * uploads that waited while unsigned.
+     */
+    public static void enqueueAfterAuth(@NonNull Context context) {
+        enqueue(context, ExistingWorkPolicy.REPLACE);
+    }
+
+    private static void enqueue(@NonNull Context context, @NonNull ExistingWorkPolicy policy) {
         Constraints constraints = new Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build();
@@ -33,6 +45,6 @@ public final class ReportSyncScheduler {
                 .build();
 
         WorkManager.getInstance(context.getApplicationContext())
-                .enqueueUniqueWork(UNIQUE_WORK_NAME, ExistingWorkPolicy.KEEP, request);
+                .enqueueUniqueWork(UNIQUE_WORK_NAME, policy, request);
     }
 }

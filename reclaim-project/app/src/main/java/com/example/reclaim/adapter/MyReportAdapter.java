@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Adapter for the user's own lost/found reports with edit and delete actions.
+ * The user's own reports, with edit and delete.
  */
 public class MyReportAdapter extends RecyclerView.Adapter<MyReportAdapter.ViewHolder> {
 
@@ -82,18 +82,19 @@ public class MyReportAdapter extends RecyclerView.Adapter<MyReportAdapter.ViewHo
                     .into(binding.imageThumbnail);
 
             String type = item.getType() != null ? item.getType() : "";
-            binding.chipType.setText(type);
             if ("Lost".equalsIgnoreCase(type)) {
+                binding.chipType.setText(R.string.type_lost);
                 binding.chipType.setChipBackgroundColorResource(R.color.type_lost);
             } else {
+                binding.chipType.setText(type.isEmpty() ? "" : context.getString(R.string.type_found));
                 binding.chipType.setChipBackgroundColorResource(R.color.type_found);
             }
-            // White text on dark red/green for sufficient contrast
+            // White text on the dark chip
             binding.chipType.setTextColor(context.getColor(R.color.text_on_accent));
 
-            // Only the dedicated buttons act on the report; the card itself
-            // is intentionally not clickable so a stray tap can't open the
-            // edit form.
+            // Only the buttons do something. The card
+            // itself is not clickable, so a stray tap
+            // does not open the edit form.
             binding.btnEdit.setOnClickListener(v -> listener.onEdit(item));
             binding.btnDelete.setOnClickListener(v -> listener.onDelete(item));
             binding.getRoot().setOnClickListener(null);

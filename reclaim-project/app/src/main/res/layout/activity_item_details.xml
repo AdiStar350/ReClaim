@@ -9,12 +9,13 @@
         android:id="@+id/app_bar_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fitsSystemWindows="true">
+        android:fitsSystemWindows="true"
+        app:statusBarForeground="@color/brand_dark">
 
         <com.google.android.material.appbar.CollapsingToolbarLayout
             android:id="@+id/collapsing_toolbar"
             android:layout_width="match_parent"
-            android:layout_height="292dp"
+            android:layout_height="@dimen/space_292"
             android:fitsSystemWindows="true"
             app:contentScrim="@color/brand_dark"
             app:layout_scrollFlags="scroll|exitUntilCollapsed"
@@ -59,14 +60,14 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
-        android:paddingBottom="92dp"
+        android:paddingBottom="@dimen/space_92"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="20dp">
+            android:padding="@dimen/space_20">
 
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/text_item_title"
@@ -78,7 +79,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="@dimen/space_14"
                 android:orientation="horizontal">
 
                 <com.google.android.material.chip.Chip
@@ -96,7 +97,7 @@
                     style="@style/Widget.Material3.Chip.Assist"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="@dimen/space_8"
                     android:textColor="@color/brand_dark"
                     app:chipBackgroundColor="@color/md_theme_surfaceContainerHigh"
                     app:chipCornerRadius="@dimen/chip_corner" />
@@ -107,13 +108,13 @@
                 style="@style/Widget.ReClaim.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp">
+                android:layout_marginTop="@dimen/space_20">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="18dp">
+                    android:padding="@dimen/space_18">
 
                     <com.google.android.material.textview.MaterialTextView
                         android:id="@+id/label_description"
@@ -127,7 +128,7 @@
                         android:id="@+id/text_description"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="@dimen/space_10"
                         android:textAppearance="?attr/textAppearanceBodyLarge"
                         android:textColor="@color/brand_slate" />
                 </LinearLayout>
@@ -137,13 +138,13 @@
                 style="@style/Widget.ReClaim.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp">
+                android:layout_marginTop="@dimen/space_16">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="18dp">
+                    android:padding="@dimen/space_18">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -152,8 +153,8 @@
                         android:orientation="horizontal">
 
                         <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="@dimen/space_20"
+                            android:layout_height="@dimen/space_20"
                             android:contentDescription="@string/label_location"
                             android:src="@android:drawable/ic_dialog_map"
                             app:tint="@color/brand_accent" />
@@ -161,7 +162,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="@dimen/space_12"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -176,7 +177,7 @@
                                 android:id="@+id/text_location"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
+                                android:layout_marginTop="@dimen/space_4"
                                 android:textAppearance="?attr/textAppearanceBodyMedium"
                                 android:textColor="@color/brand_dark" />
                         </LinearLayout>
@@ -185,8 +186,8 @@
                     <com.google.android.material.divider.MaterialDivider
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:layout_marginBottom="14dp" />
+                        android:layout_marginTop="@dimen/space_14"
+                        android:layout_marginBottom="@dimen/space_14" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -195,8 +196,8 @@
                         android:orientation="horizontal">
 
                         <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="@dimen/space_20"
+                            android:layout_height="@dimen/space_20"
                             android:contentDescription="@string/label_date_found"
                             android:src="@android:drawable/ic_menu_my_calendar"
                             app:tint="@color/brand_accent" />
@@ -204,7 +205,7 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="@dimen/space_12"
                             android:layout_weight="1"
                             android:orientation="vertical">
 
@@ -219,7 +220,7 @@
                                 android:id="@+id/text_date_found"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
+                                android:layout_marginTop="@dimen/space_4"
                                 android:textAppearance="?attr/textAppearanceBodyMedium"
                                 android:textColor="@color/brand_dark" />
                         </LinearLayout>
@@ -228,11 +229,11 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Reported by: display-only profile card (reporter name + picture) -->
+            <!-- Reporter. Name and picture only. -->
             <com.google.android.material.textview.MaterialTextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="@dimen/space_20"
                 android:text="@string/label_reported_by"
                 android:textAppearance="?attr/textAppearanceTitleMedium"
                 android:textColor="@color/brand_dark" />
@@ -242,7 +243,7 @@
                 style="@style/Widget.ReClaim.Card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/space_12"
                 android:clickable="false"
                 android:focusable="false">
 
@@ -251,15 +252,15 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="16dp">
+                    android:padding="@dimen/space_16">
 
                     <com.google.android.material.card.MaterialCardView
-                        android:layout_width="56dp"
-                        android:layout_height="56dp"
-                        app:cardCornerRadius="28dp"
+                        android:layout_width="@dimen/space_56"
+                        android:layout_height="@dimen/space_56"
+                        app:cardCornerRadius="@dimen/space_28"
                         app:cardElevation="0dp"
                         app:strokeColor="@color/md_theme_surfaceContainerHigh"
-                        app:strokeWidth="1dp">
+                        app:strokeWidth="@dimen/space_1">
 
                         <ImageView
                             android:id="@+id/image_reporter_avatar"
@@ -274,7 +275,7 @@
                         android:id="@+id/text_reported_by"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
+                        android:layout_marginStart="@dimen/space_16"
                         android:layout_weight="1"
                         android:textAppearance="?attr/textAppearanceTitleMedium"
                         android:textColor="@color/brand_dark" />
@@ -290,14 +291,14 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:background="@color/md_theme_surfaceContainerLowest"
-        android:elevation="10dp"
-        android:padding="16dp">
+        android:elevation="@dimen/space_10"
+        android:padding="@dimen/space_16">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_claim"
             style="@style/Widget.ReClaim.Button.Primary"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/space_56"
             android:text="@string/btn_claim"
             android:textAppearance="?attr/textAppearanceTitleMedium" />
 

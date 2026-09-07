@@ -28,17 +28,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Service layer for authentication and registration operations.
- * <p>
- * Handles:
- * <ul>
- *   <li><b>Login:</b> Verifies email/password credentials against the
- *       BCrypt hash stored in MongoDB. On success, issues a signed JWT
- *       via {@link JwtUtil}.</li>
- *   <li><b>Register:</b> Checks for duplicate emails, hashes the
- *       password with BCrypt, and persists the new user to MongoDB.</li>
- * </ul>
- * </p>
+ * Login, signup, and password reset.
  */
 @Service
 @Slf4j
@@ -59,31 +49,19 @@ public class AuthService {
     @Value("${otp.max.attempts:5}")
     private int otpMaxAttempts;
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  LOGIN
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    // Login
+    // ---
 
     /**
-     * Authenticates a user with the provided credentials.
-     * <p>
-     * <b>Flow:</b>
-     * <ol>
-     *   <li>Look up the user by email in MongoDB.</li>
-     *   <li>Verify the raw password against the stored BCrypt hash
-     *       using {@link PasswordEncoder#matches}.</li>
-     *   <li>Generate a signed JWT token containing the user's ID
-     *       (as subject) and email (as a custom claim).</li>
-     *   <li>Return the token wrapped in a {@link LoginResponse}.</li>
-     * </ol>
-     * </p>
+     * Checks email and password, then returns a token.
      *
-     * @param request the login credentials (email + password)
-     * @return a {@link LoginResponse} containing the JWT token
-     * @throws ResponseStatusException 401 if the email is not found
-     *         or the password does not match
+     * @param request email and password
+     * @return a token for the user
+     * @throws ResponseStatusException 401 if email or password is wrong
      */
     public LoginResponse login(LoginRequest request) {
-        // 1. Find the user by email
+        // Look up the user
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> {
                     log.warn("Login failed: email not found — {}", request.getEmail());
@@ -92,7 +70,7 @@ public class AuthService {
                             "Invalid email or password");
                 });
 
-        // 2. Verify the raw password against the BCrypt hash
+        // Check the password
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             log.warn("Login failed: incorrect password for — {}", request.getEmail());
             throw new ResponseStatusException(
@@ -100,7 +78,7 @@ public class AuthService {
                     "Invalid email or password");
         }
 
-        // 3. Generate a signed JWT token
+        // Make a token
         String token = jwtUtil.generateToken(user.getId(), user.getEmail());
 
         log.info("Login successful for user: {} (ID: {})",
@@ -109,30 +87,19 @@ public class AuthService {
         return new LoginResponse(token);
     }
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  REGISTER
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    // Sign up
+    // ---
 
     /**
-     * Registers a new user account.
-     * <p>
-     * <b>Flow:</b>
-     * <ol>
-     *   <li>Check if a user with the provided email already exists.
-     *       If so, throw a 409 Conflict.</li>
-     *   <li>Hash the plain-text password with BCrypt.</li>
-     *   <li>Create and save the {@link User} document to MongoDB.</li>
-     *   <li>Return the saved user (the caller should null-out the
-     *       password before returning it to the client).</li>
-     * </ol>
-     * </p>
+     * Creates a user if the email is free.
      *
-     * @param request the registration data (email, password, name, phoneNumber)
-     * @return the saved {@link User} document with generated MongoDB ID
-     * @throws ResponseStatusException 409 if the email is already registered
+     * @param request email, password, name, phone
+     * @return the saved user
+     * @throws ResponseStatusException 409 if the email is taken
      */
     public User register(RegisterRequest request) {
-        // 1. Check for duplicate email
+        // Stop if the email is taken
         if (userRepository.existsByEmail(request.getEmail())) {
             log.warn("Registration failed: email already exists — {}",
                     request.getEmail());
@@ -141,7 +108,7 @@ public class AuthService {
                     "Email is already registered");
         }
 
-        // 2. Create the user entity and hash the password
+        // Hash the password and build the user
         User user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -149,7 +116,7 @@ public class AuthService {
                 .phoneNumber(request.getPhoneNumber())
                 .build();
 
-        // 3. Save to MongoDB
+        // Save the user
         User savedUser = userRepository.save(user);
 
         log.info("User registered successfully: {} (ID: {})",
@@ -158,16 +125,15 @@ public class AuthService {
         return savedUser;
     }
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  REGISTRATION WITH EMAIL OTP
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    // Sign-up code
+    // ---
 
     /**
-     * Starts a registration by storing the payload in a pending record and
-     * emailing a fresh 6-digit OTP. Any previous pending record for the same
-     * email is replaced. The user document is not created yet.
+     * Saves the signup details and emails a 6-digit code.
+     * Replaces any older pending record. The user is not created yet.
      *
-     * @param request the full registration payload
+     * @param request the signup details
      * @throws ResponseStatusException 409 if the email already has an account
      */
     public void startRegistration(SendOtpRequest request) {
@@ -177,7 +143,7 @@ public class AuthService {
                     HttpStatus.CONFLICT, "Email is already registered");
         }
 
-        // Replace any stale pending record for this email.
+        // Drop any leftover pending record for this email.
         pendingRegistrationRepository.deleteByEmail(request.getEmail());
 
         String code = generateOtp();
@@ -200,10 +166,10 @@ public class AuthService {
     }
 
     /**
-     * Regenerates and re-sends the OTP for an existing pending registration.
+     * Sends a new code for a signup that is still pending.
      *
-     * @param email the email awaiting verification
-     * @throws ResponseStatusException 400 if there is no pending registration
+     * @param email the email waiting to be checked
+     * @throws ResponseStatusException 400 if there is no pending signup
      */
     public void resendOtp(String email) {
         PendingRegistration pending = pendingRegistrationRepository.findByEmail(email)
@@ -223,13 +189,11 @@ public class AuthService {
     }
 
     /**
-     * Validates the submitted OTP and, on success, promotes the pending record
-     * into a real {@link User} document in MongoDB and issues a JWT so the
-     * client is logged in immediately.
+     * Checks the code, then creates the user and returns a token.
      *
-     * @param request the email + submitted code
-     * @return a {@link LoginResponse} with a signed JWT
-     * @throws ResponseStatusException 400/410/429 for invalid/expired/too-many
+     * @param request the email and code
+     * @return a token so the user is signed in
+     * @throws ResponseStatusException 400/410/429 if the code is bad, expired, or tried too often
      */
     public LoginResponse verifyRegistration(VerifyOtpRequest request) {
         PendingRegistration pending = pendingRegistrationRepository
@@ -258,7 +222,7 @@ public class AuthService {
                     HttpStatus.BAD_REQUEST, "Invalid verification code");
         }
 
-        // Guard against a race where the email was registered meanwhile.
+        // Stop if someone else registered this email first.
         if (userRepository.existsByEmail(pending.getEmail())) {
             pendingRegistrationRepository.delete(pending);
             throw new ResponseStatusException(
@@ -283,19 +247,15 @@ public class AuthService {
         return new LoginResponse(token);
     }
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  FORGOT PASSWORD (email OTP → reset token → new password)
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    // Forgot password
+    // ---
 
     /**
-     * Starts a password reset by emailing a fresh 6-digit OTP.
-     * <p>
-     * To avoid leaking which emails are registered, this always succeeds from
-     * the caller's perspective; a code is only generated and emailed when an
-     * account actually exists for the address.
-     * </p>
+     * Emails a 6-digit reset code if the account exists.
+     * Always looks like it worked, so unused emails stay hidden.
      *
-     * @param email the account email requesting a reset
+     * @param email the account email
      */
     public void startPasswordReset(String email) {
         Optional<User> user = userRepository.findByEmail(email);
@@ -324,12 +284,11 @@ public class AuthService {
     }
 
     /**
-     * Validates a password-reset OTP and, on success, issues an opaque reset
-     * token the client must present to actually change the password.
+     * Checks the reset code and returns a token used to set a new password.
      *
-     * @param request the email + submitted code
+     * @param request the email and code
      * @return the reset token
-     * @throws ResponseStatusException 400/410/429 for invalid/expired/too-many
+     * @throws ResponseStatusException 400/410/429 if the code is bad, expired, or tried too often
      */
     public String verifyPasswordResetOtp(VerifyOtpRequest request) {
         PasswordResetToken token = passwordResetTokenRepository
@@ -371,11 +330,10 @@ public class AuthService {
     }
 
     /**
-     * Completes a password reset: verifies the reset token, then hashes and
-     * stores the new password in MongoDB.
+     * Checks the reset token, then saves the new password.
      *
-     * @param request email + reset token + new password
-     * @throws ResponseStatusException 400/410 for invalid/expired reset token
+     * @param request email, reset token, and new password
+     * @throws ResponseStatusException 400/410 if the token is bad or expired
      */
     public void resetPassword(ResetPasswordRequest request) {
         PasswordResetToken token = passwordResetTokenRepository
@@ -408,7 +366,7 @@ public class AuthService {
                 user.getEmail(), user.getId());
     }
 
-    /** Generates a zero-padded 6-digit one-time code. */
+    /** Makes a 6-digit code. */
     private String generateOtp() {
         return String.format("%06d", secureRandom.nextInt(1_000_000));
     }

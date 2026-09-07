@@ -3,10 +3,7 @@ package com.example.reclaim.network;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Request body for the login endpoint ({@code POST /api/auth/login}).
- * <p>
- * Contains the user's email and password credentials.
- * </p>
+ * Body for {@code POST /api/auth/login}.
  */
 public class LoginRequest {
 
@@ -17,10 +14,10 @@ public class LoginRequest {
     private final String password;
 
     /**
-     * Creates a new login request.
+     * Email and password.
      *
-     * @param email    the user's email address
-     * @param password the user's password
+     * @param email    email
+     * @param password password
      */
     public LoginRequest(String email, String password) {
         this.email = email;

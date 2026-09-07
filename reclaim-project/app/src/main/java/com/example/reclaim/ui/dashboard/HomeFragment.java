@@ -24,6 +24,7 @@ import com.bumptech.glide.Glide;
 import com.example.reclaim.R;
 import com.example.reclaim.adapter.ItemAdapter;
 import com.example.reclaim.adapter.PreviewItemAdapter;
+import com.example.reclaim.data.AppDataRefresh;
 import com.example.reclaim.databinding.FragmentHomeBinding;
 import com.example.reclaim.ui.profile.PendingClaimsActivity;
 import com.example.reclaim.ui.report.ReportActivity;
@@ -39,6 +40,7 @@ import com.example.reclaim.network.TokenManager;
 import com.example.reclaim.notifications.ClaimDecisionEvents;
 import com.example.reclaim.notifications.IncomingClaimEvents;
 import com.example.reclaim.ui.profile.ContactInfoDialog;
+import com.example.reclaim.util.ConnectionToasts;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -52,7 +54,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Dashboard home: welcome message, nearby items preview, and possible matches.
+ * Home screen: greeting, nearby items, and possible matches.
  */
 public class HomeFragment extends Fragment {
 
@@ -68,6 +70,22 @@ public class HomeFragment extends Fragment {
     private List<Item> myItems = new ArrayList<>();
     private List<PendingClaimResponse> pendingClaims = new ArrayList<>();
     private List<Claim> unacknowledgedDecisions = new ArrayList<>();
+
+    @Nullable
+    private androidx.appcompat.app.AlertDialog claimReviewDialog;
+    @Nullable
+    private String reviewingClaimId;
+    @Nullable
+    private MaterialTextView reviewItemView;
+    @Nullable
+    private MaterialTextView reviewQuestionView;
+    @Nullable
+    private MaterialTextView reviewAnswerView;
+
+    @Nullable
+    private androidx.appcompat.app.AlertDialog claimDecisionDialog;
+    @Nullable
+    private String decidingClaimId;
 
     @Nullable
     @Override
@@ -92,13 +110,11 @@ public class HomeFragment extends Fragment {
         binding.recyclerNearby.setLayoutManager(new LinearLayoutManager(
                 requireContext(), LinearLayoutManager.HORIZONTAL, false));
 
-        // The RecyclerView has no horizontal padding (so the fading edge spans
-        // the true view edges); all spacing is supplied here instead. Edge
-        // gutters keep the list inset like the rest of the screen, and the
-        // between-item spacing replaces the card's old marginEnd.
+        // Nearby list has no side padding so the fade reaches the edges.
+        // Spacing between cards and at the ends is added here.
         int edgeGutter = getResources()
                 .getDimensionPixelSize(R.dimen.screen_padding_horizontal);
-        int itemSpacing = Math.round(12 * getResources().getDisplayMetrics().density);
+        int itemSpacing = getResources().getDimensionPixelSize(R.dimen.space_12);
         binding.recyclerNearby.addItemDecoration(new RecyclerView.ItemDecoration() {
             @Override
             public void getItemOffsets(@NonNull Rect outRect, @NonNull View view,
@@ -137,8 +153,8 @@ public class HomeFragment extends Fragment {
         });
 
         fetchLocationIfAllowed();
-        loadMyItems();
         observeItems();
+        AppDataRefresh.observeNew(getViewLifecycleOwner(), this::refreshFromServer);
         IncomingClaimEvents.live().observe(getViewLifecycleOwner(), tick -> {
             if (tick != null) {
                 loadPendingClaims();
@@ -149,25 +165,25 @@ public class HomeFragment extends Fragment {
                 loadClaimDecisions();
             }
         });
-
-        if (viewModel.getItems().getValue() == null
-                || viewModel.getItems().getValue().isEmpty())
-            viewModel.loadItems();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        // Reload here so a profile picture (or name) changed on the settings
-        // screen is reflected when the user returns to the dashboard.
+        refreshFromServer();
+    }
+
+    /** Reloads home from the server. */
+    private void refreshFromServer() {
+        viewModel.loadItems();
+        loadMyItems();
         loadUserGreeting();
         loadPendingClaims();
         loadClaimDecisions();
     }
 
     /**
-     * Loads claims awaiting the user's review and toggles the top-of-dashboard
-     * "Review Pending Claims" card accordingly (hidden when there are none).
+     * Loads claims waiting for review. Hides the card when there are none.
      */
     private void loadPendingClaims() {
         String authHeader = TokenManager.getAuthHeader(requireContext());
@@ -183,6 +199,7 @@ public class HomeFragment extends Fragment {
                 pendingClaims = response.isSuccessful() && response.body() != null
                         ? response.body() : new ArrayList<>();
                 renderClaimCards();
+                syncClaimReviewDialog();
             }
 
             @Override
@@ -196,9 +213,7 @@ public class HomeFragment extends Fragment {
     }
 
     /**
-     * Toggles the two claim cards based on the current pending-claim list: the
-     * high-priority alert and the "Review Pending Claims" shortcut appear only
-     * when at least one claim awaits review.
+     * Shows the claim cards only when something is waiting for review.
      */
     private void renderClaimCards() {
         if (binding == null) return;
@@ -221,8 +236,7 @@ public class HomeFragment extends Fragment {
     }
 
     /**
-     * Loads claims the current user submitted that have been reviewed but
-     * not yet confirmed, then toggles the decision card at the top of home.
+     * Loads claims the user sent that were reviewed but not yet confirmed.
      */
     private void loadClaimDecisions() {
         String authHeader = TokenManager.getAuthHeader(requireContext());
@@ -247,6 +261,7 @@ public class HomeFragment extends Fragment {
                     }
                 }
                 renderDecisionCard();
+                syncClaimDecisionDialog();
             }
 
             @Override
@@ -254,6 +269,7 @@ public class HomeFragment extends Fragment {
                 if (binding == null || !isAdded()) return;
                 unacknowledgedDecisions = new ArrayList<>();
                 renderDecisionCard();
+                syncClaimDecisionDialog();
             }
         });
     }
@@ -277,10 +293,10 @@ public class HomeFragment extends Fragment {
     }
 
     /**
-     * Shows the owner's decision. Decline: Confirm dismisses the card.
-     * Approve: Confirm plus View Contact Info (owner name/email/phone).
+     * Shows the owner's decision. Confirm hides the card. Approve also offers contact info.
      */
     private void showClaimDecisionDialog(Claim claim) {
+        decidingClaimId = claim.getId();
         boolean approved = "APPROVED".equalsIgnoreCase(claim.getStatus());
         String itemTitle = !TextUtils.isEmpty(claim.getItemTitle())
                 ? claim.getItemTitle() : getString(R.string.item_details_title);
@@ -302,16 +318,48 @@ public class HomeFragment extends Fragment {
             builder.setNeutralButton(R.string.btn_view_contact_info, null);
         }
 
-        androidx.appcompat.app.AlertDialog dialog = builder.create();
-        dialog.setOnShowListener(d -> {
+        claimDecisionDialog = builder.create();
+        claimDecisionDialog.setOnShowListener(d -> {
             if (!approved) {
                 return;
             }
-            android.widget.Button contact = dialog.getButton(
+            android.widget.Button contact = claimDecisionDialog.getButton(
                     androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL);
             contact.setOnClickListener(v -> showOwnerContact(claim.getId()));
         });
-        dialog.show();
+        claimDecisionDialog.setOnDismissListener(d -> {
+            claimDecisionDialog = null;
+            decidingClaimId = null;
+        });
+        claimDecisionDialog.show();
+    }
+
+    private void syncClaimDecisionDialog() {
+        if (claimDecisionDialog == null || !claimDecisionDialog.isShowing()
+                || decidingClaimId == null) {
+            return;
+        }
+        Claim match = null;
+        for (Claim claim : unacknowledgedDecisions) {
+            if (decidingClaimId.equals(claim.getId())) {
+                match = claim;
+                break;
+            }
+        }
+        if (match == null) {
+            claimDecisionDialog.dismiss();
+            return;
+        }
+        boolean approved = "APPROVED".equalsIgnoreCase(match.getStatus());
+        String itemTitle = !TextUtils.isEmpty(match.getItemTitle())
+                ? match.getItemTitle() : getString(R.string.item_details_title);
+        claimDecisionDialog.setTitle(getString(approved
+                ? R.string.home_claim_decision_title_approved
+                : R.string.home_claim_decision_title_declined));
+        claimDecisionDialog.setMessage(getString(approved
+                        ? R.string.claim_decision_approved_body
+                        : R.string.claim_decision_declined_body,
+                itemTitle));
     }
 
     private void acknowledgeDecision(String claimId) {
@@ -349,7 +397,15 @@ public class HomeFragment extends Fragment {
                                            @NonNull Response<ContactResponse> response) {
                         if (!isAdded()) return;
                         if (response.isSuccessful() && response.body() != null) {
-                            ContactInfoDialog.show(requireContext(), response.body());
+                            ContactInfoDialog.show(requireContext(), response.body(),
+                                    getViewLifecycleOwner(),
+                                    callback -> {
+                                        String header = TokenManager.getAuthHeader(requireContext());
+                                        if (header == null) {
+                                            return;
+                                        }
+                                        apiService.getClaimContact(header, claimId).enqueue(callback);
+                                    });
                         } else {
                             Toast.makeText(requireContext(),
                                     R.string.msg_contact_load_failed, Toast.LENGTH_SHORT).show();
@@ -367,40 +423,70 @@ public class HomeFragment extends Fragment {
     }
 
     /**
-     * Shows a quick approve/decline dialog for a single incoming claim,
-     * displaying the owner's verification question and the claimant's answer.
+     * Asks the owner to approve or decline one incoming claim.
      */
     private void showClaimReviewDialog(PendingClaimResponse claim) {
         View dialogView = LayoutInflater.from(requireContext())
                 .inflate(R.layout.dialog_review_incoming_claim, null);
 
-        MaterialTextView itemView = dialogView.findViewById(R.id.text_review_item);
-        MaterialTextView questionView = dialogView.findViewById(R.id.text_review_question);
-        MaterialTextView answerView = dialogView.findViewById(R.id.text_review_answer);
+        reviewItemView = dialogView.findViewById(R.id.text_review_item);
+        reviewQuestionView = dialogView.findViewById(R.id.text_review_question);
+        reviewAnswerView = dialogView.findViewById(R.id.text_review_answer);
+        reviewingClaimId = claim.getClaimId();
+        bindClaimReview(claim);
 
-        itemView.setText(!TextUtils.isEmpty(claim.getItemTitle())
-                ? claim.getItemTitle() : getString(R.string.item_details_title));
-        questionView.setText(!TextUtils.isEmpty(claim.getVerificationQuestion())
-                ? claim.getVerificationQuestion()
-                : getString(R.string.claim_default_question));
-        answerView.setText(!TextUtils.isEmpty(claim.getValidationAnswer())
-                ? claim.getValidationAnswer() : "—");
-
-        new MaterialAlertDialogBuilder(requireContext())
+        claimReviewDialog = new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.claim_review_title)
                 .setView(dialogView)
                 .setPositiveButton(R.string.btn_approve_claim, (d, w) ->
                         reviewClaim(claim.getClaimId(), "APPROVED"))
                 .setNegativeButton(R.string.btn_decline_claim, (d, w) ->
                         reviewClaim(claim.getClaimId(), "REJECTED"))
-                .show();
+                .create();
+        claimReviewDialog.setOnDismissListener(d -> {
+            claimReviewDialog = null;
+            reviewingClaimId = null;
+            reviewItemView = null;
+            reviewQuestionView = null;
+            reviewAnswerView = null;
+        });
+        claimReviewDialog.show();
+    }
+
+    private void bindClaimReview(@NonNull PendingClaimResponse claim) {
+        if (reviewItemView == null || reviewQuestionView == null || reviewAnswerView == null) {
+            return;
+        }
+        reviewItemView.setText(!TextUtils.isEmpty(claim.getItemTitle())
+                ? claim.getItemTitle() : getString(R.string.item_details_title));
+        reviewQuestionView.setText(!TextUtils.isEmpty(claim.getVerificationQuestion())
+                ? claim.getVerificationQuestion()
+                : getString(R.string.claim_default_question));
+        reviewAnswerView.setText(!TextUtils.isEmpty(claim.getValidationAnswer())
+                ? claim.getValidationAnswer() : getString(R.string.placeholder_em_dash));
+    }
+
+    private void syncClaimReviewDialog() {
+        if (claimReviewDialog == null || !claimReviewDialog.isShowing()
+                || reviewingClaimId == null) {
+            return;
+        }
+        PendingClaimResponse match = null;
+        for (PendingClaimResponse claim : pendingClaims) {
+            if (reviewingClaimId.equals(claim.getClaimId())) {
+                match = claim;
+                break;
+            }
+        }
+        if (match == null) {
+            claimReviewDialog.dismiss();
+            return;
+        }
+        bindClaimReview(match);
     }
 
     /**
-     * Submits the owner's decision. The backend records the correct
-     * closureReason ({@code claim approved} or {@code claim declined}).
-     * The incoming-claim card is removed immediately, then the list is
-     * refreshed from the server.
+     * Sends the owner's decision. The card is removed right away, then the list is refreshed.
      */
     private void reviewClaim(String claimId, String status) {
         String authHeader = TokenManager.getAuthHeader(requireContext());
@@ -460,7 +546,7 @@ public class HomeFragment extends Fragment {
 
             @Override
             public void onFailure(@NonNull Call<User> call, @NonNull Throwable t) {
-                // Keep default greeting
+                // Keep the default greeting
             }
         });
     }
@@ -496,7 +582,7 @@ public class HomeFragment extends Fragment {
 
             @Override
             public void onFailure(@NonNull Call<List<Item>> call, @NonNull Throwable t) {
-                // Matches section stays empty
+                // Leave matches empty
             }
         });
     }
@@ -522,7 +608,7 @@ public class HomeFragment extends Fragment {
 
         viewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
             if (message != null && !message.isEmpty())
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+                ConnectionToasts.showIfOnline(requireContext(), message, Toast.LENGTH_SHORT);
         });
 
         viewModel.getItems().observe(getViewLifecycleOwner(), items -> {
@@ -573,7 +659,10 @@ public class HomeFragment extends Fragment {
 
             header.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleSmall);
             header.setTextColor(requireContext().getColor(R.color.brand_dark));
-            header.setPadding(0, 16, 0, 10);
+            header.setPadding(0,
+                    getResources().getDimensionPixelSize(R.dimen.space_16),
+                    0,
+                    getResources().getDimensionPixelSize(R.dimen.space_10));
             header.setText(getString(R.string.home_match_for, group.lostItem.getTitle()));
 
             binding.layoutMatches.addView(header);
@@ -594,6 +683,12 @@ public class HomeFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        if (claimReviewDialog != null) {
+            claimReviewDialog.dismiss();
+        }
+        if (claimDecisionDialog != null) {
+            claimDecisionDialog.dismiss();
+        }
         super.onDestroyView();
         binding = null;
     }

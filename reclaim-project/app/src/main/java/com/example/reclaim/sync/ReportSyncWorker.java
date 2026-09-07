@@ -25,13 +25,9 @@ import java.util.List;
 import retrofit2.Response;
 
 /**
- * Uploads reports that were saved locally while the device was offline.
- * <p>
- * For each queued report: upload the cached photo to Firebase Storage
- * (if one exists), POST the item to the backend, and delete the local
- * row + image on success. Runs under a WorkManager network constraint
- * and retries with backoff when the connection drops mid-sync.
- * </p>
+ * Sends reports that were saved while offline.
+ * Guest rows are claimed by the current user first.
+ * Drops the local row after a successful post.
  */
 public class ReportSyncWorker extends Worker {
 
@@ -45,19 +41,25 @@ public class ReportSyncWorker extends Worker {
     @Override
     public Result doWork() {
         Context context = getApplicationContext();
+        String userId = TokenManager.getUserId(context);
         String authHeader = TokenManager.getAuthHeader(context);
-        if (authHeader == null) {
-            // Not logged in; keep reports queued until the user signs in again.
-            Log.w(TAG, "No auth token; keeping pending reports queued");
+        if (authHeader == null || userId == null || userId.isEmpty()) {
+            // Not signed in; keep reports queued.
+            Log.w(TAG, "No auth session; keeping pending reports queued");
             return Result.success();
         }
 
         PendingReportDao dao = ReclaimDatabase.getInstance(context).pendingReportDao();
-        List<PendingReportEntity> pending = dao.getAll();
+        int adopted = dao.assignUnassigned(userId);
+        if (adopted > 0) {
+            Log.d(TAG, "Adopted " + adopted + " unassigned report(s) before sync");
+        }
+
+        List<PendingReportEntity> pending = dao.getByUserId(userId);
         if (pending.isEmpty()) {
             return Result.success();
         }
-        Log.d(TAG, "Syncing " + pending.size() + " pending report(s)");
+        Log.d(TAG, "Syncing " + pending.size() + " pending report(s) for user " + userId);
 
         boolean allSynced = true;
         for (PendingReportEntity entity : pending) {
@@ -79,11 +81,11 @@ public class ReportSyncWorker extends Worker {
                          @NonNull PendingReportEntity entity) throws IOException {
         Item item = entity.toItem();
 
-        // Upload the cached photo first, if the report has one.
+        // Send the saved photo first, if there is one.
         if ((item.getImageUrl() == null || item.getImageUrl().isEmpty())
                 && entity.localImagePath != null) {
             File imageFile = new File(entity.localImagePath);
-            if (imageFile.exists() && entity.userId != null) {
+            if (imageFile.exists() && entity.userId != null && !entity.userId.isEmpty()) {
                 String url = ImageUploadService.uploadImage(
                         context, Uri.fromFile(imageFile), entity.userId);
                 item.setImageUrl(url);
@@ -104,8 +106,8 @@ public class ReportSyncWorker extends Worker {
 
         int code = response.code();
         if (code >= 400 && code < 500 && code != 401 && code != 408 && code != 429) {
-            // Permanently rejected (validation etc.) — drop it so the queue
-            // doesn't retry forever.
+            // Rejected for good (bad fields, etc.). Drop it
+            // so the queue does not retry forever.
             Log.w(TAG, "Backend rejected pending report id=" + entity.id
                     + " http=" + code + "; removing from queue");
             PendingReportStore.deleteLocalImage(entity.localImagePath);

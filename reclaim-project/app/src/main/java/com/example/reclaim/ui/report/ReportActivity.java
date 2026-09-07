@@ -30,6 +30,7 @@ import com.example.reclaim.network.RetrofitClient;
 import com.example.reclaim.network.TokenManager;
 import com.example.reclaim.storage.ImageUploadService;
 import com.example.reclaim.sync.NetworkMonitor;
+import com.example.reclaim.util.ConnectionToasts;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
@@ -61,14 +62,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Screen for submitting a new lost or found item report.
- * <p>
- * Provides fields for title, description, category selection, photo
- * capture (camera or gallery via {@link ActivityResultLauncher}), and
- * an embedded {@link SupportMapFragment} for location picking. The user
- * can also tap "Use Current Location" to auto-fill the address field
- * using {@link FusedLocationProviderClient} and {@link Geocoder}.
- * </p>
+ * Form for a new lost or found report: details, photo, and a map for the place.
  */
 public class ReportActivity extends AppCompatActivity implements OnMapReadyCallback {
 
@@ -76,30 +70,24 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
 
     public static final String EXTRA_ITEM_ID = "extra_item_id";
 
-    /** Categories available for the item report dropdown. */
-    private static final String[] CATEGORIES = {
-            "Electronics", "Documents", "Keys", "Wallets",
-            "Clothing", "Bags", "Other"
-    };
-
-    /** Default map zoom level. */
+    /** How far the map is zoomed. */
     private static final float DEFAULT_ZOOM = 15f;
 
-    /** Default map center (Tel Aviv). */
+    /** Starting map position (Tel Aviv). */
     private static final LatLng DEFAULT_LOCATION = new LatLng(32.0853, 34.7818);
 
     private ActivityReportBinding binding;
     private ReClaimApiService apiService;
     private final ExecutorService uploadExecutor = Executors.newSingleThreadExecutor();
 
-    // ── Image capture state ──────────────────────────────────────────────
-    /** URI of the photo captured by the camera (temp file via FileProvider). */
+    // Photo
+    /** Photo just taken with the camera. */
     private Uri cameraImageUri;
 
-    /** URI of the currently selected/captured image for the report. */
+    /** Photo chosen for this report. */
     private Uri selectedImageUri;
 
-    // ── Map / Location state ─────────────────────────────────────────────
+    // Map and place
     private GoogleMap googleMap;
     private Marker currentMarker;
     private FusedLocationProviderClient fusedLocationClient;
@@ -113,13 +101,12 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     @androidx.annotation.Nullable
     private String existingImageUrl;
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  ACTIVITY RESULT LAUNCHERS (modern replacement for startActivityForResult)
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    //  Photo, gallery, and permission results
+    // ---
 
     /**
-     * Launcher for {@link ActivityResultContracts.TakePicture}.
-     * Receives {@code true} if the camera saved an image to {@link #cameraImageUri}.
+     * Opens the camera. {@code true} if a photo was saved to {@link #cameraImageUri}.
      */
     private final ActivityResultLauncher<Uri> cameraLauncher =
             registerForActivityResult(new ActivityResultContracts.TakePicture(), success -> {
@@ -130,8 +117,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
             });
 
     /**
-     * Launcher for {@link ActivityResultContracts.GetContent}.
-     * Returns the content URI of the image the user selected from the gallery.
+     * Opens the gallery. Returns the photo the user picked.
      */
     private final ActivityResultLauncher<String> galleryLauncher =
             registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
@@ -142,8 +128,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
             });
 
     /**
-     * Launcher that requests the {@link Manifest.permission#CAMERA} permission.
-     * If granted, proceeds to launch the camera.
+     * Asks for camera permission. If allowed, opens the camera.
      */
     private final ActivityResultLauncher<String> cameraPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
@@ -157,8 +142,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
             });
 
     /**
-     * Launcher that requests location permissions (fine + coarse).
-     * If at least one is granted, proceeds to fetch the current location.
+     * Asks for location permission. If allowed, uses the current place.
      */
     private final ActivityResultLauncher<String[]> locationPermissionLauncher =
             registerForActivityResult(
@@ -178,9 +162,9 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                         }
                     });
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  LIFECYCLE
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    //  Opening the screen
+    // ---
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -266,12 +250,12 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         }
     }
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  TOOLBAR
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    //  Toolbar
+    // ---
 
     /**
-     * Configures the Material toolbar with a back/up navigation button.
+     * Sets the toolbar and a back button.
      */
     private void setupToolbar() {
         setSupportActionBar(binding.toolbarReport);
@@ -282,46 +266,42 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         }
     }
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  CATEGORY DROPDOWN
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    //  Category list
+    // ---
 
     /**
-     * Populates the category {@link android.widget.AutoCompleteTextView}
-     * with a predefined list of item categories.
+     * Fills the category list.
      */
     private void setupCategoryDropdown() {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 this,
                 R.layout.item_dropdown_category,
-                CATEGORIES
+                getResources().getStringArray(R.array.item_categories)
         );
         binding.dropdownCategory.setAdapter(adapter);
     }
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  IMAGE CAPTURE (Camera + Gallery via ActivityResultLauncher)
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    //  Photo (camera or gallery)
+    // ---
 
     /**
-     * Wires up click listeners on the image card and the "Choose from Gallery"
-     * button. Tapping the card shows a Material dialog offering Camera or Gallery.
+     * Tapping the card or photo opens a choice of camera or gallery.
      */
     private void setupImageCapture() {
-        // Tapping the card shows the chooser dialog
+        // Card tap opens the chooser
         binding.cardImageCapture.setOnClickListener(v -> showImageChooserDialog());
 
-        // Tapping the existing/selected photo also opens the chooser so the
-        // user can replace it (the preview covers the whole card once shown).
+        // Photo tap also opens the chooser, so it can be replaced.
         binding.imagePreview.setOnClickListener(v -> showImageChooserDialog());
 
-        // Tapping "Choose from Gallery" goes straight to gallery
+        // Gallery button skips the chooser
         binding.btnChoosePhoto.setOnClickListener(v -> launchGallery());
     }
 
     /**
-     * Presents a {@link MaterialAlertDialogBuilder} dialog letting the user
-     * choose between taking a new photo or picking from the gallery.
+     * Asks whether to take a photo or pick one.
      */
     private void showImageChooserDialog() {
         String[] options = {
@@ -342,8 +322,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     }
 
     /**
-     * Checks the camera permission and either launches the camera directly
-     * or requests permission first.
+     * Opens the camera if allowed, or asks first.
      */
     private void requestCameraPermissionAndLaunch() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
@@ -355,8 +334,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     }
 
     /**
-     * Creates a temporary file via {@link FileProvider}, obtains a content URI,
-     * and launches the system camera to capture an image into that URI.
+     * Makes a temp file and opens the camera.
      */
     private void launchCamera() {
         File imageDir = new File(getCacheDir(), "images");
@@ -377,29 +355,26 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     }
 
     /**
-     * Launches the system gallery/file picker filtered to images.
+     * Opens the gallery, images only.
      */
     private void launchGallery() { galleryLauncher.launch("image/*"); }
 
     /**
-     * Loads the given URI into the preview ImageView using Glide and
-     * swaps visibility so the placeholder is hidden.
+     * Shows the photo and hides the placeholder.
      *
-     * @param uri the content URI of the image to display
+     * @param uri the photo to show
      */
     private void displaySelectedImage(@NonNull Uri uri) {
         displayImage(uri);
     }
 
     /**
-     * Renders an image (a content {@link Uri} or a remote URL string) into the
-     * preview slot, hiding the placeholder so the photo is visible and the
-     * container becomes tappable to replace the photo.
+     * Shows a photo in the preview. Tapping it can replace it.
      *
-     * @param model any model Glide can load (e.g. {@link Uri} or {@link String})
+     * @param model the photo to show
      */
     private void displayImage(@NonNull Object model) {
-        // Hide placeholder, show the preview ImageView
+        // Hide the placeholder
         binding.layoutPhotoPlaceholder.setVisibility(View.GONE);
         binding.imagePreview.setVisibility(View.VISIBLE);
 
@@ -409,13 +384,12 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                 .into(binding.imagePreview);
     }
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  LOCATION PICKER (Embedded Map + Current Location)
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    //  Map and current place
+    // ---
 
     /**
-     * Obtains the {@link SupportMapFragment} embedded in the layout and
-     * wires up the "Use Current Location" button.
+     * Sets up the map and the current-place button.
      */
     private void setupLocationPicker() {
         SupportMapFragment mapFragment = (SupportMapFragment)
@@ -440,13 +414,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     }
 
     /**
-     * Initializes the Places SDK (reusing the Maps API key from the manifest)
-     * and attaches a live address-suggestion dropdown to the location field.
-     * Selecting a suggestion resolves the place and moves the map marker.
-     * <p>
-     * If no API key is configured, autocomplete is silently skipped — manual
-     * typing with geocoding at submit time still works.
-     * </p>
+     * Adds address suggestions to the place field. If there is no key, typing still works.
      */
     private void setupPlacesAutocomplete() {
         String apiKey = readMapsApiKey();
@@ -488,13 +456,13 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                     })
                     .addOnFailureListener(e -> {
                         placesAdapter.resetSessionToken();
-                        // Coordinates unresolved — submit-time geocoding will retry
+                        // Place not found yet; submit will try again
                     });
         });
     }
 
     /**
-     * Reads the Google Maps API key from the application manifest meta-data.
+     * Reads the maps key from the app info.
      */
     @androidx.annotation.Nullable
     private String readMapsApiKey() {
@@ -510,12 +478,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     }
 
     /**
-     * Called when the embedded Google Map is ready.
-     * <p>
-     * Sets the default camera position, enables zoom controls, and
-     * installs a map-click listener that places a marker and reverse-geocodes
-     * the tapped position into a readable address.
-     * </p>
+     * Map is ready. Sets the starting view and places a pin when the user taps.
      */
     @Override
     public void onMapReady(@NonNull GoogleMap map) {
@@ -524,19 +487,19 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         googleMap.getUiSettings().setZoomControlsEnabled(true);
         googleMap.getUiSettings().setScrollGesturesEnabled(true);
 
-        // Move camera to default location
+        // Start at the default place
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(DEFAULT_LOCATION, DEFAULT_ZOOM));
 
-        // Enable my-location layer if permission is already granted
+        // Show the blue location dot if allowed
         if (hasLocationPermission()) {
             try {
                 googleMap.setMyLocationEnabled(true);
             } catch (SecurityException ignored) {
-                // Permission was revoked between check and call
+                // Permission was taken away
             }
         }
 
-        // Handle map taps: place marker + reverse geocode
+        // Tap to drop a pin and fill the address
         googleMap.setOnMapClickListener(latLng -> {
             placeMarker(latLng);
             reverseGeocode(latLng);
@@ -544,9 +507,9 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     }
 
     /**
-     * Checks whether fine or coarse location permission has been granted.
+     * Checks if location is allowed.
      *
-     * @return {@code true} if at least one location permission is granted
+     * @return {@code true} if location is allowed
      */
     private boolean hasLocationPermission() {
         return ContextCompat.checkSelfPermission(this,
@@ -558,9 +521,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     }
 
     /**
-     * Uses {@link FusedLocationProviderClient} to fetch the device's
-     * current GPS coordinates. On success, places a marker on the map
-     * and reverse-geocodes the position into a street address.
+     * Gets the current place, drops a pin, and fills the address.
      */
     private void fetchCurrentLocation() {
         if (!hasLocationPermission()) {
@@ -602,9 +563,9 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     }
 
     /**
-     * Places (or moves) a single marker on the map at the given coordinates.
+     * Puts one pin on the map.
      *
-     * @param latLng the position for the marker
+     * @param latLng where to put it
      */
     private void placeMarker(@NonNull LatLng latLng) {
         selectedLatLng = latLng;
@@ -623,10 +584,9 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     }
 
     /**
-     * Uses the {@link Geocoder} to convert latitude/longitude into a
-     * human-readable street address and populates the location EditText.
+     * Turns a pin into a street address.
      *
-     * @param latLng the coordinates to reverse-geocode
+     * @param latLng the pin
      */
     private void reverseGeocode(@NonNull LatLng latLng) {
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
@@ -637,7 +597,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
             if (addresses != null && !addresses.isEmpty()) {
                 Address address = addresses.get(0);
 
-                // Build a readable address string from available lines
+                // Join the address lines
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i <= address.getMaxAddressLineIndex(); i++) {
                     if (i > 0) {
@@ -649,7 +609,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
 
                 binding.editLocation.setText(addressText, false);
 
-                // Update the marker snippet with the address
+                // Put the address on the pin
                 if (currentMarker != null) {
                     currentMarker.setSnippet(addressText);
                 }
@@ -662,20 +622,19 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                         Toast.LENGTH_SHORT).show();
             }
         } catch (IOException e) {
-            // Geocoder service unavailable — fall back to raw coordinates
+            // No address; show the numbers instead
             binding.editLocation.setText(
                     String.format(Locale.US, "%.6f, %.6f",
                             latLng.latitude, latLng.longitude), false);
         }
     }
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  REPORT TYPE (Lost / Found)
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    //  Lost or found
+    // ---
 
     /**
-     * Shows the verification-question card only for Found reports.
-     * Lost reports do not collect a verification question.
+     * Shows the question only for found reports.
      */
     private void setupReportTypeChips() {
         binding.chipGroupReportType.setOnCheckedStateChangeListener(
@@ -695,20 +654,19 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         return binding.chipTypeLost.isChecked();
     }
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  FORM SUBMISSION
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    //  Submit
+    // ---
 
     /**
-     * Wires up the submit button.
+     * Sets the submit click.
      */
     private void setupSubmitButton() {
         binding.btnSubmitReport.setOnClickListener(v -> validateAndSubmit());
     }
 
     /**
-     * Validates that all required fields are filled before submitting.
-     * Shows appropriate error messages via {@link Toast}.
+     * Checks the form. If something is missing, it shows a small message.
      */
     private void validateAndSubmit() {
         String title = binding.editItemTitle.getText() != null
@@ -721,28 +679,28 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                 ? binding.editLocation.getText().toString().trim() : "";
 
         if (TextUtils.isEmpty(title)) {
-            binding.inputLayoutItemTitle.setError("Please enter a title");
+            binding.inputLayoutItemTitle.setError(getString(R.string.msg_enter_title));
             return;
         } else {
             binding.inputLayoutItemTitle.setError(null);
         }
 
         if (TextUtils.isEmpty(description)) {
-            binding.inputLayoutDescription.setError("Please enter a description");
+            binding.inputLayoutDescription.setError(getString(R.string.msg_enter_description));
             return;
         } else {
             binding.inputLayoutDescription.setError(null);
         }
 
         if (TextUtils.isEmpty(category)) {
-            binding.inputLayoutCategory.setError("Please select a category");
+            binding.inputLayoutCategory.setError(getString(R.string.msg_select_category));
             return;
         } else {
             binding.inputLayoutCategory.setError(null);
         }
 
         if (TextUtils.isEmpty(location)) {
-            binding.inputLayoutLocation.setError("Please select a location");
+            binding.inputLayoutLocation.setError(getString(R.string.msg_select_location));
             return;
         } else {
             binding.inputLayoutLocation.setError(null);
@@ -753,7 +711,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
             String question = binding.editVerification.getText() != null
                     ? binding.editVerification.getText().toString().trim() : "";
             if (TextUtils.isEmpty(question)) {
-                binding.inputLayoutVerification.setError("Please enter a verification question");
+                binding.inputLayoutVerification.setError(getString(R.string.msg_enter_verification_question));
                 return;
             }
             binding.inputLayoutVerification.setError(null);
@@ -764,30 +722,35 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         }
 
         String authHeader = TokenManager.getAuthHeader(this);
-        if (authHeader == null) {
-            Toast.makeText(this, "Please log in to submit a report", Toast.LENGTH_SHORT).show();
+        if (editingItemId != null && authHeader == null) {
+            Toast.makeText(this, R.string.msg_login_to_submit_report, Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
 
         String reportType = binding.chipTypeLost.isChecked() ? "Lost" : "Found";
 
+        if (authHeader == null) {
+            queueGuestReport(reportType, title, description, category,
+                    location, verificationQuestion);
+            return;
+        }
+
         if (selectedLatLng != null) {
-            // Coordinates already chosen via map tap / current location.
+            // Pin already set.
             startUpload(authHeader, reportType, title, description,
                     category, location, verificationQuestion);
             return;
         }
 
-        // No map pin — resolve the typed address into coordinates first.
+        // No pin yet. Turn the typed address into a place first.
         setSubmitting(true);
         uploadExecutor.execute(() -> {
             LatLng resolved = forwardGeocode(location);
             runOnUiThread(() -> {
                 if (resolved == null) {
-                    if (editingItemId == null && !NetworkMonitor.isOnline(this)) {
-                        // Geocoder needs network. Queue the report with the
-                        // typed address; coordinates stay empty until sync.
+                    if (editingItemId == null && !NetworkMonitor.isBackendAvailable(this)) {
+                        // No network for the address. Save the typed text; place can wait.
                         uploadExecutor.execute(() -> saveReportOffline(
                                 reportType, title, description, category,
                                 location, verificationQuestion,
@@ -812,11 +775,29 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     }
 
     /**
-     * Converts a user-typed address into coordinates using the {@link Geocoder}.
+     * Saves a report with no owner until the user signs in. Place is filled if possible.
+     */
+    private void queueGuestReport(String reportType, String title,
+                                  String description, String category,
+                                  String location, String verificationQuestion) {
+        setSubmitting(true);
+        uploadExecutor.execute(() -> {
+            if (selectedLatLng == null) {
+                LatLng resolved = forwardGeocode(location);
+                if (resolved != null) {
+                    selectedLatLng = resolved;
+                }
+            }
+            saveReportOffline(reportType, title, description, category,
+                    location, verificationQuestion, null);
+        });
+    }
+
+    /**
+     * Turns a typed address into a place.
      *
-     * @param query the free-form address text
-     * @return the resolved coordinates, or {@code null} if the address could
-     *         not be resolved
+     * @param query the address
+     * @return the place, or {@code null} if not found
      */
     @androidx.annotation.Nullable
     private LatLng forwardGeocode(@NonNull String query) {
@@ -828,15 +809,13 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                 return new LatLng(address.getLatitude(), address.getLongitude());
             }
         } catch (IOException ignored) {
-            // Geocoder unavailable — treated as unresolved
+            // Could not find the place
         }
         return null;
     }
 
     /**
-     * Uploads the image (if any) on a background thread, builds the
-     * {@link Item}, and hands it to the backend. Requires
-     * {@link #selectedLatLng} to be set.
+     * Uploads the photo if there is one, then sends the report. Needs a pin.
      */
     private void startUpload(String authHeader, String reportType, String title,
                              String description, String category, String location,
@@ -846,9 +825,8 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         uploadExecutor.execute(() -> {
             String userId = TokenManager.getUserId(ReportActivity.this);
 
-            // Offline-first: when creating a new report without connectivity,
-            // cache it locally and let the background worker sync it later.
-            if (editingItemId == null && !NetworkMonitor.isOnline(this)) {
+            // No connection. Save locally and send later.
+            if (editingItemId == null && !NetworkMonitor.isBackendAvailable(this)) {
                 saveReportOffline(reportType, title, description, category,
                         location, verificationQuestion, userId);
                 return;
@@ -869,8 +847,8 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                             getApplicationContext(), selectedImageUri, userId);
                 } catch (IOException e) {
                     Log.e(TAG, "Firebase image upload failed uri=" + selectedImageUri, e);
-                    if (editingItemId == null && !NetworkMonitor.isOnline(this)) {
-                        // Connection dropped mid-submit — fall back to the queue.
+                    if (editingItemId == null && !NetworkMonitor.isBackendAvailable(this)) {
+                        // Connection dropped. Save locally instead.
                         saveReportOffline(reportType, title, description, category,
                                 location, verificationQuestion, userId);
                         return;
@@ -896,9 +874,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     }
 
     /**
-     * Builds the {@link Item} payload from validated form fields. Coordinates
-     * are taken from {@link #selectedLatLng} when a pin was placed; queued
-     * offline reports may carry none until sync.
+     * Builds the report from the form. Offline reports may have no pin yet.
      */
     private Item buildItem(String reportType, String title, String description,
                            String category, String location,
@@ -920,9 +896,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     }
 
     /**
-     * Persists the report to the local queue (with a private copy of the
-     * selected photo) so the sync worker can push it once connectivity
-     * returns. Runs on the upload executor.
+     * Saves the report locally, with a copy of the photo, to send later.
      */
     private void saveReportOffline(String reportType, String title,
                                    String description, String category,
@@ -945,9 +919,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     }
 
     /**
-     * Shows a single confirmation toast for an offline-saved report, then closes
-     * the app entirely — the queued report syncs automatically once connectivity
-     * returns. The toast persists after the task is finished.
+     * Shows a saved message, then leaves. The report will send later.
      */
     private void finishAfterOfflineSave() {
         setSubmitting(false);
@@ -972,16 +944,34 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                     Toast.makeText(ReportActivity.this, message, Toast.LENGTH_SHORT).show();
                     finish();
                 } else {
-                    Toast.makeText(ReportActivity.this,
-                            R.string.msg_report_failed, Toast.LENGTH_SHORT).show();
+                    if (editingItemId == null
+                            && !NetworkMonitor.isBackendAvailable(ReportActivity.this)) {
+                        uploadExecutor.execute(() -> {
+                            try {
+                                PendingReportStore.enqueue(
+                                        getApplicationContext(), item, selectedImageUri,
+                                        TokenManager.getUserId(ReportActivity.this));
+                                runOnUiThread(ReportActivity.this::finishAfterOfflineSave);
+                            } catch (IOException e) {
+                                Log.e(TAG, "Could not queue report after gateway failure", e);
+                                runOnUiThread(() -> {
+                                    setSubmitting(false);
+                                    ConnectionToasts.showIfOnline(ReportActivity.this,
+                                            R.string.msg_report_failed, Toast.LENGTH_SHORT);
+                                });
+                            }
+                        });
+                        return;
+                    }
+                    ConnectionToasts.showIfOnline(ReportActivity.this,
+                            R.string.msg_report_failed, Toast.LENGTH_SHORT);
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<Item> call, @NonNull Throwable t) {
-                // Network dropped between validation and POST — queue new
-                // reports locally instead of failing.
-                if (editingItemId == null && !NetworkMonitor.isOnline(ReportActivity.this)) {
+                // Connection dropped. Save new reports locally.
+                if (editingItemId == null && !NetworkMonitor.isBackendAvailable(ReportActivity.this)) {
                     Log.w(TAG, "Create failed offline; queueing report locally", t);
                     uploadExecutor.execute(() -> {
                         try {
@@ -993,16 +983,16 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                             Log.e(TAG, "Could not queue report after failure", e);
                             runOnUiThread(() -> {
                                 setSubmitting(false);
-                                Toast.makeText(ReportActivity.this,
-                                        R.string.msg_report_failed, Toast.LENGTH_SHORT).show();
+                                ConnectionToasts.showIfOnline(ReportActivity.this,
+                                        R.string.msg_report_failed, Toast.LENGTH_SHORT);
                             });
                         }
                     });
                     return;
                 }
                 setSubmitting(false);
-                Toast.makeText(ReportActivity.this,
-                        R.string.msg_report_failed, Toast.LENGTH_SHORT).show();
+                ConnectionToasts.showIfOnline(ReportActivity.this,
+                        R.string.msg_report_failed, Toast.LENGTH_SHORT);
             }
         });
     }
@@ -1020,9 +1010,9 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         uploadExecutor.shutdownNow();
     }
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  NAVIGATION
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    //  Back
+    // ---
 
     @Override
     public boolean onSupportNavigateUp() {

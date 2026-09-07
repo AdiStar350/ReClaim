@@ -4,12 +4,8 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 /**
- * Process-wide signal that a {@code CLAIM_PENDING} push arrived.
- * <p>
- * The home dashboard observes this so the high-priority incoming-claim
- * card can appear immediately while the app is already in the foreground,
- * without waiting for the next {@code onResume}.
- * </p>
+ * App-wide note that a {@code CLAIM_PENDING} push arrived.
+ * Home can show the claim card without waiting for {@code onResume}.
  */
 public final class IncomingClaimEvents {
 
@@ -22,7 +18,7 @@ public final class IncomingClaimEvents {
         return SIGNAL;
     }
 
-    /** Posts from any thread (FCM callback). */
+    /** Fine from any thread. */
     public static void notifyReceived() {
         SIGNAL.postValue(System.currentTimeMillis());
     }

@@ -1,7 +1,7 @@
 package com.example.reclaim.ui.dashboard;
 
 /**
- * Allows fragments to switch the dashboard bottom navigation tab.
+ * Lets a screen switch the bottom tab.
  */
 public interface DashboardNavigator {
 

@@ -9,7 +9,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 /**
- * Reports validated internet availability and watches for reconnects.
+ * Checks if the device has internet, and watches for it coming back.
  */
 public final class NetworkMonitor {
 
@@ -35,8 +35,7 @@ public final class NetworkMonitor {
     }
 
     /**
-     * Registers a process-wide callback that enqueues report sync whenever
-     * a network with internet access becomes available.
+     * Queues report sync when a network with internet comes back.
      */
     public static synchronized void register(@NonNull Context context) {
         if (registered) {
@@ -60,5 +59,13 @@ public final class NetworkMonitor {
             }
         });
         registered = true;
+    }
+
+    /**
+     * True when the device has internet and the last API call
+     * reached the server.
+     */
+    public static boolean isBackendAvailable(@NonNull Context context) {
+        return isOnline(context) && BackendAvailability.isReachable();
     }
 }

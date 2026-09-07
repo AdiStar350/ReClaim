@@ -56,9 +56,9 @@
             android:paddingStart="@dimen/screen_padding_horizontal"
             android:paddingTop="@dimen/screen_padding_top"
             android:paddingEnd="@dimen/screen_padding_horizontal"
-            android:paddingBottom="32dp">
+            android:paddingBottom="@dimen/space_32">
 
-            <!-- ── Profile identity card ── -->
+            <!-- Profile -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_profile"
                 style="@style/Widget.ReClaim.SettingsCard"
@@ -73,16 +73,16 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingTop="16dp"
-                    android:paddingEnd="12dp"
-                    android:paddingBottom="16dp">
+                    android:paddingStart="@dimen/space_16"
+                    android:paddingTop="@dimen/space_16"
+                    android:paddingEnd="@dimen/space_12"
+                    android:paddingBottom="@dimen/space_16">
 
                     <com.google.android.material.card.MaterialCardView
-                        android:layout_width="52dp"
-                        android:layout_height="52dp"
+                        android:layout_width="@dimen/space_52"
+                        android:layout_height="@dimen/space_52"
                         app:cardBackgroundColor="@color/md_theme_primaryContainer"
-                        app:cardCornerRadius="26dp"
+                        app:cardCornerRadius="@dimen/space_26"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp">
 
@@ -91,7 +91,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:contentDescription="@string/cd_profile_avatar"
-                            android:padding="12dp"
+                            android:padding="@dimen/space_12"
                             android:scaleType="centerCrop"
                             android:src="@drawable/ic_settings_person"
                             app:tint="@color/brand_dark" />
@@ -100,7 +100,7 @@
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
+                        android:layout_marginStart="@dimen/space_14"
                         android:layout_weight="1"
                         android:orientation="vertical">
 
@@ -117,7 +117,7 @@
                             android:id="@+id/text_user_display_email"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="@dimen/space_2"
                             android:ellipsize="end"
                             android:maxLines="1"
                             android:textAppearance="@style/TextAppearance.ReClaim.BodySecondary"
@@ -125,33 +125,33 @@
                     </LinearLayout>
 
                     <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="@dimen/space_20"
+                        android:layout_height="@dimen/space_20"
                         android:contentDescription="@string/cd_navigate"
                         android:src="@drawable/ic_chevron_right"
                         app:tint="@color/text_hint" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ── Account ── -->
+            <!-- Account -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="12dp">
+                android:layout_marginTop="@dimen/space_24"
+                android:layout_marginBottom="@dimen/space_12">
 
                 <View
-                    android:layout_width="4dp"
-                    android:layout_height="22dp"
+                    android:layout_width="@dimen/space_4"
+                    android:layout_height="@dimen/space_22"
                     android:background="@color/brand_accent"
                     android:backgroundTint="@color/brand_accent" />
 
                 <com.google.android.material.textview.MaterialTextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="@dimen/space_12"
                     android:layout_weight="1"
                     android:text="@string/profile_section_account"
                     android:textAppearance="@style/TextAppearance.ReClaim.SectionTitle" />
@@ -171,18 +171,18 @@
                     <LinearLayout
                         android:id="@+id/row_report_history"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
+                        android:layout_height="@dimen/space_56"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="12dp">
+                        android:paddingStart="@dimen/space_16"
+                        android:paddingEnd="@dimen/space_12">
 
                         <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
+                            android:layout_width="@dimen/space_22"
+                            android:layout_height="@dimen/space_22"
                             android:contentDescription="@null"
                             android:src="@drawable/ic_settings_history"
                             app:tint="@color/text_primary" />
@@ -190,15 +190,15 @@
                         <com.google.android.material.textview.MaterialTextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
+                            android:layout_marginStart="@dimen/space_16"
                             android:layout_weight="1"
                             android:text="@string/settings_report_history"
                             android:textAppearance="?attr/textAppearanceBodyLarge"
                             android:textColor="@color/text_primary" />
 
                         <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="@dimen/space_20"
+                            android:layout_height="@dimen/space_20"
                             android:contentDescription="@string/cd_navigate"
                             android:src="@drawable/ic_chevron_right"
                             app:tint="@color/text_hint" />
@@ -206,31 +206,31 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ── Preferences ── -->
+            <!-- Preferences -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="12dp">
+                android:layout_marginTop="@dimen/space_24"
+                android:layout_marginBottom="@dimen/space_12">
 
                 <View
-                    android:layout_width="4dp"
-                    android:layout_height="22dp"
+                    android:layout_width="@dimen/space_4"
+                    android:layout_height="@dimen/space_22"
                     android:background="@color/brand_accent"
                     android:backgroundTint="@color/brand_accent" />
 
                 <com.google.android.material.textview.MaterialTextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="@dimen/space_12"
                     android:layout_weight="1"
                     android:text="@string/settings_section_preferences"
                     android:textAppearance="@style/TextAppearance.ReClaim.SectionTitle" />
             </LinearLayout>
 
-            <!-- Notifications card -->
+            <!-- Notifications -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.ReClaim.SettingsCard"
                 android:layout_width="match_parent"
@@ -239,18 +239,18 @@
                 <LinearLayout
                     android:id="@+id/row_notifications"
                     android:layout_width="match_parent"
-                    android:layout_height="56dp"
+                    android:layout_height="@dimen/space_56"
                     android:background="?attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="12dp">
+                    android:paddingStart="@dimen/space_16"
+                    android:paddingEnd="@dimen/space_12">
 
                     <ImageView
-                        android:layout_width="22dp"
-                        android:layout_height="22dp"
+                        android:layout_width="@dimen/space_22"
+                        android:layout_height="@dimen/space_22"
                         android:contentDescription="@null"
                         android:src="@drawable/ic_settings_notifications"
                         app:tint="@color/text_primary" />
@@ -258,43 +258,43 @@
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
+                        android:layout_marginStart="@dimen/space_16"
                         android:layout_weight="1"
                         android:text="@string/settings_notifications"
                         android:textAppearance="?attr/textAppearanceBodyLarge"
                         android:textColor="@color/text_primary" />
 
                     <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="@dimen/space_20"
+                        android:layout_height="@dimen/space_20"
                         android:contentDescription="@string/cd_navigate"
                         android:src="@drawable/ic_chevron_right"
                         app:tint="@color/text_hint" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Password Update card -->
+            <!-- Password -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.ReClaim.SettingsCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp">
+                android:layout_marginTop="@dimen/space_12">
 
                 <LinearLayout
                     android:id="@+id/row_password_update"
                     android:layout_width="match_parent"
-                    android:layout_height="56dp"
+                    android:layout_height="@dimen/space_56"
                     android:background="?attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="12dp">
+                    android:paddingStart="@dimen/space_16"
+                    android:paddingEnd="@dimen/space_12">
 
                     <ImageView
-                        android:layout_width="22dp"
-                        android:layout_height="22dp"
+                        android:layout_width="@dimen/space_22"
+                        android:layout_height="@dimen/space_22"
                         android:contentDescription="@null"
                         android:src="@drawable/ic_settings_password"
                         app:tint="@color/text_primary" />
@@ -302,40 +302,40 @@
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
+                        android:layout_marginStart="@dimen/space_16"
                         android:layout_weight="1"
                         android:text="@string/settings_password_update"
                         android:textAppearance="?attr/textAppearanceBodyLarge"
                         android:textColor="@color/text_primary" />
 
                     <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="@dimen/space_20"
+                        android:layout_height="@dimen/space_20"
                         android:contentDescription="@string/cd_navigate"
                         android:src="@drawable/ic_chevron_right"
                         app:tint="@color/text_hint" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ── Other ── -->
+            <!-- Other -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="12dp">
+                android:layout_marginTop="@dimen/space_24"
+                android:layout_marginBottom="@dimen/space_12">
 
                 <View
-                    android:layout_width="4dp"
-                    android:layout_height="22dp"
+                    android:layout_width="@dimen/space_4"
+                    android:layout_height="@dimen/space_22"
                     android:background="@color/brand_accent"
                     android:backgroundTint="@color/brand_accent" />
 
                 <com.google.android.material.textview.MaterialTextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="@dimen/space_12"
                     android:layout_weight="1"
                     android:text="@string/settings_section_other"
                     android:textAppearance="@style/TextAppearance.ReClaim.SectionTitle" />
@@ -354,18 +354,18 @@
                     <LinearLayout
                         android:id="@+id/row_logout"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
+                        android:layout_height="@dimen/space_56"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="12dp">
+                        android:paddingStart="@dimen/space_16"
+                        android:paddingEnd="@dimen/space_12">
 
                         <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
+                            android:layout_width="@dimen/space_22"
+                            android:layout_height="@dimen/space_22"
                             android:contentDescription="@null"
                             android:src="@drawable/ic_settings_logout"
                             app:tint="@color/text_primary" />
@@ -373,15 +373,15 @@
                         <com.google.android.material.textview.MaterialTextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
+                            android:layout_marginStart="@dimen/space_16"
                             android:layout_weight="1"
                             android:text="@string/btn_logout"
                             android:textAppearance="?attr/textAppearanceBodyLarge"
                             android:textColor="@color/text_primary" />
 
                         <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="@dimen/space_20"
+                            android:layout_height="@dimen/space_20"
                             android:contentDescription="@string/cd_navigate"
                             android:src="@drawable/ic_chevron_right"
                             app:tint="@color/text_hint" />
@@ -390,24 +390,24 @@
                     <com.google.android.material.divider.MaterialDivider
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="54dp"
+                        android:layout_marginStart="@dimen/space_54"
                         app:dividerColor="@color/md_theme_outlineVariant" />
 
                     <LinearLayout
                         android:id="@+id/row_delete_account"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
+                        android:layout_height="@dimen/space_56"
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="12dp">
+                        android:paddingStart="@dimen/space_16"
+                        android:paddingEnd="@dimen/space_12">
 
                         <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
+                            android:layout_width="@dimen/space_22"
+                            android:layout_height="@dimen/space_22"
                             android:contentDescription="@null"
                             android:src="@drawable/ic_settings_delete"
                             app:tint="@color/type_lost" />
@@ -415,15 +415,15 @@
                         <com.google.android.material.textview.MaterialTextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
+                            android:layout_marginStart="@dimen/space_16"
                             android:layout_weight="1"
                             android:text="@string/btn_delete_account"
                             android:textAppearance="?attr/textAppearanceBodyLarge"
                             android:textColor="@color/type_lost" />
 
                         <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
+                            android:layout_width="@dimen/space_20"
+                            android:layout_height="@dimen/space_20"
                             android:contentDescription="@string/cd_navigate"
                             android:src="@drawable/ic_chevron_right"
                             app:tint="@color/type_lost" />
@@ -435,7 +435,7 @@
                 android:id="@+id/text_app_version"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="28dp"
+                android:layout_marginTop="@dimen/space_28"
                 android:gravity="center"
                 android:textAppearance="?attr/textAppearanceBodySmall"
                 android:textColor="@color/text_hint" />
@@ -445,7 +445,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/space_12"
                 android:indeterminateTint="@color/brand_accent"
                 android:visibility="gone" />
         </LinearLayout>

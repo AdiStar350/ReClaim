@@ -9,13 +9,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 /**
- * Wraps the embedded map so it can be panned while inside a ScrollView.
- * <p>
- * ScrollView normally intercepts vertical drag gestures, which makes the
- * screen scroll instead of the map. This wrapper asks all ancestor views
- * to not intercept touch events for the duration of any gesture that
- * starts on the map, then releases the lock when the gesture ends.
- * </p>
+ * Lets the map pan inside a scrolling page.
+ * While a finger is on the map, the page does not steal the drag.
  */
 public class MapTouchWrapper extends FrameLayout {
 

@@ -14,8 +14,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Builds the MongoDB Atlas connection string from separate credentials so
- * passwords with special characters (@, !, :, etc.) do not break parsing.
+ * Builds the MongoDB connection string from separate user, password, and host
+ * so special characters in the password do not break it.
  */
 @Configuration
 public class MongoConfig {

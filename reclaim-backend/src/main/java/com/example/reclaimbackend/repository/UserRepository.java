@@ -7,24 +7,24 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 /**
- * Spring Data MongoDB repository for {@link User} documents.
+ * Users in MongoDB.
  */
 @Repository
 public interface UserRepository extends MongoRepository<User, String> {
 
     /**
-     * Finds a user by their email address.
+     * Finds a user by email.
      *
-     * @param email the email to search for
-     * @return an {@link Optional} containing the user, or empty if not found
+     * @param email the email
+     * @return the user, or empty
      */
     Optional<User> findByEmail(String email);
 
     /**
-     * Checks whether a user with the given email already exists.
+     * Whether this email already has an account.
      *
-     * @param email the email to check
-     * @return {@code true} if a user with this email exists
+     * @param email the email
+     * @return {@code true} if taken
      */
     boolean existsByEmail(String email);
 }

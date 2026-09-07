@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Request DTO for updating the authenticated user's profile.
+ * Fields the signed-in user can change on their profile.
  */
 @Getter
 @Setter

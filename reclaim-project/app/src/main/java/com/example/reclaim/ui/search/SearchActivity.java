@@ -9,7 +9,7 @@ import androidx.fragment.app.Fragment;
 import com.example.reclaim.R;
 
 /**
- * Standalone search activity hosting {@link SearchFragment}.
+ * Search screen. Hosts {@link SearchFragment}.
  */
 public class SearchActivity extends AppCompatActivity {
 

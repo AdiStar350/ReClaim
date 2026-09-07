@@ -34,8 +34,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Dedicated screen for editing the signed-in user's name, email, phone, and
- * profile picture.
+ * Edit name, email, phone, and photo.
  */
 public class EditProfileActivity extends AppCompatActivity {
 
@@ -46,16 +45,16 @@ public class EditProfileActivity extends AppCompatActivity {
     private User currentUser;
     private final ExecutorService uploadExecutor = Executors.newSingleThreadExecutor();
 
-    /** URL of the profile picture already stored for the user (nullable). */
+    /** Photo url already saved for this user, if any. */
     @Nullable
     private String existingProfilePictureUrl;
 
-    /** Locally picked image awaiting upload on save (nullable). */
+    /** New photo waiting to upload on save, if any. */
     @Nullable
     private Uri selectedImageUri;
 
     /**
-     * Gallery picker. On selection, previews the image and marks it for upload.
+     * Picks a photo from the gallery and shows a preview.
      */
     private final ActivityResultLauncher<String> galleryLauncher =
             registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
@@ -139,8 +138,7 @@ public class EditProfileActivity extends AppCompatActivity {
 
         setSaving(true);
 
-        // A newly picked photo must be uploaded to Storage before the profile
-        // is saved; otherwise keep whatever URL the user already had.
+        // Upload a new photo first. Otherwise keep the one already saved.
         if (selectedImageUri != null) {
             uploadAvatarThenSave(authHeader, name, email, phone, selectedImageUri);
         } else {
@@ -149,8 +147,7 @@ public class EditProfileActivity extends AppCompatActivity {
     }
 
     /**
-     * Uploads the selected image to Firebase Storage on a background thread,
-     * then submits the profile update with the resulting download URL.
+     * Uploads the photo, then saves the profile with the new url.
      */
     private void uploadAvatarThenSave(@NonNull String authHeader, @NonNull String name,
                                       @NonNull String email, @NonNull String phone,
@@ -220,10 +217,9 @@ public class EditProfileActivity extends AppCompatActivity {
     }
 
     /**
-     * Renders the given image (content {@link Uri} or remote URL) as a circular
-     * avatar, replacing the placeholder icon.
+     * Shows the photo as a round avatar.
      *
-     * @param model any model Glide can load (e.g. {@link Uri} or {@link String})
+     * @param model the image to show
      */
     private void showAvatar(@NonNull Object model) {
         binding.imageProfileAvatar.setPadding(0, 0, 0, 0);

@@ -24,17 +24,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.Map;
 
 /**
- * REST controller for authentication endpoints.
- * <p>
- * All endpoints under {@code /api/auth} are publicly accessible
- * (configured in {@link com.example.reclaimbackend.config.SecurityConfig}).
- * </p>
- *
- * <h3>Endpoints:</h3>
- * <ul>
- *   <li>{@code POST /api/auth/login} — Authenticate and receive a JWT.</li>
- *   <li>{@code POST /api/auth/register} — Create a new account.</li>
- * </ul>
+ * Login, signup, and password-reset endpoints.
+ * These {@code /api/auth} routes are public.
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -44,17 +35,10 @@ public class AuthController {
     private final AuthService authService;
 
     /**
-     * Authenticates a user and returns a JWT token.
-     * <p>
-     * <b>Endpoint:</b> {@code POST /api/auth/login}<br>
-     * <b>Access:</b> Public<br>
-     * <b>Request body:</b> {@link LoginRequest} (email + password)<br>
-     * <b>Success response:</b> 200 OK → {@link LoginResponse} (token)<br>
-     * <b>Error response:</b> 401 Unauthorized → error message
-     * </p>
+     * Checks email and password, then returns a token.
      *
-     * @param request the login credentials
-     * @return 200 OK with JWT token, or 401 Unauthorized
+     * @param request email and password
+     * @return 200 with a token, or 401
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
@@ -69,25 +53,16 @@ public class AuthController {
     }
 
     /**
-     * Registers a new user account.
-     * <p>
-     * <b>Endpoint:</b> {@code POST /api/auth/register}<br>
-     * <b>Access:</b> Public<br>
-     * <b>Request body:</b> {@link RegisterRequest}
-     *   (email, password, name, phoneNumber)<br>
-     * <b>Success response:</b> 201 Created → saved user
-     *   (password field excluded)<br>
-     * <b>Error response:</b> 409 Conflict → "Email is already registered"
-     * </p>
+     * Creates a new account. The password is stripped before the reply.
      *
-     * @param request the registration data
-     * @return 201 Created with user data, or 409 Conflict
+     * @param request the signup details
+     * @return 201 with the user, or 409 if the email is taken
      */
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         try {
             User savedUser = authService.register(request);
-            // Never return the hashed password to the client
+            // Do not send the password back
             savedUser.setPassword(null);
             return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
         } catch (ResponseStatusException e) {
@@ -98,13 +73,7 @@ public class AuthController {
     }
 
     /**
-     * Step 1 of OTP registration: stores the registration payload and emails a
-     * 6-digit verification code.
-     * <p>
-     * <b>Endpoint:</b> {@code POST /api/auth/register/send-otp}<br>
-     * <b>Success:</b> 200 OK → {@code {"message": "..."}}<br>
-     * <b>Error:</b> 409 if the email already has an account.
-     * </p>
+     * Saves the signup details and emails a 6-digit code.
      */
     @PostMapping("/register/send-otp")
     public ResponseEntity<?> sendRegistrationOtp(@Valid @RequestBody SendOtpRequest request) {
@@ -119,13 +88,7 @@ public class AuthController {
     }
 
     /**
-     * Step 2 of OTP registration: validates the code, creates the user in
-     * MongoDB, and returns a JWT so the client is logged in immediately.
-     * <p>
-     * <b>Endpoint:</b> {@code POST /api/auth/register/verify-otp}<br>
-     * <b>Success:</b> 200 OK → {@link LoginResponse}<br>
-     * <b>Error:</b> 400 invalid, 410 expired, 429 too many attempts.
-     * </p>
+     * Checks the signup code, creates the user, and returns a token.
      */
     @PostMapping("/register/verify-otp")
     public ResponseEntity<?> verifyRegistrationOtp(@Valid @RequestBody VerifyOtpRequest request) {
@@ -139,10 +102,7 @@ public class AuthController {
     }
 
     /**
-     * Re-sends a fresh OTP for a pending registration.
-     * <p>
-     * <b>Endpoint:</b> {@code POST /api/auth/register/resend-otp}
-     * </p>
+     * Sends a new signup code.
      */
     @PostMapping("/register/resend-otp")
     public ResponseEntity<?> resendRegistrationOtp(@Valid @RequestBody ResendOtpRequest request) {
@@ -156,16 +116,12 @@ public class AuthController {
         }
     }
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  FORGOT PASSWORD
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    // Forgot password
+    // ---
 
     /**
-     * Step 1: emails a 6-digit reset code.
-     * <p>
-     * <b>Endpoint:</b> {@code POST /api/auth/forgot-password/send-otp}<br>
-     * Always returns 200 (does not reveal whether the email exists).
-     * </p>
+     * Emails a 6-digit reset code. Always returns 200 so unused emails stay hidden.
      */
     @PostMapping("/forgot-password/send-otp")
     public ResponseEntity<?> sendPasswordResetOtp(
@@ -176,12 +132,7 @@ public class AuthController {
     }
 
     /**
-     * Step 2: validates the reset code and returns an opaque reset token.
-     * <p>
-     * <b>Endpoint:</b> {@code POST /api/auth/forgot-password/verify-otp}<br>
-     * <b>Success:</b> 200 OK → {@link ResetTokenResponse}<br>
-     * <b>Error:</b> 400 invalid, 410 expired, 429 too many attempts.
-     * </p>
+     * Checks the reset code and returns a token used to set a new password.
      */
     @PostMapping("/forgot-password/verify-otp")
     public ResponseEntity<?> verifyPasswordResetOtp(
@@ -197,10 +148,7 @@ public class AuthController {
     }
 
     /**
-     * Step 3: sets the new password after validating the reset token.
-     * <p>
-     * <b>Endpoint:</b> {@code POST /api/auth/forgot-password/reset}
-     * </p>
+     * Sets the new password after checking the reset token.
      */
     @PostMapping("/forgot-password/reset")
     public ResponseEntity<?> resetPassword(

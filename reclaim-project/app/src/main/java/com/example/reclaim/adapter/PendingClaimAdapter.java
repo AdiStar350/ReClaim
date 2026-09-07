@@ -6,6 +6,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.reclaim.R;
 import com.example.reclaim.databinding.ItemPendingClaimBinding;
 import com.example.reclaim.model.PendingClaimResponse;
 
@@ -64,9 +65,10 @@ public class PendingClaimAdapter extends RecyclerView.Adapter<PendingClaimAdapte
 
         void bind(PendingClaimResponse claim) {
             binding.textItemTitle.setText(claim.getItemTitle());
+            String answer = claim.getValidationAnswer() != null
+                    ? claim.getValidationAnswer() : "";
             binding.textValidationAnswer.setText(
-                    "Answer: " + (claim.getValidationAnswer() != null
-                            ? claim.getValidationAnswer() : ""));
+                    binding.getRoot().getContext().getString(R.string.label_claim_answer, answer));
             binding.btnApproveClaim.setOnClickListener(v -> listener.onApprove(claim));
             binding.btnRejectClaim.setOnClickListener(v -> listener.onReject(claim));
         }

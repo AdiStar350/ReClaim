@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/brand_dark"
-        android:paddingTop="60dp"
+        android:paddingTop="@dimen/space_60"
         app:navigationIcon="@drawable/ic_arrow_back_24"
         app:navigationIconTint="@color/brand_cream"
         app:title="@string/report_history_title"
@@ -26,7 +26,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:padding="20dp" />
+            android:padding="@dimen/space_20" />
 
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/text_history_empty"
@@ -34,8 +34,8 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:gravity="center"
-            android:paddingStart="40dp"
-            android:paddingEnd="40dp"
+            android:paddingStart="@dimen/space_40"
+            android:paddingEnd="@dimen/space_40"
             android:text="@string/report_history_empty"
             android:textAppearance="?attr/textAppearanceBodyLarge"
             android:textColor="@color/text_secondary"

@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Request body for registering a device's FCM push token.
+ * Device token used to send this user notifications.
  */
 @Getter
 @Setter

@@ -10,12 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Request DTO for {@code POST /api/auth/register/send-otp}.
- * <p>
- * Carries the full registration payload. The data is stored in a pending
- * record and a one-time code is emailed; the user document is only created
- * once the code is verified.
- * </p>
+ * Signup details held until the email code is checked.
  */
 @Getter
 @Setter

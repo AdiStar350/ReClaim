@@ -24,15 +24,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
 /**
- * Service layer for item management operations.
- * <p>
- * Provides business logic for creating, retrieving, and filtering
- * lost &amp; found items.
- * </p>
+ * Create, find, and filter lost and found items.
  */
 @Service
 @RequiredArgsConstructor
@@ -44,11 +41,11 @@ public class ItemService {
     private final MongoTemplate mongoTemplate;
     private final UserRepository userRepository;
     private final PushNotificationService pushNotificationService;
+    private final FirebaseStorageService firebaseStorageService;
 
     /**
-     * Global feed for dashboard home and search list/map.
-     * Hides closed reports and the viewer's own reports (those stay on
-     * My Items / Report History). Other users still see this viewer's items.
+     * Feed for home and search. Hides closed reports and the viewer's own.
+     * Those stay on My Items and Report History.
      */
     public List<Item> getAllItems(String viewerId) {
         List<Item> items = itemRepository.findAll();
@@ -58,19 +55,18 @@ public class ItemService {
     }
 
     /**
-     * Retrieves a single item by its ID.
+     * Finds one item by id.
      *
-     * @param id the item ID
-     * @return an {@link Optional} containing the item, or empty
+     * @param id the item
+     * @return the item, or empty
      */
     public Optional<Item> getItemById(String id) {
         return itemRepository.findById(id).map(this::enrichWithOwner);
     }
 
     /**
-     * Returns the reporter's contact details for a lost-item report so
-     * someone who found a matching item can reach them. Found reports
-     * still go through the claim flow instead.
+     * Contact for a lost report so a finder can reach the reporter.
+     * Found reports still use the claim flow.
      */
     public ContactResponse getLostItemOwnerContact(String itemId) {
         Item item = itemRepository.findById(itemId)
@@ -96,10 +92,10 @@ public class ItemService {
     }
 
     /**
-     * Retrieves all items belonging to a specific user.
+     * Items reported by one user.
      *
-     * @param ownerId the owner's user ID
-     * @return list of items reported by the user
+     * @param ownerId the reporter
+     * @return that user's items
      */
     public List<Item> getItemsByOwner(String ownerId) {
         List<Item> items = itemRepository.findByOwnerId(ownerId);
@@ -109,23 +105,20 @@ public class ItemService {
     }
 
     /**
-     * Retrieves all items matching a given category.
+     * Items in one category.
      *
-     * @param category the category to filter by
-     * @return list of matching items
+     * @param category the category
+     * @return matching items
      */
     public List<Item> getItemsByCategory(String category) {
         return enrichWithOwners(itemRepository.findByCategory(category));
     }
 
     /**
-     * Creates a new item in the database.
-     * <p>
-     * Sets the initial status to "OPEN" and stamps {@code reportedAt}.
-     * </p>
+     * Saves a new item as open and sets {@code reportedAt} if needed.
      *
-     * @param item the item to create
-     * @return the saved item with generated ID
+     * @param item the item to save
+     * @return the saved item
      */
     public Item createItem(Item item) {
         item.setStatus("OPEN");
@@ -138,9 +131,8 @@ public class ItemService {
     }
 
     /**
-     * Pushes an {@code ITEM_MATCH} notification to owners of open,
-     * opposite-type items in the same category whose titles overlap the
-     * newly created report. Never fails item creation.
+     * Tells owners of similar open reports about this new one.
+     * A failed push does not undo the new item.
      */
     private void notifyOwnersOfPotentialMatches(Item newItem) {
         try {
@@ -177,9 +169,9 @@ public class ItemService {
     }
 
     /**
-     * Deletes an item by its ID.
+     * Removes an item by id.
      *
-     * @param id the item ID
+     * @param id the item
      */
     public void deleteItem(String id, String userId) {
         Item item = itemRepository.findById(id)
@@ -193,7 +185,7 @@ public class ItemService {
     }
 
     /**
-     * Updates an item owned by the authenticated user.
+     * Updates an item if the caller is the owner.
      */
     public Item updateItem(String id, String userId, Item updates) {
         Item item = itemRepository.findById(id)
@@ -220,7 +212,12 @@ public class ItemService {
             item.setType(updates.getType());
         }
         if (updates.getImageUrl() != null) {
-            item.setImageUrl(updates.getImageUrl());
+            String newUrl = updates.getImageUrl().isBlank() ? null : updates.getImageUrl().trim();
+            String previousUrl = item.getImageUrl();
+            if (!Objects.equals(blankToNull(previousUrl), newUrl)) {
+                firebaseStorageService.deleteReplacedImage(previousUrl, newUrl);
+            }
+            item.setImageUrl(newUrl);
         }
         if (updates.getVerificationQuestion() != null) {
             item.setVerificationQuestion(updates.getVerificationQuestion());
@@ -236,16 +233,13 @@ public class ItemService {
     }
 
     /**
-     * Closes a report on behalf of its owner, recording why it was closed.
-     * <p>
-     * Used for owner-initiated outcomes ("owner found" / "owner not found").
-     * Claim-driven closures are handled separately in the claim review flow.
-     * </p>
+     * Closes a report for its owner and records why.
+     * Used for "owner found" / "owner not found". Claims close reports elsewhere.
      *
-     * @param id            the item ID
-     * @param userId        the authenticated user (must be the owner)
-     * @param closureReason the outcome recorded on the report
-     * @return the closed, owner-enriched item
+     * @param id            the item
+     * @param userId        the owner
+     * @param closureReason why it was closed
+     * @return the closed item
      */
     public Item closeReport(String id, String userId, String closureReason) {
         Item item = itemRepository.findById(id)
@@ -261,7 +255,7 @@ public class ItemService {
     }
 
     /**
-     * Finds open found items that may match a user's lost item report.
+     * Open found items that may match a user's lost report.
      */
     public List<Item> findMatchesForLostItem(String lostItemId, String userId) {
         Item lostItem = itemRepository.findById(lostItemId)
@@ -316,8 +310,7 @@ public class ItemService {
     }
 
     /**
-     * Multi-parameter search with default sort by newest report first.
-     * Optional proximity sort when latitude and longitude are provided.
+     * Search with filters. Newest first, or nearest if a location is given.
      */
     public List<Item> searchItems(String category,
                                   String type,
@@ -329,10 +322,8 @@ public class ItemService {
                                   String viewerId) {
         List<Criteria> criteriaList = new ArrayList<>();
 
-        // Global search feed hides resolved reports: exclude any item whose
-        // status is "closed" (case-insensitive). This scope is intentionally
-        // limited to search — "My Items" and Report History still surface
-        // closed reports.
+        // Search hides closed reports.
+        // My Items and Report History still show them.
         criteriaList.add(Criteria.where("status").not().regex("^closed$", "i"));
         if (StringUtils.hasText(viewerId)) {
             criteriaList.add(Criteria.where("ownerId").ne(viewerId));
@@ -380,9 +371,8 @@ public class ItemService {
     }
 
     /**
-     * Fills the transient reporter fields ({@code ownerName},
-     * {@code ownerProfilePictureUrl}) on a single item from the users
-     * collection. Never persisted; used only for API responses.
+     * Fills {@code ownerName} and {@code ownerProfilePictureUrl} for the response.
+     * Not saved.
      */
     private Item enrichWithOwner(Item item) {
         if (item != null && item.getOwnerId() != null) {
@@ -395,8 +385,7 @@ public class ItemService {
     }
 
     /**
-     * Batch variant of {@link #enrichWithOwner(Item)} that caches user
-     * lookups by owner ID to avoid redundant queries for shared reporters.
+     * Same as {@link #enrichWithOwner(Item)}, for a list. Reuses lookups.
      */
     private List<Item> enrichWithOwners(List<Item> items) {
         Map<String, User> ownerCache = new HashMap<>();
@@ -429,5 +418,12 @@ public class ItemService {
                 * Math.sin(dLon / 2) * Math.sin(dLon / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return earthRadiusKm * c;
+    }
+
+    private static String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 }

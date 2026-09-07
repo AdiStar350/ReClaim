@@ -3,11 +3,7 @@ package com.example.reclaim.model;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Data model representing a user of the ReClaim application.
- * <p>
- * Fields are annotated with {@link SerializedName} for Gson/Retrofit
- * JSON serialization and deserialization.
- * </p>
+ * A ReClaim user.
  */
 public class User {
 
@@ -27,18 +23,18 @@ public class User {
     private String profilePictureUrl;
 
     /**
-     * Default no-arg constructor required by Gson.
+     * Empty constructor for Gson.
      */
     public User() {
     }
 
     /**
-     * Full constructor for creating a User with all fields.
+     * Builds a user with the main fields.
      *
-     * @param id          unique identifier
-     * @param email       user's email address
-     * @param name        user's full name
-     * @param phoneNumber user's phone number
+     * @param id          user id
+     * @param email       email
+     * @param name        name
+     * @param phoneNumber phone
      */
     public User(String id, String email, String name, String phoneNumber) {
         this.id = id;
@@ -47,7 +43,7 @@ public class User {
         this.phoneNumber = phoneNumber;
     }
 
-    // ── Getters ──────────────────────────────────────────────────────────
+    // Getters
 
     public String getId() {
         return id;
@@ -69,7 +65,7 @@ public class User {
         return profilePictureUrl;
     }
 
-    // ── Setters ──────────────────────────────────────────────────────────
+    // Setters
 
     public void setId(String id) {
         this.id = id;

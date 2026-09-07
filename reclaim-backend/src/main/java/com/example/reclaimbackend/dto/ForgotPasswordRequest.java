@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Request DTO for {@code POST /api/auth/forgot-password/send-otp}.
+ * Email for a password-reset code.
  */
 @Getter
 @Setter

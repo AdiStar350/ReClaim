@@ -10,8 +10,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 
 /**
- * Ensures compound indexes exist on the items collection for efficient
- * multi-parameter search and filtering.
+ * Adds indexes on items so search and filters stay fast.
  */
 @Configuration
 @Slf4j

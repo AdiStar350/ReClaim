@@ -15,19 +15,14 @@ import com.example.reclaim.databinding.ActivityResetPasswordBinding;
 import com.example.reclaim.network.ReClaimApiService;
 import com.example.reclaim.network.ResetPasswordRequest;
 import com.example.reclaim.network.RetrofitClient;
+import com.example.reclaim.util.ConnectionToasts;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Final step of the forgot-password flow: choose and submit a new password.
- * <p>
- * Reached from {@link VerifyOtpActivity} in reset mode after the OTP is
- * validated. Uses the opaque reset token (proof of email ownership) together
- * with the new password to call {@code POST /api/auth/forgot-password/reset};
- * on success the user is returned to {@link LoginActivity} to sign in.
- * </p>
+ * Last step of forgot-password: pick a new password and save it.
  */
 public class ResetPasswordActivity extends AppCompatActivity {
 
@@ -73,17 +68,17 @@ public class ResetPasswordActivity extends AppCompatActivity {
                 ? binding.editConfirmNewPassword.getText().toString().trim() : "";
 
         if (TextUtils.isEmpty(password)) {
-            binding.inputLayoutNewPassword.setError("Please enter a password");
+            binding.inputLayoutNewPassword.setError(getString(R.string.msg_enter_password_generic));
             binding.editNewPassword.requestFocus();
             return;
         }
         if (password.length() < 6) {
-            binding.inputLayoutNewPassword.setError("Password must be at least 6 characters");
+            binding.inputLayoutNewPassword.setError(getString(R.string.msg_password_min_length));
             binding.editNewPassword.requestFocus();
             return;
         }
         if (!password.equals(confirm)) {
-            binding.inputLayoutConfirmNewPassword.setError("Passwords do not match");
+            binding.inputLayoutConfirmNewPassword.setError(getString(R.string.msg_passwords_mismatch));
             binding.editConfirmNewPassword.requestFocus();
             return;
         }
@@ -108,9 +103,9 @@ public class ResetPasswordActivity extends AppCompatActivity {
                     @Override
                     public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
                         setLoading(false);
-                        Toast.makeText(ResetPasswordActivity.this,
-                                "Network error: " + t.getLocalizedMessage(),
-                                Toast.LENGTH_LONG).show();
+                        ConnectionToasts.showIfOnline(ResetPasswordActivity.this,
+                                getString(R.string.msg_network_error, t.getLocalizedMessage()),
+                                Toast.LENGTH_LONG);
                     }
                 });
     }
@@ -121,7 +116,7 @@ public class ResetPasswordActivity extends AppCompatActivity {
         binding.editNewPassword.setEnabled(!loading);
         binding.editConfirmNewPassword.setEnabled(!loading);
         binding.btnUpdatePassword.setText(loading
-                ? "Updating…" : getString(R.string.btn_update_password));
+                ? getString(R.string.btn_updating) : getString(R.string.btn_update_password));
     }
 
     private void navigateToLogin() {

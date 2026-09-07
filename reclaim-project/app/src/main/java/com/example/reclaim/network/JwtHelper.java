@@ -7,8 +7,7 @@ import androidx.annotation.Nullable;
 import org.json.JSONObject;
 
 /**
- * Lightweight JWT payload decoder for extracting the user ID (subject)
- * from a stored access token. Signature verification is performed by the server.
+ * Reads the user id from a token. The server checks the signature.
  */
 public final class JwtHelper {
 
@@ -22,7 +21,7 @@ public final class JwtHelper {
     }
 
     /**
-     * Returns {@code true} when the token is missing, malformed, or past its {@code exp} claim.
+     * True if the token is missing, broken, or past {@code exp}.
      */
     public static boolean isExpired(@Nullable String token) {
         JSONObject payload = decodePayload(token);

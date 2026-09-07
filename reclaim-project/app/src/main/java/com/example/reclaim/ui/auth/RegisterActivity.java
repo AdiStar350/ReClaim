@@ -21,6 +21,7 @@ import com.example.reclaim.network.ReClaimApiService;
 import com.example.reclaim.network.RetrofitClient;
 import com.example.reclaim.network.SendOtpRequest;
 import com.example.reclaim.storage.ImageUploadService;
+import com.example.reclaim.util.ConnectionToasts;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -32,14 +33,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Registration screen (step 1 of the OTP sign-up flow).
- * <p>
- * Collects the user's details and an optional profile photo. The photo is
- * uploaded to Firebase Storage as soon as it's picked and its download URL is
- * held in local state. On submit, the details + photo URL are sent to
- * {@code POST /api/auth/register/send-otp}, which emails a 6-digit code; the
- * user is then taken to {@link VerifyOtpActivity} to finish registration.
- * </p>
+ * Sign-up step 1. Collects details and an optional photo, then sends a code by email.
  */
 public class RegisterActivity extends AppCompatActivity {
 
@@ -49,16 +43,16 @@ public class RegisterActivity extends AppCompatActivity {
     private ReClaimApiService apiService;
     private final ExecutorService uploadExecutor = Executors.newSingleThreadExecutor();
 
-    /** Locally selected photo awaiting/behind upload (nullable). */
+    /** Photo the user picked (may still be uploading). */
     private Uri selectedImageUri;
 
-    /** Firebase Storage download URL for the picked photo (nullable). */
+    /** Photo url after upload, if any. */
     private String uploadedProfileUrl;
 
-    /** Stable per-selection id used as the Storage path segment. */
+    /** Id used for the photo path. */
     private String pendingImageId;
 
-    /** True while a background upload is in flight. */
+    /** True while the photo is uploading. */
     private boolean uploadingImage;
 
     private final ActivityResultLauncher<String> galleryLauncher =
@@ -96,9 +90,7 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     /**
-     * Uploads the picked photo to Firebase Storage on a background thread and
-     * stores the resulting URL. A random pending id is used for the path since
-     * there is no user id yet.
+     * Uploads the photo in the background and keeps the url.
      */
     private void uploadProfileImage(@NonNull Uri uri, @NonNull String pendingId) {
         uploadingImage = true;
@@ -150,47 +142,47 @@ public class RegisterActivity extends AppCompatActivity {
                 ? binding.editConfirmPassword.getText().toString().trim() : "";
 
         if (TextUtils.isEmpty(fullName)) {
-            binding.inputLayoutFullName.setError("Please enter your full name");
+            binding.inputLayoutFullName.setError(getString(R.string.msg_enter_full_name));
             binding.editFullName.requestFocus();
             return;
         }
         if (TextUtils.isEmpty(email)) {
-            binding.inputLayoutEmail.setError("Please enter your email");
+            binding.inputLayoutEmail.setError(getString(R.string.msg_enter_email));
             binding.editEmail.requestFocus();
             return;
         }
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            binding.inputLayoutEmail.setError("Please enter a valid email address");
+            binding.inputLayoutEmail.setError(getString(R.string.msg_enter_valid_email));
             binding.editEmail.requestFocus();
             return;
         }
         if (TextUtils.isEmpty(phone)) {
-            binding.inputLayoutPhone.setError("Please enter your phone number");
+            binding.inputLayoutPhone.setError(getString(R.string.msg_enter_phone));
             binding.editPhone.requestFocus();
             return;
         }
         if (TextUtils.isEmpty(password)) {
-            binding.inputLayoutPassword.setError("Please enter a password");
+            binding.inputLayoutPassword.setError(getString(R.string.msg_enter_password_generic));
             binding.editPassword.requestFocus();
             return;
         }
         if (password.length() < 6) {
-            binding.inputLayoutPassword.setError("Password must be at least 6 characters");
+            binding.inputLayoutPassword.setError(getString(R.string.msg_password_min_length));
             binding.editPassword.requestFocus();
             return;
         }
         if (TextUtils.isEmpty(confirmPassword)) {
-            binding.inputLayoutConfirmPassword.setError("Please confirm your password");
+            binding.inputLayoutConfirmPassword.setError(getString(R.string.msg_confirm_password));
             binding.editConfirmPassword.requestFocus();
             return;
         }
         if (!password.equals(confirmPassword)) {
-            binding.inputLayoutConfirmPassword.setError("Passwords do not match");
+            binding.inputLayoutConfirmPassword.setError(getString(R.string.msg_passwords_mismatch));
             binding.editConfirmPassword.requestFocus();
             return;
         }
 
-        // Wait for an in-flight photo upload so its URL is included.
+        // Wait until the photo finishes uploading.
         if (uploadingImage) {
             Toast.makeText(this,
                     R.string.msg_uploading_photo_register, Toast.LENGTH_SHORT).show();
@@ -199,8 +191,7 @@ public class RegisterActivity extends AppCompatActivity {
 
         setLoadingState(true);
 
-        // If a photo was picked but its upload previously failed, retry once
-        // before sending the OTP so the URL isn't silently dropped.
+        // Photo was picked but upload failed. Try once more before sending the code.
         if (selectedImageUri != null && uploadedProfileUrl == null) {
             final String fEmail = email, fPassword = password, fName = fullName, fPhone = phone;
             final String pendingId = pendingImageId != null
@@ -233,8 +224,7 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     /**
-     * Calls the backend to generate + email an OTP, then navigates to the
-     * verification screen carrying the email.
+     * Asks the server to email a code, then opens the next screen.
      */
     private void sendOtp(String email, String password, String name,
                          String phone, String profilePictureUrl) {
@@ -259,9 +249,9 @@ public class RegisterActivity extends AppCompatActivity {
             @Override
             public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
                 setLoadingState(false);
-                Toast.makeText(RegisterActivity.this,
-                        "Network error: " + t.getLocalizedMessage(),
-                        Toast.LENGTH_LONG).show();
+                ConnectionToasts.showIfOnline(RegisterActivity.this,
+                        getString(R.string.msg_network_error, t.getLocalizedMessage()),
+                        Toast.LENGTH_LONG);
             }
         });
     }
@@ -270,19 +260,19 @@ public class RegisterActivity extends AppCompatActivity {
         String errorMsg;
         switch (statusCode) {
             case 409:
-                errorMsg = "This email is already registered. Please sign in.";
+                errorMsg = getString(R.string.msg_email_already_registered);
                 break;
             case 400:
-                errorMsg = "Invalid registration data. Please check your inputs.";
+                errorMsg = getString(R.string.msg_invalid_registration);
                 break;
             case 422:
-                errorMsg = "Validation error. Please check your inputs.";
+                errorMsg = getString(R.string.msg_validation_error);
                 break;
             default:
                 if (statusCode >= 500) {
-                    errorMsg = "Server error. Please try again later.";
+                    errorMsg = getString(R.string.msg_server_error);
                 } else {
-                    errorMsg = "Registration failed (Error " + statusCode + ")";
+                    errorMsg = getString(R.string.msg_registration_failed, statusCode);
                 }
                 break;
         }
@@ -290,7 +280,7 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     /**
-     * Renders the picked image as a circular avatar, hiding the placeholder icon.
+     * Shows the picked photo as a round avatar.
      */
     private void showAvatar(@NonNull Uri uri) {
         binding.imageProfileAvatar.setPadding(0, 0, 0, 0);
@@ -305,7 +295,7 @@ public class RegisterActivity extends AppCompatActivity {
 
     private void setLoadingState(boolean isLoading) {
         binding.btnRegister.setEnabled(!isLoading);
-        binding.btnRegister.setText(isLoading ? "Creating Account…" : "Create Account");
+        binding.btnRegister.setText(isLoading ? R.string.btn_creating_account : R.string.btn_register);
         binding.editFullName.setEnabled(!isLoading);
         binding.editEmail.setEnabled(!isLoading);
         binding.editPhone.setEnabled(!isLoading);

@@ -15,13 +15,13 @@
         app:navigationIconTint="@color/brand_cream"
         app:title="@string/pending_claims_title"
         app:titleTextColor="@color/brand_cream"
-        android:paddingTop="60dp" />
+        android:paddingTop="@dimen/space_60" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_pending_claims"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
-        android:padding="20dp" />
+        android:padding="@dimen/space_20" />
 
 </LinearLayout>

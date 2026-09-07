@@ -6,7 +6,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.Optional;
 
 /**
- * MongoDB repository for {@link PendingRegistration} documents.
+ * Pending signups in MongoDB.
  */
 public interface PendingRegistrationRepository
         extends MongoRepository<PendingRegistration, String> {

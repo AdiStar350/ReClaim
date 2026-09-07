@@ -3,7 +3,7 @@ package com.example.reclaim.model;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Data model representing a lost or found item.
+ * A lost or found item.
  */
 public class Item {
 

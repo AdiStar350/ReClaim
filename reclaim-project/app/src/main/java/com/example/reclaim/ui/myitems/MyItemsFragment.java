@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.reclaim.R;
 import com.example.reclaim.util.ConnectionToasts;
 import com.example.reclaim.adapter.MyReportAdapter;
+import com.example.reclaim.data.AppDataRefresh;
 import com.example.reclaim.databinding.FragmentMyItemsBinding;
 import com.example.reclaim.model.Item;
 import com.example.reclaim.network.ReClaimApiService;
@@ -33,7 +34,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Lists the user's lost and found reports with edit and delete actions.
+ * The user's reports, with edit and delete.
  */
 public class MyItemsFragment extends Fragment implements MyReportAdapter.Listener {
 
@@ -85,7 +86,7 @@ public class MyItemsFragment extends Fragment implements MyReportAdapter.Listene
             startActivity(intent);
         });
 
-        loadMyItems();
+        AppDataRefresh.observeNew(getViewLifecycleOwner(), this::loadMyItems);
     }
 
     @Override
@@ -115,8 +116,8 @@ public class MyItemsFragment extends Fragment implements MyReportAdapter.Listene
                             Comparator.nullsLast(Comparator.reverseOrder())));
                     applyTabFilter();
                 } else {
-                    Toast.makeText(requireContext(),
-                            R.string.error_generic, Toast.LENGTH_SHORT).show();
+                    ConnectionToasts.showIfOnline(requireContext(),
+                            R.string.error_generic, Toast.LENGTH_SHORT);
                 }
             }
 

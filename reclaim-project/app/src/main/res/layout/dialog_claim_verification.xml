@@ -5,10 +5,10 @@
     style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="24dp"
-    android:layout_marginTop="16dp"
-    android:layout_marginEnd="24dp"
-    android:hint="Your answer"
+    android:layout_marginStart="@dimen/space_24"
+    android:layout_marginTop="@dimen/space_16"
+    android:layout_marginEnd="@dimen/space_24"
+    android:hint="@string/hint_claim_answer"
     app:counterEnabled="true"
     app:counterMaxLength="500">
 

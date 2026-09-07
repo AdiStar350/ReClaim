@@ -12,14 +12,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.Instant;
 
 /**
- * Transient registration record held between OTP dispatch and verification.
- * <p>
- * Stored in the {@code pending_registrations} collection. A document lives
- * here only while the user is verifying their email; once the correct OTP is
- * submitted, the data is promoted into a real {@link User} document and the
- * pending record is deleted. The plaintext password and OTP are never stored —
- * only their BCrypt hashes.
- * </p>
+ * Signup details held until the email code is checked.
+ * Then a {@link User} is created and this record is deleted.
  */
 @Getter
 @Setter
@@ -35,20 +29,20 @@ public class PendingRegistration {
     @Indexed(unique = true)
     private String email;
 
-    /** BCrypt hash of the chosen password (promoted verbatim to the User). */
+    /** Hashed password. Copied onto the user later. */
     private String passwordHash;
 
     private String name;
 
     private String phoneNumber;
 
-    /** Firebase Storage download URL for the profile picture (nullable). */
+    /** Profile picture URL. May be empty. */
     private String profilePictureUrl;
 
-    /** BCrypt hash of the 6-digit one-time code. */
+    /** Hashed 6-digit code. */
     private String otpHash;
 
-    /** Number of incorrect OTP submissions so far. */
+    /** How many wrong codes have been tried. */
     private int attempts;
 
     private Instant createdAt;

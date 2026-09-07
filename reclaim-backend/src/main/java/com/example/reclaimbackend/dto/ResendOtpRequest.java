@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Request DTO for {@code POST /api/auth/register/resend-otp}.
+ * Email to send a new signup code to.
  */
 @Getter
 @Setter

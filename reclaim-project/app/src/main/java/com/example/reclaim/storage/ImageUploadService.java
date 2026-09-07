@@ -29,13 +29,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Uploads compressed JPEG item images to Firebase Storage.
- * <p>
- * Images are stored at {@code items/{userId}/{uuid}.jpg}. The client tries
- * both {@code reclaim-5b4fd.firebasestorage.app} and the legacy
- * {@code reclaim-5b4fd.appspot.com} bucket names, then returns a download URL
- * for MongoDB.
- * </p>
+ * Sends a smaller JPEG to Firebase Storage.
+ * Path is {@code items/} or {@code profiles/}, then user id and a file name.
+ * Tries both bucket names and returns a download URL.
  */
 public final class ImageUploadService {
 
@@ -48,19 +44,19 @@ public final class ImageUploadService {
     private ImageUploadService() {
     }
 
-    /** Storage folder for item report photos. */
+    /** Folder for item photos. */
     public static final String FOLDER_ITEMS = "items";
-    /** Storage folder for user profile pictures. */
+    /** Folder for profile photos. */
     public static final String FOLDER_PROFILES = "profiles";
 
     /**
-     * Compresses and uploads an item image, returning its Firebase download URL.
+     * Shrinks and sends an item photo. Returns the download URL.
      *
-     * @param context application context
-     * @param imageUri local content URI of the image
-     * @param userId   authenticated user ID used in the storage path
-     * @return download URL on success
-     * @throws IOException if the image cannot be read or the network upload fails
+     * @param context app context
+     * @param imageUri local image uri
+     * @param userId   user id in the path
+     * @return download URL
+     * @throws IOException if the image cannot be read or sent
      */
     @NonNull
     public static String uploadImage(@NonNull Context context,
@@ -70,16 +66,14 @@ public final class ImageUploadService {
     }
 
     /**
-     * Compresses and uploads an image into the given top-level storage folder
-     * (e.g. {@link #FOLDER_ITEMS} or {@link #FOLDER_PROFILES}), returning its
-     * Firebase download URL.
+     * Shrinks and sends a photo into {@code folder}. Returns the download URL.
      *
-     * @param context application context
-     * @param imageUri local content URI of the image
-     * @param userId   authenticated user ID used in the storage path
-     * @param folder   top-level storage folder ({@code items} / {@code profiles})
-     * @return download URL on success
-     * @throws IOException if the image cannot be read or the network upload fails
+     * @param context app context
+     * @param imageUri local image uri
+     * @param userId   user id in the path
+     * @param folder   {@code items} or {@code profiles}
+     * @return download URL
+     * @throws IOException if the image cannot be read or sent
      */
     @NonNull
     public static String uploadImage(@NonNull Context context,
@@ -227,11 +221,9 @@ public final class ImageUploadService {
     }
 
     /**
-     * Firebase Storage default rules require {@code request.auth != null}.
-     * ReClaim authenticates with a Spring JWT, so an anonymous Firebase
-     * session is created only for Storage. If Anonymous Auth is disabled
-     * in the console, the upload still proceeds and depends on storage
-     * rules that allow JPEG writes under {@code items/}.
+     * Signs into Firebase anonymously so Storage accepts the upload.
+     * If that is off in the console, the write still goes ahead
+     * and relies on the storage rules.
      */
     private static void ensureFirebaseAuth(@NonNull FirebaseApp app) {
         FirebaseAuth auth = FirebaseAuth.getInstance(app);

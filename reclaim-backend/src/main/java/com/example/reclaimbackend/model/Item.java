@@ -13,11 +13,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.Instant;
 
 /**
- * MongoDB document representing a lost or found item.
- * <p>
- * Stored in the {@code items} collection. Each item is linked to
- * a user via {@code ownerId} (the reporter).
- * </p>
+ * A lost or found item in the {@code items} collection.
+ * {@code ownerId} is the person who reported it.
  */
 @Getter
 @Setter
@@ -39,25 +36,23 @@ public class Item {
 
     private String location;
 
-    /** Current status: "OPEN" or "CLOSED". */
+    /** "OPEN" or "CLOSED". */
     @Indexed
     private String status;
 
     /**
-     * Why the report was closed. One of the values in {@link ClosureReasons}
-     * ("owner found", "owner not found", "claim approved", "claim declined").
-     * Null while the report is still open.
+     * Why it was closed. See {@link ClosureReasons}. Empty while still open.
      */
     private String closureReason;
 
-    /** Type of report: "Lost" or "Found". */
+    /** "Lost" or "Found". */
     @Indexed
     private String type;
 
-    /** URL of the item photo stored in Firebase Storage. */
+    /** Photo URL. */
     private String imageUrl;
 
-    /** Hidden verification question set by the reporter. */
+    /** Hidden question set by the reporter. */
     private String verificationQuestion;
 
     private Double latitude;
@@ -67,14 +62,14 @@ public class Item {
     @Indexed
     private Instant reportedAt;
 
-    /** ID of the user who reported this item. */
+    /** Who reported this item. */
     private String ownerId;
 
-    /** Reporter's display name — populated on read from the users collection, not persisted. */
+    /** Reporter's name. Filled on read, not saved. */
     @Transient
     private String ownerName;
 
-    /** Reporter's profile picture URL — populated on read, not persisted. */
+    /** Reporter's picture URL. Filled on read, not saved. */
     @Transient
     private String ownerProfilePictureUrl;
 

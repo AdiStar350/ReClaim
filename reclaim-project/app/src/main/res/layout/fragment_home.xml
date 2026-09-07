@@ -20,9 +20,9 @@
             android:clipChildren="false"
             android:clipToPadding="false"
             android:orientation="vertical"
-            android:paddingBottom="32dp">
+            android:paddingBottom="@dimen/space_32">
 
-            <!-- ── Dashboard header ── -->
+            <!-- Header -->
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -34,14 +34,14 @@
                 android:paddingEnd="@dimen/screen_padding_horizontal"
                 android:paddingStart="@dimen/screen_padding_horizontal">
 
-                <!-- decorative orb -->
+                <!-- Orb -->
                 <View
-                    android:layout_width="150dp"
-                    android:layout_height="150dp"
+                    android:layout_width="@dimen/space_150"
+                    android:layout_height="@dimen/space_150"
                     android:layout_gravity="end"
-                    android:layout_marginEnd="-45dp"
-                    android:layout_marginTop="-45dp"
-                    android:layout_marginBottom="-60dp"
+                    android:layout_marginEnd="@dimen/space_neg_45"
+                    android:layout_marginTop="@dimen/space_neg_45"
+                    android:layout_marginBottom="@dimen/space_neg_60"
                     android:background="@drawable/bg_header_orb" />
 
                 <LinearLayout
@@ -68,31 +68,31 @@
                             android:id="@+id/text_dashboard_subtitle"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="@dimen/space_6"
                             android:text="@string/dashboard_subtitle"
                             android:textAppearance="@style/TextAppearance.ReClaim.HeroSubtitle" />
                     </LinearLayout>
 
-                    <!-- User avatar button -->
+                    <!-- Avatar -->
                     <com.google.android.material.card.MaterialCardView
-                        android:layout_width="82dp"
-                        android:layout_height="82dp"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="-10dp"
-                        android:layout_marginTop="-10dp"
-                        android:layout_marginBottom="-10dp"
+                        android:layout_width="@dimen/space_82"
+                        android:layout_height="@dimen/space_82"
+                        android:layout_marginStart="@dimen/space_16"
+                        android:layout_marginEnd="@dimen/space_neg_10"
+                        android:layout_marginTop="@dimen/space_neg_10"
+                        android:layout_marginBottom="@dimen/space_neg_10"
                         app:cardBackgroundColor="#28F7F5F0"
-                        app:cardCornerRadius="41dp"
+                        app:cardCornerRadius="@dimen/space_41"
                         app:cardElevation="0dp"
                         app:strokeColor="#40F7F5F0"
-                        app:strokeWidth="1.5dp">
+                        app:strokeWidth="@dimen/space_1_5">
 
                         <ImageView
                             android:id="@+id/image_home_avatar"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:contentDescription="@string/profile_title"
-                            android:padding="12dp"
+                            android:padding="@dimen/space_12"
                             android:scaleType="centerCrop"
                             android:src="@drawable/ic_settings_person"
                             app:tint="@color/brand_white" />
@@ -100,23 +100,21 @@
                 </LinearLayout>
             </FrameLayout>
 
-            <!-- Claimant's decision card: shown at the top of home when the
-                 owner has approved or declined a claim that has not been
-                 confirmed yet. -->
+            <!-- Claim decision. Shown until you confirm. -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_claim_decision"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/screen_padding_horizontal"
                 android:layout_marginEnd="@dimen/screen_padding_horizontal"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="@dimen/space_20"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground"
                 android:visibility="gone"
                 app:cardBackgroundColor="@color/brand_dark"
-                app:cardCornerRadius="18dp"
-                app:cardElevation="4dp"
+                app:cardCornerRadius="@dimen/space_18"
+                app:cardElevation="@dimen/space_4"
                 app:strokeWidth="0dp">
 
                 <LinearLayout
@@ -124,13 +122,13 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="16dp">
+                    android:padding="@dimen/space_16">
 
                     <com.google.android.material.card.MaterialCardView
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
+                        android:layout_width="@dimen/space_44"
+                        android:layout_height="@dimen/space_44"
                         app:cardBackgroundColor="#33FFFFFF"
-                        app:cardCornerRadius="22dp"
+                        app:cardCornerRadius="@dimen/space_22"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp">
 
@@ -138,7 +136,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:contentDescription="@null"
-                            android:padding="10dp"
+                            android:padding="@dimen/space_10"
                             android:src="@drawable/ic_settings_claims"
                             app:tint="@color/brand_cream" />
                     </com.google.android.material.card.MaterialCardView>
@@ -146,7 +144,7 @@
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
+                        android:layout_marginStart="@dimen/space_14"
                         android:layout_weight="1"
                         android:orientation="vertical">
 
@@ -163,38 +161,36 @@
                             android:id="@+id/text_claim_decision_subtitle"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="@dimen/space_2"
                             android:text="@string/home_claim_decision_subtitle"
                             android:textAppearance="?attr/textAppearanceBodySmall"
                             android:textColor="@color/brand_cream" />
                     </LinearLayout>
 
                     <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="@dimen/space_20"
+                        android:layout_height="@dimen/space_20"
                         android:contentDescription="@string/cd_navigate"
                         android:src="@drawable/ic_chevron_right"
                         app:tint="@color/brand_cream" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- High-priority incoming-claim alert. Shown above "Review Pending
-                 Claims" whenever a claim is awaiting review; tapping it opens a
-                 quick approve/decline dialog for the latest claim. -->
+            <!-- New claim waiting. Tap to approve or decline. -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_new_claim"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/screen_padding_horizontal"
                 android:layout_marginEnd="@dimen/screen_padding_horizontal"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="@dimen/space_20"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground"
                 android:visibility="gone"
                 app:cardBackgroundColor="@color/brand_accent"
-                app:cardCornerRadius="18dp"
-                app:cardElevation="4dp"
+                app:cardCornerRadius="@dimen/space_18"
+                app:cardElevation="@dimen/space_4"
                 app:strokeWidth="0dp">
 
                 <LinearLayout
@@ -202,13 +198,13 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="16dp">
+                    android:padding="@dimen/space_16">
 
                     <com.google.android.material.card.MaterialCardView
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
+                        android:layout_width="@dimen/space_44"
+                        android:layout_height="@dimen/space_44"
                         app:cardBackgroundColor="#33FFFFFF"
-                        app:cardCornerRadius="22dp"
+                        app:cardCornerRadius="@dimen/space_22"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp">
 
@@ -216,7 +212,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:contentDescription="@null"
-                            android:padding="10dp"
+                            android:padding="@dimen/space_10"
                             android:src="@drawable/ic_settings_claims"
                             app:tint="@color/text_on_accent" />
                     </com.google.android.material.card.MaterialCardView>
@@ -224,7 +220,7 @@
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
+                        android:layout_marginStart="@dimen/space_14"
                         android:layout_weight="1"
                         android:orientation="vertical">
 
@@ -240,52 +236,51 @@
                             android:id="@+id/text_new_claim_subtitle"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="@dimen/space_2"
                             android:text="@string/home_new_claim_subtitle"
                             android:textAppearance="?attr/textAppearanceBodySmall"
                             android:textColor="@color/text_on_accent" />
                     </LinearLayout>
 
                     <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="@dimen/space_20"
+                        android:layout_height="@dimen/space_20"
                         android:contentDescription="@string/cd_navigate"
                         android:src="@drawable/ic_chevron_right"
                         app:tint="@color/text_on_accent" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Review Pending Claims (moved from Settings). Shown only when the
-                 user has claims awaiting their review. -->
+            <!-- Pending claims. Shown when there are some. -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_pending_claims"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/screen_padding_horizontal"
                 android:layout_marginEnd="@dimen/screen_padding_horizontal"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="@dimen/space_20"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground"
                 android:visibility="gone"
                 app:cardBackgroundColor="@color/md_theme_surfaceContainerLowest"
-                app:cardCornerRadius="18dp"
-                app:cardElevation="2dp"
+                app:cardCornerRadius="@dimen/space_18"
+                app:cardElevation="@dimen/space_2"
                 app:strokeColor="@color/brand_accent"
-                app:strokeWidth="1dp">
+                app:strokeWidth="@dimen/space_1">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="16dp">
+                    android:padding="@dimen/space_16">
 
                     <com.google.android.material.card.MaterialCardView
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
+                        android:layout_width="@dimen/space_44"
+                        android:layout_height="@dimen/space_44"
                         app:cardBackgroundColor="@color/md_theme_primaryContainer"
-                        app:cardCornerRadius="22dp"
+                        app:cardCornerRadius="@dimen/space_22"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp">
 
@@ -293,7 +288,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:contentDescription="@null"
-                            android:padding="11dp"
+                            android:padding="@dimen/space_11"
                             android:src="@drawable/ic_settings_claims"
                             app:tint="@color/brand_dark" />
                     </com.google.android.material.card.MaterialCardView>
@@ -301,7 +296,7 @@
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
+                        android:layout_marginStart="@dimen/space_14"
                         android:layout_weight="1"
                         android:orientation="vertical">
 
@@ -315,39 +310,39 @@
                             android:id="@+id/text_pending_claims_count"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="@dimen/space_2"
                             android:textAppearance="?attr/textAppearanceBodySmall"
                             android:textColor="@color/text_secondary"
                             tools:text="2 awaiting your review" />
                     </LinearLayout>
 
                     <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="@dimen/space_20"
+                        android:layout_height="@dimen/space_20"
                         android:contentDescription="@string/cd_navigate"
                         android:src="@drawable/ic_chevron_right"
                         app:tint="@color/text_hint" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Section: Nearby items -->
+            <!-- Nearby -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:layout_margin="24dp">
+                android:layout_margin="@dimen/space_24">
 
                 <View
-                    android:layout_width="4dp"
-                    android:layout_height="22dp"
+                    android:layout_width="@dimen/space_4"
+                    android:layout_height="@dimen/space_22"
                     android:background="@color/brand_accent"
                     android:backgroundTint="@color/brand_accent" />
 
                 <com.google.android.material.textview.MaterialTextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="@dimen/space_12"
                     android:layout_weight="1"
                     android:text="@string/home_nearby_title"
                     android:textAppearance="@style/TextAppearance.ReClaim.SectionTitle" />
@@ -356,28 +351,24 @@
             <com.google.android.material.textview.MaterialTextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="2dp"
+                android:layout_marginStart="@dimen/space_16"
+                android:layout_marginTop="@dimen/space_2"
                 android:text="@string/home_nearby_subtitle"
                 android:textAppearance="?attr/textAppearanceBodySmall"
                 android:textColor="@color/text_secondary" />
 
             <!--
-                No horizontal padding here: Android anchors horizontal fading
-                edges at the padding boundary, so any padding makes items scroll
-                into the gutter and draw opaquely in front of the fade (cutting
-                it off). With padding removed the fade spans the true view edges;
-                the leading/trailing gutters are supplied by an ItemDecoration in
-                HomeFragment instead. clipToPadding stays false for good measure.
+                No horizontal padding. The fade sits at the view edge.
+                Gutters come from an ItemDecoration in HomeFragment.
             -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_nearby"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/space_12"
                 android:background="@color/md_theme_background"
                 android:clipToPadding="false"
-                android:fadingEdgeLength="48dp"
+                android:fadingEdgeLength="@dimen/space_48"
                 android:nestedScrollingEnabled="false"
                 android:orientation="horizontal"
                 android:requiresFadingEdge="horizontal"
@@ -388,10 +379,10 @@
                 android:id="@+id/text_nearby_empty"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="@dimen/space_10"
                 android:gravity="center"
-                android:paddingTop="16dp"
-                android:paddingBottom="16dp"
+                android:paddingTop="@dimen/space_16"
+                android:paddingBottom="@dimen/space_16"
                 android:text="@string/home_nearby_empty"
                 android:textColor="@color/text_secondary"
                 android:visibility="gone" />
@@ -401,29 +392,29 @@
                 style="@style/Widget.ReClaim.Button.Secondary"
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/button_height"
-                android:layout_marginTop="14dp"
-                android:layout_marginStart="24dp"
-                android:layout_marginEnd="24dp"
+                android:layout_marginTop="@dimen/space_14"
+                android:layout_marginStart="@dimen/space_24"
+                android:layout_marginEnd="@dimen/space_24"
                 android:text="@string/btn_show_more"
                 android:visibility="visible" />
 
-            <!-- Section: Possible matches -->
+            <!-- Possible matches -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:layout_margin="24dp">
+                android:layout_margin="@dimen/space_24">
 
                 <View
-                    android:layout_width="4dp"
-                    android:layout_height="22dp"
+                    android:layout_width="@dimen/space_4"
+                    android:layout_height="@dimen/space_22"
                     android:background="@color/brand_accent" />
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="@dimen/space_12"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
@@ -436,7 +427,7 @@
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="@dimen/space_2"
                         android:text="@string/home_matches_subtitle"
                         android:textAppearance="?attr/textAppearanceBodySmall"
                         android:textColor="@color/text_secondary" />
@@ -447,7 +438,7 @@
                 android:id="@+id/layout_matches"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/space_12"
                 android:paddingEnd="@dimen/screen_padding_horizontal"
                 android:paddingStart="@dimen/screen_padding_horizontal"
                 android:orientation="vertical" />
@@ -456,10 +447,10 @@
                 android:id="@+id/text_matches_empty"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="@dimen/space_10"
                 android:gravity="center"
-                android:paddingTop="16dp"
-                android:paddingBottom="16dp"
+                android:paddingTop="@dimen/space_16"
+                android:paddingBottom="@dimen/space_16"
                 android:text="@string/home_matches_empty"
                 android:textColor="@color/text_secondary"
                 android:visibility="gone" />
@@ -469,20 +460,20 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginTop="32dp"
+                android:layout_marginTop="@dimen/space_32"
                 android:indeterminateTint="@color/brand_accent"
                 android:visibility="gone" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- FAB: bottom-end, same as My Items -->
+    <!-- FAB, bottom-end -->
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/fab_add_report"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_marginBottom="40dp"
-        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="@dimen/space_40"
+        android:layout_marginEnd="@dimen/space_20"
         android:textColor="@color/text_on_accent"
         app:backgroundTint="@color/brand_accent"
         app:icon="@android:drawable/ic_input_add"

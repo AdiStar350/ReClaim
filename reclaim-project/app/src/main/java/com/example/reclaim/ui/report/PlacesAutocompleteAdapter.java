@@ -20,15 +20,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Adapter that feeds Google Places autocomplete predictions into an
- * {@link android.widget.AutoCompleteTextView}.
- * <p>
- * The framework invokes {@link Filter#performFiltering} on a background
- * thread, where this adapter queries the Places API synchronously (with a
- * timeout) and publishes the resulting predictions to the dropdown.
- * A session token groups keystrokes into one billing session; call
- * {@link #resetSessionToken()} after a place is fetched.
- * </p>
+ * Suggests addresses as the user types. Call {@link #resetSessionToken()} after a place is picked.
  */
 public class PlacesAutocompleteAdapter extends ArrayAdapter<String> {
 
@@ -45,7 +37,7 @@ public class PlacesAutocompleteAdapter extends ArrayAdapter<String> {
         this.placesClient = placesClient;
     }
 
-    /** Returns the prediction backing the given dropdown row. */
+    /** The suggestion at this row. */
     @Nullable
     public AutocompletePrediction getPrediction(int position) {
         return position >= 0 && position < predictions.size()
@@ -57,7 +49,7 @@ public class PlacesAutocompleteAdapter extends ArrayAdapter<String> {
         return sessionToken;
     }
 
-    /** Starts a new billing session; call after fetching a selected place. */
+    /** Call after a place is picked. */
     public void resetSessionToken() {
         sessionToken = AutocompleteSessionToken.newInstance();
     }
@@ -101,7 +93,7 @@ public class PlacesAutocompleteAdapter extends ArrayAdapter<String> {
                     results.values = found;
                     results.count = found.size();
                 } catch (Exception e) {
-                    // Network/API failure — show no suggestions
+                    // No suggestions if the request fails
                     results.values = new ArrayList<AutocompletePrediction>();
                     results.count = 0;
                 }

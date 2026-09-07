@@ -7,11 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Response DTO returned by {@code POST /api/auth/forgot-password/verify-otp}.
- * <p>
- * Carries the opaque reset token the client must present when submitting the
- * new password.
- * </p>
+ * Token used to set a new password after the reset code is accepted.
  */
 @Getter
 @Setter

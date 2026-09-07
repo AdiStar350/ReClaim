@@ -10,13 +10,13 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Dark header toolbar with list/map toggle -->
+        <!-- Header, with list/map toggle -->
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar_search"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/brand_dark"
-            android:minHeight="60dp"
+            android:minHeight="@dimen/space_60"
             android:paddingStart="@dimen/screen_padding_horizontal"
             android:paddingEnd="@dimen/screen_padding_horizontal"
             android:paddingTop="@dimen/screen_padding_top"
@@ -29,7 +29,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
-                android:layout_marginEnd="4dp"
+                android:layout_marginEnd="@dimen/space_4"
                 app:checkedButton="@+id/btn_view_list"
                 app:selectionRequired="true"
                 app:singleSelection="true">
@@ -38,13 +38,13 @@
                     android:id="@+id/btn_view_list"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="48dp"
+                    android:layout_height="@dimen/space_48"
                     android:minWidth="0dp"
-                    android:paddingStart="14dp"
-                    android:paddingEnd="14dp"
+                    android:paddingStart="@dimen/space_14"
+                    android:paddingEnd="@dimen/space_14"
                     android:text="@string/view_list"
                     android:textColor="@color/toggle_btn_text"
-                    android:textSize="13sp"
+                    android:textSize="@dimen/text_size_13"
                     app:backgroundTint="@color/toggle_btn_background"
                     app:strokeColor="@color/brand_accent" />
 
@@ -52,37 +52,37 @@
                     android:id="@+id/btn_view_map"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="48dp"
+                    android:layout_height="@dimen/space_48"
                     android:minWidth="0dp"
-                    android:paddingStart="14dp"
-                    android:paddingEnd="14dp"
+                    android:paddingStart="@dimen/space_14"
+                    android:paddingEnd="@dimen/space_14"
                     android:text="@string/view_map"
                     android:textColor="@color/toggle_btn_text"
-                    android:textSize="13sp"
+                    android:textSize="@dimen/text_size_13"
                     app:backgroundTint="@color/toggle_btn_background"
                     app:strokeColor="@color/brand_accent" />
             </com.google.android.material.button.MaterialButtonToggleGroup>
         </com.google.android.material.appbar.MaterialToolbar>
 
-        <!-- Floating search card -->
+        <!-- Search card -->
         <com.google.android.material.card.MaterialCardView
             style="@style/Widget.ReClaim.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/screen_padding_horizontal"
-            android:layout_marginTop="-10dp"
+            android:layout_marginTop="@dimen/space_neg_10"
             android:layout_marginEnd="@dimen/screen_padding_horizontal"
-            app:cardElevation="6dp">
+            app:cardElevation="@dimen/space_6">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="12dp"
-                android:paddingTop="10dp"
-                android:paddingEnd="10dp"
-                android:paddingBottom="10dp">
+                android:paddingStart="@dimen/space_12"
+                android:paddingTop="@dimen/space_10"
+                android:paddingEnd="@dimen/space_10"
+                android:paddingBottom="@dimen/space_10">
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/input_layout_search"
@@ -101,13 +101,13 @@
                         android:textColor="@color/text_primary" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Filter/sort button -->
+                <!-- Filter -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_filter_sort"
                     style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_width="@dimen/space_48"
+                    android:layout_height="@dimen/space_48"
+                    android:layout_marginStart="@dimen/space_8"
                     android:contentDescription="@string/filter_sort_menu"
                     app:backgroundTint="@color/brand_accent"
                     app:icon="@android:drawable/ic_menu_sort_by_size"
@@ -120,11 +120,11 @@
             android:id="@+id/search_filter_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:paddingBottom="20dp"
+            android:layout_marginTop="@dimen/space_10"
+            android:paddingBottom="@dimen/space_20"
             android:clipToPadding="false">
 
-            <!-- Active-filter summary chip -->
+            <!-- Active filters -->
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_active_filters"
                 style="@style/Widget.ReClaim.Chip.Sort"
@@ -151,13 +151,13 @@
 
         </RelativeLayout>
 
-        <!-- Content area: list OR map, with FAB anchored top-end -->
+        <!-- List or map -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1">
 
-            <!-- List view -->
+            <!-- List -->
             <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
                 android:id="@+id/swipe_refresh"
                 android:layout_width="match_parent"
@@ -169,29 +169,29 @@
                     android:layout_height="match_parent"
                     android:clipToPadding="false"
                     android:paddingStart="@dimen/screen_padding_horizontal"
-                    android:paddingTop="8dp"
+                    android:paddingTop="@dimen/space_8"
                     android:paddingEnd="@dimen/screen_padding_horizontal"
-                    android:paddingBottom="96dp" />
+                    android:paddingBottom="@dimen/space_96" />
             </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-            <!-- Map view -->
+            <!-- Map -->
             <FrameLayout
                 android:id="@+id/map_container"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:paddingStart="@dimen/screen_padding_horizontal"
                 android:paddingEnd="@dimen/screen_padding_horizontal"
-                android:paddingBottom="50dp"
+                android:paddingBottom="@dimen/space_50"
                 android:clipToPadding="false"
                 android:visibility="gone">
 
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    app:cardCornerRadius="22dp"
-                    app:cardElevation="2dp"
+                    app:cardCornerRadius="@dimen/space_22"
+                    app:cardElevation="@dimen/space_2"
                     app:strokeColor="@color/md_theme_outlineVariant"
-                    app:strokeWidth="0.5dp">
+                    app:strokeWidth="@dimen/space_0_5">
 
                     <androidx.fragment.app.FragmentContainerView
                         android:id="@+id/map"
@@ -208,8 +208,8 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:gravity="center"
-                android:paddingStart="32dp"
-                android:paddingEnd="32dp"
+                android:paddingStart="@dimen/space_32"
+                android:paddingEnd="@dimen/space_32"
                 android:text="@string/list_empty"
                 android:textColor="@color/text_secondary"
                 android:visibility="gone" />

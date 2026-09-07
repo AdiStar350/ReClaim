@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Dropdown row for the category picker: explicit dark text on light popup -->
+<!-- Category row. Dark text on a light popup. -->
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:ellipsize="end"
     android:maxLines="1"
-    android:paddingStart="16dp"
-    android:paddingTop="14dp"
-    android:paddingEnd="16dp"
-    android:paddingBottom="14dp"
+    android:paddingStart="@dimen/space_16"
+    android:paddingTop="@dimen/space_14"
+    android:paddingEnd="@dimen/space_16"
+    android:paddingBottom="@dimen/space_14"
     android:textAppearance="?attr/textAppearanceBodyLarge"
     android:textColor="@color/text_primary" />

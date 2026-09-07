@@ -9,29 +9,24 @@ import androidx.annotation.StringRes;
 import com.example.reclaim.sync.NetworkMonitor;
 
 /**
- * Helpers for connection-related toasts.
- * <p>
- * When the device is offline the app surfaces a single global dialog on launch
- * rather than a stream of "network error" toasts on every screen change. These
- * helpers therefore only display a toast when the device is actually online,
- * suppressing redundant connection-error alerts while offline.
- * </p>
+ * Toasts about the connection.
+ * Shown only when the API is up; otherwise the offline dialog is used.
  */
 public final class ConnectionToasts {
 
     private ConnectionToasts() {
     }
 
-    /** Shows a connection-error toast only when the device is online. */
+    /** Toast only if the API is up. */
     public static void showIfOnline(@NonNull Context context, @StringRes int resId, int duration) {
-        if (NetworkMonitor.isOnline(context)) {
+        if (NetworkMonitor.isBackendAvailable(context)) {
             Toast.makeText(context, resId, duration).show();
         }
     }
 
-    /** Shows a connection-error toast only when the device is online. */
+    /** Toast only if the API is up. */
     public static void showIfOnline(@NonNull Context context, @NonNull CharSequence message, int duration) {
-        if (NetworkMonitor.isOnline(context)) {
+        if (NetworkMonitor.isBackendAvailable(context)) {
             Toast.makeText(context, message, duration).show();
         }
     }

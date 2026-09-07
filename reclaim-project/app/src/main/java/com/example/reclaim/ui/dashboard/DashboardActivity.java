@@ -21,19 +21,17 @@ import androidx.fragment.app.Fragment;
 import com.example.reclaim.R;
 import com.example.reclaim.databinding.ActivityDashboardBinding;
 import com.example.reclaim.notifications.FcmTokenRegistrar;
-import com.example.reclaim.sync.NetworkMonitor;
+import com.example.reclaim.sync.OfflineProtocol;
 import com.example.reclaim.ui.myitems.MyItemsFragment;
 import com.example.reclaim.ui.profile.ProfileSettingsFragment;
-import com.example.reclaim.ui.report.ReportActivity;
 import com.example.reclaim.ui.search.SearchFragment;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 /**
- * Main shell with bottom navigation: Home, Search, My Items, Profile.
+ * Main screen with Home, Search, My Items, and Profile.
  */
 public class DashboardActivity extends AppCompatActivity implements DashboardNavigator {
 
-    /** Extra from a CLAIM_PENDING notification: land on the home tab. */
+    /** From a claim notification: open the home tab. */
     public static final String EXTRA_FOCUS_HOME = "FOCUS_HOME";
 
     private static final String TAG_HOME = "home";
@@ -43,10 +41,10 @@ public class DashboardActivity extends AppCompatActivity implements DashboardNav
 
     private ActivityDashboardBinding binding;
 
-    /** Asks for POST_NOTIFICATIONS on Android 13+; pushes are silent if denied. */
+    /** Asks to show notifications on Android 13+. Silent if the user says no. */
     private final ActivityResultLauncher<String> notificationPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(),
-                    granted -> { /* no-op: system respects the user's choice */ });
+                    granted -> { /* nothing to do; the system already applied the choice */ });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,12 +62,10 @@ public class DashboardActivity extends AppCompatActivity implements DashboardNav
             return true;
         });
 
-        // Only seed the first tab on a fresh start. After a config change the
-        // FragmentManager restores the current fragment itself (and recreating
-        // it re-runs its full lifecycle, so data is refreshed anyway).
+        // Open home only on a fresh start. After rotation the current tab comes back on its own.
         if (savedInstanceState == null) {
             showTab(R.id.nav_home);
-            showOfflineDialogIfNeeded();
+            OfflineProtocol.showIfNeeded(this);
         }
         handleHomeFocus(getIntent());
     }
@@ -82,8 +78,7 @@ public class DashboardActivity extends AppCompatActivity implements DashboardNav
     }
 
     /**
-     * Claim-related notifications always land on the home tab so the
-     * incoming-claim or decision card is visible immediately.
+     * Claim notifications open the home tab so the card is visible.
      */
     private void handleHomeFocus(Intent intent) {
         if (intent != null && intent.getBooleanExtra(EXTRA_FOCUS_HOME, false)) {
@@ -94,28 +89,7 @@ public class DashboardActivity extends AppCompatActivity implements DashboardNav
     }
 
     /**
-     * When the app is opened with no active connection, shows a single blocking
-     * dialog explaining that reports can still be created offline. This replaces
-     * the stream of per-screen connection-error toasts.
-     */
-    private void showOfflineDialogIfNeeded() {
-        if (NetworkMonitor.isOnline(this)) {
-            return;
-        }
-        new MaterialAlertDialogBuilder(this)
-                .setCancelable(false)
-                .setMessage(R.string.offline_dialog_message)
-                .setPositiveButton(R.string.offline_dialog_continue, (dialog, which) ->
-                        startActivity(new Intent(this, ReportActivity.class)))
-                .setNegativeButton(R.string.offline_dialog_exit, (dialog, which) ->
-                        finishAffinity())
-                .show();
-    }
-
-    /**
-     * Applies system bar insets manually: the bottom navigation is padded so it
-     * rests fully above the system navigation area, and the fragment container
-     * is kept below the status bar and above the (now taller) bottom nav.
+     * Pads the bottom bar and the content so they sit clear of the system bars.
      */
     private void applyWindowInsets() {
         int baseNavHeight = getResources().getDimensionPixelSize(R.dimen.bottom_nav_height);
@@ -123,14 +97,13 @@ public class DashboardActivity extends AppCompatActivity implements DashboardNav
         ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, windowInsets) -> {
             Insets systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
 
-            // Lift the nav items above the system navigation bar; the dark
-            // background still fills the inset strip behind the system UI.
+            // Sit the nav items above the system bar. The dark fill still goes behind it.
             binding.bottomNavigation.setPadding(0, 0, 0, systemBars.bottom);
 
-            // Keep fragment content below the status bar.
+            // Keep content below the status bar.
             binding.fragmentContainer.setPadding(0, systemBars.top, 0, 0);
 
-            // Push content above the taller bottom nav.
+            // Leave room for the taller bottom bar.
             ViewGroup.MarginLayoutParams params =
                     (ViewGroup.MarginLayoutParams) binding.fragmentContainer.getLayoutParams();
             params.bottomMargin = baseNavHeight + systemBars.bottom;
@@ -169,12 +142,7 @@ public class DashboardActivity extends AppCompatActivity implements DashboardNav
     }
 
     /**
-     * Swaps in a brand-new instance of the tab's fragment via {@code replace()}.
-     * Unlike show/hide, this destroys the outgoing fragment and recreates the
-     * incoming one from scratch, so its full lifecycle — including
-     * {@code onCreateView}, {@code onViewCreated} and {@code onResume} — runs
-     * every time the tab is selected, guaranteeing a fresh data fetch / state
-     * initialization instead of a remembered state.
+     * Replaces the current tab with a new one so the screen loads fresh each time.
      */
     private void showFragment(@NonNull String tag, @NonNull FragmentFactory factory) {
         getSupportFragmentManager().beginTransaction()

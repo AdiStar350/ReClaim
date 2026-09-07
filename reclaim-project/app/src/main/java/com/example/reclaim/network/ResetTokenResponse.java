@@ -3,10 +3,8 @@ package com.example.reclaim.network;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Response body from {@code POST /api/auth/forgot-password/verify-otp}.
- * <p>
- * Carries the opaque reset token needed to submit a new password.
- * </p>
+ * Reply from {@code POST /api/auth/forgot-password/verify-otp}.
+ * Holds the token used to set a new password.
  */
 public class ResetTokenResponse {
 

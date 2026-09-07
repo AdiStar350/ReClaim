@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- ════ Brand palette ════ -->
+    <!-- Brand -->
     <color name="brand_deep">#1A2526</color>
     <color name="brand_dark">#2C3639</color>
     <color name="brand_slate">#3F4E4F</color>
@@ -9,19 +9,19 @@
     <color name="brand_cream_dark">#C8C2B4</color>
     <color name="brand_white">#F7F5F0</color>
 
-    <!-- ════ Semantic text helpers ════ -->
-    <!-- Use on dark (brand_dark / brand_deep / brand_slate) surfaces -->
+    <!-- Text -->
+    <!-- On dark surfaces -->
     <color name="text_on_dark">#DCD7C9</color>
-    <!-- Use on accent (brand_accent) surfaces – white for 4.2:1 contrast -->
+    <!-- On accent. White. -->
     <color name="text_on_accent">#FFFFFF</color>
-    <!-- Primary text on light surfaces -->
+    <!-- Main text on light surfaces -->
     <color name="text_primary">#2C3639</color>
-    <!-- Secondary / meta text on light surfaces -->
+    <!-- Secondary text on light surfaces -->
     <color name="text_secondary">#3F4E4F</color>
-    <!-- Disabled / hint text on light surfaces -->
+    <!-- Hint text on light surfaces -->
     <color name="text_hint">#6D7E7F</color>
 
-    <!-- ════ Status chips ════ -->
+    <!-- Status chips -->
     <color name="status_open_bg">#D7F0D8</color>
     <color name="status_open_text">#1B5E20</color>
     <color name="status_closed_bg">#FADADB</color>
@@ -29,20 +29,20 @@
     <color name="status_pending_bg">#FFF3CD</color>
     <color name="status_pending_text">#8A6D00</color>
 
-    <!-- ════ Item type badges ════ -->
+    <!-- Item type badges -->
     <color name="type_lost_bg">#FFF3E0</color>
     <color name="type_lost_text">#BF360C</color>
     <color name="type_found_bg">#E8F5E9</color>
     <color name="type_found_text">#2E7D32</color>
-    <!-- Solid fills used programmatically -->
+    <!-- Solid fills, used in code -->
     <color name="type_lost">#BF360C</color>
     <color name="type_found">#2E7D32</color>
 
-    <!-- ════ Chip colours ════ -->
+    <!-- Chip colours -->
     <color name="chip_filter_selected">#A27B5C</color>
     <color name="chip_filter_unselected">#E8E4DC</color>
 
-    <!-- ════ Material 3 role mapping ════ -->
+    <!-- Material 3 roles -->
     <color name="md_theme_primary">#A27B5C</color>
     <color name="md_theme_onPrimary">#FFFFFF</color>
     <color name="md_theme_primaryContainer">#F0E3D4</color>

@@ -9,12 +9,7 @@ import lombok.Setter;
 import jakarta.validation.constraints.Pattern;
 
 /**
- * Request DTO for reviewing (approving or rejecting) an ownership claim
- * ({@code PUT /api/claims/{claimId}/review}).
- * <p>
- * Only the item's original owner can review a claim. The status value
- * must be either {@code "APPROVED"} or {@code "REJECTED"}.
- * </p>
+ * Approve or decline a claim. Status is {@code APPROVED} or {@code REJECTED}.
  */
 @Getter
 @Setter

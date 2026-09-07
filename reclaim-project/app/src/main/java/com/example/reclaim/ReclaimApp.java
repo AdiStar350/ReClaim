@@ -5,12 +5,11 @@ import android.app.Application;
 import com.example.reclaim.notifications.AppNotifications;
 import com.example.reclaim.notifications.FcmTokenRegistrar;
 import com.example.reclaim.sync.NetworkMonitor;
+import com.example.reclaim.sync.OfflineProtocol;
 import com.example.reclaim.sync.ReportSyncScheduler;
 
 /**
- * Application entry point. Creates notification channels, registers
- * connectivity monitoring, schedules background sync of locally cached
- * reports, and keeps the FCM token registered with the backend.
+ * App start. Sets up channels, network watch, report sync, and the push token.
  */
 public class ReclaimApp extends Application {
 
@@ -18,6 +17,7 @@ public class ReclaimApp extends Application {
     public void onCreate() {
         super.onCreate();
         AppNotifications.createChannels(this);
+        OfflineProtocol.attach(this);
         NetworkMonitor.register(this);
         ReportSyncScheduler.enqueue(this);
         FcmTokenRegistrar.register(this);

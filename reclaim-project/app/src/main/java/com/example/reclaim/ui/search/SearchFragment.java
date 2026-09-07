@@ -9,13 +9,14 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.PopupMenu;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.view.ContextThemeWrapper;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -26,11 +27,13 @@ import android.content.Intent;
 import com.example.reclaim.R;
 import com.example.reclaim.adapter.ItemAdapter;
 import com.example.reclaim.ui.report.ReportActivity;
+import com.example.reclaim.data.AppDataRefresh;
 import com.example.reclaim.databinding.FragmentSearchBinding;
 import com.example.reclaim.model.Item;
 import com.example.reclaim.ui.dashboard.ItemFilterHelper;
 import com.example.reclaim.ui.dashboard.ItemNavigationHelper;
 import com.example.reclaim.ui.dashboard.ItemsViewModel;
+import com.example.reclaim.util.ConnectionToasts;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -47,7 +50,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Search & browse screen with list/map toggle and filter menu.
+ * Search screen with a list, a map, and filters.
  */
 public class SearchFragment extends Fragment implements OnMapReadyCallback {
 
@@ -157,19 +160,27 @@ public class SearchFragment extends Fragment implements OnMapReadyCallback {
 
         viewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
             if (message != null && !message.isEmpty())
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+                ConnectionToasts.showIfOnline(requireContext(), message, Toast.LENGTH_SHORT);
         });
 
-        if (viewModel.getItems().getValue() == null
-                || viewModel.getItems().getValue().isEmpty()) {
-            viewModel.loadItems();
-        }
+        AppDataRefresh.observeNew(getViewLifecycleOwner(), () -> viewModel.loadItems());
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        viewModel.loadItems();
     }
 
     private void showFilterMenu(View anchor) {
-        PopupMenu popup = new PopupMenu(requireContext(), anchor);
-
+        ContextThemeWrapper wrapper = new ContextThemeWrapper(
+                requireContext(), R.style.ThemeOverlay_ReClaim_PopupMenu);
+        PopupMenu popup = new PopupMenu(wrapper, anchor);
         popup.getMenuInflater().inflate(R.menu.search_filter_menu, popup.getMenu());
+        MenuItem sortMenu = popup.getMenu().findItem(R.id.menu_sort);
+        if (sortMenu != null) {
+            sortMenu.setVisible(!mapMode);
+        }
         popup.setOnMenuItemClickListener(this::onFilterMenuItemSelected);
         popup.show();
     }
@@ -280,25 +291,29 @@ public class SearchFragment extends Fragment implements OnMapReadyCallback {
     private String buildFilterSummary() {
         StringBuilder summary = new StringBuilder();
 
+        String separator = getString(R.string.label_filter_separator);
+
         if (selectedCategory != null) summary.append(selectedCategory);
         else summary.append(getString(R.string.filter_all));
 
-        summary.append(" · ");
+        summary.append(separator);
 
         if (typeFilter == ItemFilterHelper.TypeFilter.LOST) summary.append(getString(R.string.type_lost));
         else if (typeFilter == ItemFilterHelper.TypeFilter.FOUND) summary.append(getString(R.string.type_found));
         else summary.append(getString(R.string.filter_type_all));
 
-        if (locationSort == ItemFilterHelper.LocationSort.NEARER)
-            summary.append(" · ").append(getString(R.string.sort_location_nearer));
-        else if (locationSort == ItemFilterHelper.LocationSort.FARTHER)
-            summary.append(" · ").append(getString(R.string.sort_location_farther));
-        else if (nameSort == ItemFilterHelper.NameSort.A_Z)
-            summary.append(" · ").append(getString(R.string.sort_name_az));
-        else if (nameSort == ItemFilterHelper.NameSort.Z_A)
-            summary.append(" · ").append(getString(R.string.sort_name_za));
-        else if (dateSort == ItemFilterHelper.DateSort.OLDEST)
-            summary.append(" · ").append(getString(R.string.sort_date_oldest));
+        if (!mapMode) {
+            if (locationSort == ItemFilterHelper.LocationSort.NEARER)
+                summary.append(separator).append(getString(R.string.sort_location_nearer));
+            else if (locationSort == ItemFilterHelper.LocationSort.FARTHER)
+                summary.append(separator).append(getString(R.string.sort_location_farther));
+            else if (nameSort == ItemFilterHelper.NameSort.A_Z)
+                summary.append(separator).append(getString(R.string.sort_name_az));
+            else if (nameSort == ItemFilterHelper.NameSort.Z_A)
+                summary.append(separator).append(getString(R.string.sort_name_za));
+            else if (dateSort == ItemFilterHelper.DateSort.OLDEST)
+                summary.append(separator).append(getString(R.string.sort_date_oldest));
+        }
 
         return summary.toString();
     }
@@ -306,6 +321,7 @@ public class SearchFragment extends Fragment implements OnMapReadyCallback {
     private void updateViewMode() {
         binding.swipeRefresh.setVisibility(mapMode ? View.GONE : View.VISIBLE);
         binding.mapContainer.setVisibility(mapMode ? View.VISIBLE : View.GONE);
+        binding.chipActiveFilters.setText(buildFilterSummary());
 
         if (mapMode && googleMap != null) renderMarkers(filteredItems);
     }

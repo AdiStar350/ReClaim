@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Contact details exposed only after a claim is approved.
+ * Contact details, shown only after a claim is approved.
  */
 @Getter
 @Setter

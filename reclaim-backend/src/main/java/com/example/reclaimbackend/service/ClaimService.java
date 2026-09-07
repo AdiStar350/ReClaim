@@ -18,17 +18,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 /**
- * Service layer for the Claims module.
- * <p>
- * Implements the ownership-claim business logic:
- * <ol>
- *   <li><b>Submit:</b> A user submits a claim with their verification
- *       answer. The claim is persisted with status {@code PENDING}.</li>
- *   <li><b>Review:</b> The item's original owner reviews the claim and
- *       either approves or rejects it. If approved, the item is closed
- *       and all other pending claims are auto-rejected.</li>
- * </ol>
- * </p>
+ * Submit and review ownership claims.
+ * On approve, the item closes and other pending claims are declined.
  */
 @Service
 @RequiredArgsConstructor
@@ -42,48 +33,43 @@ public class ClaimService {
     private final UserService userService;
     private final PushNotificationService pushNotificationService;
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  SUBMIT CLAIM
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    // Submit claim
+    // ---
 
     /**
-     * Submits a new ownership claim on an item.
-     * <p>
-     * Validates that the referenced item exists, is still in an
-     * {@code OPEN} state, and that the claimant is not the item's
-     * own reporter. The claim is saved with status {@code PENDING}.
-     * </p>
+     * Saves a new claim if the item is open and not the user's own.
      *
-     * @param request    the claim submission DTO (itemId + validationAnswer)
-     * @param claimantId the ID of the authenticated user (from JWT)
-     * @return the persisted {@link Claim} with generated ID
-     * @throws ResponseStatusException 404 if the item does not exist
-     * @throws ResponseStatusException 400 if the item is already closed
-     * @throws ResponseStatusException 400 if the owner tries to claim their own item
+     * @param request    item id and answer
+     * @param claimantId the signed-in user
+     * @return the saved claim
+     * @throws ResponseStatusException 404 if the item is missing
+     * @throws ResponseStatusException 400 if the item is closed
+     * @throws ResponseStatusException 400 if the owner claims their own item
      */
     public Claim submitClaim(ClaimRequest request, String claimantId) {
 
-        // 1. Verify the item exists
+        // Check the item exists
         Item item = itemRepository.findById(request.getItemId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Item not found with ID: " + request.getItemId()));
 
-        // 2. Verify the item is still available
+        // Check the item is still open
         if ("CLOSED".equalsIgnoreCase(item.getStatus())) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "This item has already been claimed and closed");
         }
 
-        // 3. Prevent the owner from claiming their own item
+        // Owners cannot claim their own item
         if (claimantId.equals(item.getOwnerId())) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "You cannot claim your own item");
         }
 
-        // 4. Create and persist the claim with PENDING status
+        // Save the claim as pending
         Claim claim = Claim.builder()
             .itemId(request.getItemId())
             .claimantId(claimantId)
@@ -93,8 +79,8 @@ public class ClaimService {
 
         Claim saved = claimRepository.save(claim);
 
-        // 5. Push a CLAIM_PENDING notification to the item's owner.
-        //    Failures are logged and never block claim submission.
+        // Tell the owner about the claim.
+        // A failed push does not undo the claim.
         try {
             if (pushNotificationService != null && item.getOwnerId() != null) {
                 User owner = userService.getUserEntity(item.getOwnerId());
@@ -108,50 +94,33 @@ public class ClaimService {
         return saved;
     }
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  REVIEW CLAIM (Approve / Reject)
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    // Review claim
+    // ---
 
     /**
-     * Reviews an ownership claim (approve or reject).
-     * <p>
-     * <b>Authorization:</b> Only the original item owner (identified by
-     * {@code ownerId}) may review claims on their items. A 403 Forbidden
-     * is thrown if the requesting user is not the owner.
-     * </p>
-     * <p>
-     * <b>Business rule — APPROVED:</b> When a claim is approved:
-     * <ol>
-     *   <li>The claim's status is set to {@code APPROVED}.</li>
-     *   <li>The associated item's status is changed to {@code CLOSED}.</li>
-     *   <li>All other {@code PENDING} claims on the same item are
-     *       automatically set to {@code REJECTED}.</li>
-     * </ol>
-     * </p>
-     * <p>
-     * <b>Business rule — REJECTED:</b> Only the individual claim's
-     * status is updated; no side effects occur.
-     * </p>
+     * Approves or declines a claim. Only the item owner can do this.
+     * Approve closes the item and declines the other pending claims.
      *
-     * @param claimId   the ID of the claim being reviewed
-     * @param newStatus the new status ({@code "APPROVED"} or {@code "REJECTED"})
-     * @param reviewerId the ID of the authenticated user (from JWT)
-     * @return the updated {@link Claim}
-     * @throws ResponseStatusException 404 if the claim does not exist
-     * @throws ResponseStatusException 404 if the associated item does not exist
-     * @throws ResponseStatusException 403 if the reviewer is not the item owner
-     * @throws ResponseStatusException 400 if the claim is not in PENDING status
+     * @param claimId   the claim
+     * @param newStatus {@code "APPROVED"} or {@code "REJECTED"}
+     * @param reviewerId the signed-in user
+     * @return the updated claim
+     * @throws ResponseStatusException 404 if the claim is missing
+     * @throws ResponseStatusException 404 if the item is missing
+     * @throws ResponseStatusException 403 if the reviewer is not the owner
+     * @throws ResponseStatusException 400 if the claim is not pending
      */
     @Transactional
     public Claim reviewClaim(String claimId, String newStatus, String reviewerId) {
 
-        // 1. Fetch the claim
+        // Load the claim
         Claim claim = claimRepository.findById(claimId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Claim not found with ID: " + claimId));
 
-        // 2. Verify the claim is still pending
+        // Check it is still pending
         if (!"PENDING".equalsIgnoreCase(claim.getStatus())) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -159,20 +128,20 @@ public class ClaimService {
                             + claim.getStatus() + ")");
         }
 
-        // 3. Fetch the associated item
+        // Load the item
         Item item = itemRepository.findById(claim.getItemId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Associated item not found with ID: " + claim.getItemId()));
 
-        // 4. SECURITY: Verify the reviewer is the item's owner
+        // Only the owner can review
         if (!reviewerId.equals(item.getOwnerId())) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
                     "Only the item owner can review claims on this item");
         }
 
-        // 5. Update the claim status (and record its closure outcome)
+        // Save the new status
         boolean approved = "APPROVED".equalsIgnoreCase(newStatus);
         claim.setStatus(newStatus.toUpperCase());
         claim.setClosureReason(approved
@@ -181,14 +150,12 @@ public class ClaimService {
         claim.setDecisionAcknowledged(false);
         claimRepository.save(claim);
 
-        // 6. If APPROVED → close the item + reject all other pending claims
+        // On approve: close the item and decline other pending claims
         if (approved) {
 
-            // 6a. Close the claimed report. If the claimant (User B) has an
-            //     active matching "lost" report for the same item, close BOTH
-            //     reports as "owner found"; otherwise the claimed report simply
-            //     closes as "claim approved". Runs in this @Transactional method
-            //     so the two updates commit atomically.
+            // Close this report. If the claimant also has an open
+            // matching lost report, close both as "owner found".
+            // Otherwise just close this one as "claim approved".
             item.setStatus("CLOSED");
             Item matchingLostReport =
                     findActiveMatchingLostReport(item, claim.getClaimantId());
@@ -202,12 +169,12 @@ public class ClaimService {
             }
             itemRepository.save(item);
 
-            // 6b. Reject all other PENDING claims for this item
+            // Decline the other pending claims
             List<Claim> otherPendingClaims = claimRepository
                     .findByItemIdAndStatus(claim.getItemId(), "PENDING");
 
             for (Claim otherClaim : otherPendingClaims) {
-                // Skip the one we just approved (safety check)
+                // Skip the one we just approved
                 if (!otherClaim.getId().equals(claimId)) {
                     otherClaim.setStatus("REJECTED");
                     otherClaim.setClosureReason(ClosureReasons.CLAIM_DECLINED);
@@ -224,8 +191,7 @@ public class ClaimService {
     }
 
     /**
-     * Pushes a {@code CLAIM_DECISION} notification to the claimant. Failures
-     * are logged and never roll back the review.
+     * Tells the claimant the decision. A failed push does not undo the review.
      */
     private void notifyClaimantOfDecision(Claim claim, Item item, boolean approved) {
         try {
@@ -241,19 +207,12 @@ public class ClaimService {
     }
 
     /**
-     * Finds the claimant's active "lost" report that refers to the same item as
-     * the just-approved report.
-     * <p>
-     * Two independent reports have no shared identifier, so "the exact same
-     * item" is resolved with the app's matching heuristic: an {@code OPEN},
-     * opposite-direction ("LOST") report owned by the claimant, in the same
-     * category, whose title overlaps the claimed item's title. When several
-     * qualify, the strongest title overlap wins.
-     * </p>
+     * Looks for the claimant's open lost report that looks like the same item.
+     * Same category, overlapping title. Best title overlap wins if several match.
      *
-     * @param claimedItem the report whose claim was just approved
-     * @param claimantId  the ID of the user whose claim was approved
-     * @return the best-matching lost report, or {@code null} if none
+     * @param claimedItem the report that was just approved
+     * @param claimantId  the user whose claim was approved
+     * @return the best matching lost report, or {@code null}
      */
     private Item findActiveMatchingLostReport(Item claimedItem, String claimantId) {
         if (claimantId == null) {
@@ -285,8 +244,7 @@ public class ClaimService {
     }
 
     /**
-     * Counts how many significant words of {@code lostTitle} appear in
-     * {@code foundTitle} (case-insensitive), mirroring the item-match heuristic.
+     * How many longer words from {@code lostTitle} show up in {@code foundTitle}.
      */
     private int titleOverlapScore(String lostTitle, String foundTitle) {
         if (lostTitle == null || foundTitle == null) {
@@ -302,25 +260,25 @@ public class ClaimService {
         return score;
     }
 
-    // ═════════════════════════════════════════════════════════════════════
-    //  QUERY METHODS
-    // ═════════════════════════════════════════════════════════════════════
+    // ---
+    // Lookups
+    // ---
 
     /**
-     * Retrieves all claims for a specific item.
+     * All claims on one item.
      *
-     * @param itemId the item ID
-     * @return list of claims on the item
+     * @param itemId the item
+     * @return claims on that item
      */
     public List<Claim> getClaimsByItem(String itemId) {
         return claimRepository.findByItemId(itemId);
     }
 
     /**
-     * Retrieves all claims made by a specific user.
+     * All claims made by one user.
      *
-     * @param claimantId the user ID
-     * @return list of claims submitted by the user
+     * @param claimantId the user
+     * @return that user's claims
      */
     public List<Claim> getClaimsByClaimant(String claimantId) {
         List<Claim> claims = claimRepository.findByClaimantId(claimantId);
@@ -337,11 +295,11 @@ public class ClaimService {
     }
 
     /**
-     * Retrieves a single claim by its ID.
+     * One claim by id.
      *
-     * @param claimId the claim ID
+     * @param claimId the claim
      * @return the claim
-     * @throws ResponseStatusException 404 if not found
+     * @throws ResponseStatusException 404 if missing
      */
     public Claim getClaimById(String claimId) {
         return claimRepository.findById(claimId)
@@ -351,7 +309,7 @@ public class ClaimService {
     }
 
     /**
-     * Returns pending claims on items owned by the given user.
+     * Pending claims on items this user reported.
      */
     public List<PendingClaimResponse> getPendingClaimsForOwner(String ownerId) {
         List<Item> ownedItems = itemRepository.findByOwnerId(ownerId);
@@ -377,9 +335,8 @@ public class ClaimService {
     }
 
     /**
-     * Marks a reviewed claim as seen by the claimant so the home-dashboard
-     * decision card is no longer shown. Does not change {@code status} or
-     * {@code closureReason}.
+     * Marks the decision as seen so the home card goes away.
+     * Leaves {@code status} and {@code closureReason} as they are.
      */
     public Claim acknowledgeDecision(String claimId, String claimantId) {
         Claim claim = getClaimById(claimId);
@@ -398,8 +355,7 @@ public class ClaimService {
     }
 
     /**
-     * Exposes the item owner's contact details only when the claim is approved
-     * and the requester is the claimant.
+     * Owner contact, only if the claim is approved and the caller is the claimant.
      */
     public ContactResponse getContactForApprovedClaim(String claimId, String requesterId) {
         Claim claim = getClaimById(claimId);

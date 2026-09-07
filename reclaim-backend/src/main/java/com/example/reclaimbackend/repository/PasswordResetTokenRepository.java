@@ -6,7 +6,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.Optional;
 
 /**
- * MongoDB repository for {@link PasswordResetToken} documents.
+ * Password-reset records in MongoDB.
  */
 public interface PasswordResetTokenRepository
         extends MongoRepository<PasswordResetToken, String> {

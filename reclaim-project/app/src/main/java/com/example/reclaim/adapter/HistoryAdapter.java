@@ -21,8 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Renders the user's report history: items they reported and claims they made,
- * each tagged with its resolution status (pending / approved / declined).
+ * History of reports they posted and claims they sent.
+ * Each row has a status.
  */
 public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.HistoryViewHolder> {
 
@@ -30,7 +30,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.HistoryV
         void onViewContact(@NonNull String claimId);
     }
 
-    /** Resolution status of a history entry, with its badge styling. */
+    /** Status of a history row, and how the badge looks. */
     public enum Status {
         PENDING(R.string.history_status_pending,
                 R.color.status_pending_bg, R.color.status_pending_text),
@@ -50,7 +50,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.HistoryV
         }
     }
 
-    /** A single row: a report the user made or a claim the user submitted. */
+    /** One row: a report they made or a claim they sent. */
     public static class Entry {
         final String title;
         final String imageUrl;
@@ -127,7 +127,8 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.HistoryV
 
             binding.textHistoryRole.setText(entry.roleLabelRes);
             binding.textHistoryTitle.setText(
-                    !TextUtils.isEmpty(entry.title) ? entry.title : "Untitled report");
+                    !TextUtils.isEmpty(entry.title) ? entry.title
+                            : context.getString(R.string.placeholder_untitled_report));
 
             Glide.with(context)
                     .load(!TextUtils.isEmpty(entry.imageUrl) ? entry.imageUrl : null)

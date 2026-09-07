@@ -3,10 +3,7 @@ package com.example.reclaim.network;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Response body from the login endpoint ({@code POST /api/auth/login}).
- * <p>
- * Contains the JWT access token issued upon successful authentication.
- * </p>
+ * Reply from {@code POST /api/auth/login}.
  */
 public class LoginResponse {
 
@@ -14,24 +11,24 @@ public class LoginResponse {
     private String token;
 
     /**
-     * Default no-arg constructor required by Gson.
+     * Empty constructor for Gson.
      */
     public LoginResponse() {
     }
 
     /**
-     * Creates a response with the given token.
+     * Reply with a token.
      *
-     * @param token the JWT access token
+     * @param token the token
      */
     public LoginResponse(String token) {
         this.token = token;
     }
 
     /**
-     * Returns the JWT access token.
+     * The token.
      *
-     * @return the token string
+     * @return the token
      */
     public String getToken() {
         return token;

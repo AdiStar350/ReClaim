@@ -21,18 +21,14 @@ import com.example.reclaim.network.RetrofitClient;
 import com.example.reclaim.network.TokenManager;
 import com.example.reclaim.network.VerifyOtpRequest;
 import com.example.reclaim.ui.dashboard.DashboardActivity;
+import com.example.reclaim.util.ConnectionToasts;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Registration step 2: OTP verification.
- * <p>
- * The user enters the 6-digit code emailed by the backend. On success the
- * account is created server-side and a JWT is returned, which is persisted via
- * {@link TokenManager} before navigating to {@link DashboardActivity}.
- * </p>
+ * Sign-up step 2: enter the email code. On success, the account is created and home opens.
  */
 public class VerifyOtpActivity extends AppCompatActivity {
 
@@ -123,9 +119,9 @@ public class VerifyOtpActivity extends AppCompatActivity {
                     public void onFailure(@NonNull Call<LoginResponse> call,
                                           @NonNull Throwable t) {
                         setLoading(false);
-                        Toast.makeText(VerifyOtpActivity.this,
-                                "Network error: " + t.getLocalizedMessage(),
-                                Toast.LENGTH_LONG).show();
+                        ConnectionToasts.showIfOnline(VerifyOtpActivity.this,
+                                getString(R.string.msg_network_error, t.getLocalizedMessage()),
+                                Toast.LENGTH_LONG);
                     }
                 });
     }
@@ -155,9 +151,9 @@ public class VerifyOtpActivity extends AppCompatActivity {
                     public void onFailure(@NonNull Call<ResetTokenResponse> call,
                                           @NonNull Throwable t) {
                         setLoading(false);
-                        Toast.makeText(VerifyOtpActivity.this,
-                                "Network error: " + t.getLocalizedMessage(),
-                                Toast.LENGTH_LONG).show();
+                        ConnectionToasts.showIfOnline(VerifyOtpActivity.this,
+                                getString(R.string.msg_network_error, t.getLocalizedMessage()),
+                                Toast.LENGTH_LONG);
                     }
                 });
     }
@@ -188,15 +184,19 @@ public class VerifyOtpActivity extends AppCompatActivity {
                 setLoading(false);
                 int msg = response.isSuccessful()
                         ? R.string.msg_otp_sent : R.string.error_generic;
-                Toast.makeText(VerifyOtpActivity.this, msg, Toast.LENGTH_SHORT).show();
+                if (response.isSuccessful()) {
+                    Toast.makeText(VerifyOtpActivity.this, msg, Toast.LENGTH_SHORT).show();
+                } else {
+                    ConnectionToasts.showIfOnline(VerifyOtpActivity.this, msg, Toast.LENGTH_SHORT);
+                }
             }
 
             @Override
             public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
                 setLoading(false);
-                Toast.makeText(VerifyOtpActivity.this,
-                        "Network error: " + t.getLocalizedMessage(),
-                        Toast.LENGTH_LONG).show();
+                ConnectionToasts.showIfOnline(VerifyOtpActivity.this,
+                        getString(R.string.msg_network_error, t.getLocalizedMessage()),
+                        Toast.LENGTH_LONG);
             }
         };
 
@@ -213,7 +213,7 @@ public class VerifyOtpActivity extends AppCompatActivity {
         binding.btnResendCode.setEnabled(!loading);
         binding.editOtp.setEnabled(!loading);
         int idleText = MODE_RESET.equals(mode) ? R.string.btn_continue : R.string.btn_verify;
-        binding.btnVerify.setText(loading ? "Please wait…" : getString(idleText));
+        binding.btnVerify.setText(loading ? getString(R.string.btn_please_wait) : getString(idleText));
     }
 
     private void navigateToDashboard() {

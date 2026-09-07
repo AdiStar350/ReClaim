@@ -12,8 +12,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Objects;
+
 /**
- * Service layer for user profile operations.
+ * Profile reads, updates, and account deletion.
  */
 @Service
 @RequiredArgsConstructor
@@ -23,6 +25,7 @@ public class UserService {
     private final ItemRepository itemRepository;
     private final ClaimRepository claimRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FirebaseStorageService firebaseStorageService;
 
     public UserResponse getProfile(String userId) {
         User user = userRepository.findById(userId)
@@ -55,7 +58,12 @@ public class UserService {
 
         if (request.getProfilePictureUrl() != null) {
             String url = request.getProfilePictureUrl().trim();
-            user.setProfilePictureUrl(url.isEmpty() ? null : url);
+            String newUrl = url.isEmpty() ? null : url;
+            String previousUrl = user.getProfilePictureUrl();
+            if (!Objects.equals(blankToNull(previousUrl), newUrl)) {
+                firebaseStorageService.deleteReplacedImage(previousUrl, newUrl);
+            }
+            user.setProfilePictureUrl(newUrl);
         }
 
         return toResponse(userRepository.save(user));
@@ -68,7 +76,7 @@ public class UserService {
     }
 
     /**
-     * Stores the device FCM token used to push notifications to this user.
+     * Saves the device token used to send this user notifications.
      */
     public void updateFcmToken(String userId, String fcmToken) {
         User user = getUserEntity(userId);
@@ -77,8 +85,8 @@ public class UserService {
     }
 
     /**
-     * Permanently deletes the user after validating name and password.
-     * Also removes the user's items and claims.
+     * Deletes the user after checking name and password.
+     * Also removes their items and claims.
      */
     public void deleteAccount(String userId, String name, String password) {
         User user = getUserEntity(userId);
@@ -108,5 +116,12 @@ public class UserService {
                 .phoneNumber(user.getPhoneNumber())
                 .profilePictureUrl(user.getProfilePictureUrl())
                 .build();
+    }
+
+    private static String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 }

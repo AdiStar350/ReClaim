@@ -3,12 +3,8 @@ package com.example.reclaim.network;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Request body for {@code POST /api/auth/register/send-otp}.
- * <p>
- * Carries the full registration payload (including the optional Firebase
- * Storage profile picture URL). The server stores it in a pending record and
- * emails a 6-digit code; the account is only created after verification.
- * </p>
+ * Body for {@code POST /api/auth/register/send-otp}.
+ * Sign-up fields; the account is made after the code is checked.
  */
 public class SendOtpRequest {
 

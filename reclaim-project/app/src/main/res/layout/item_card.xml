@@ -5,25 +5,25 @@
     android:id="@+id/card_item"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="14dp"
+    android:layout_marginBottom="@dimen/space_14"
     android:clickable="true"
     android:focusable="true"
     app:cardBackgroundColor="@color/md_theme_surfaceContainerLowest"
     app:cardCornerRadius="@dimen/item_card_radius"
-    app:cardElevation="2dp"
+    app:cardElevation="@dimen/space_2"
     app:rippleColor="@color/brand_accent"
     app:strokeColor="@color/md_theme_outlineVariant"
-    app:strokeWidth="0.5dp">
+    app:strokeWidth="@dimen/space_0_5">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Image with gradient scrim + badge chips overlaid -->
+        <!-- Image, scrim, chips -->
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="172dp">
+            android:layout_height="@dimen/space_172">
 
             <ImageView
                 android:id="@+id/image_item"
@@ -34,64 +34,64 @@
                 android:scaleType="centerCrop"
                 android:src="@drawable/ic_item_placeholder" />
 
-            <!-- Bottom-to-top gradient scrim so white chips remain readable -->
+            <!-- Gradient scrim -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@drawable/bg_item_image_scrim" />
 
-            <!-- Chips sit on top of the scrim — always white/coloured text on dark scrim -->
+            <!-- Chips on the scrim -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="12dp"
-                android:paddingTop="24dp"
-                android:paddingEnd="12dp"
-                android:paddingBottom="12dp">
+                android:paddingStart="@dimen/space_12"
+                android:paddingTop="@dimen/space_24"
+                android:paddingEnd="@dimen/space_12"
+                android:paddingBottom="@dimen/space_12">
 
-                <!-- Lost / Found badge -->
+                <!-- Lost / found -->
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_type"
                     style="@style/Widget.ReClaim.Chip.Badge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="@color/brand_white"
-                    android:textSize="11sp"
+                    android:textSize="@dimen/text_size_11"
                     tools:chipBackgroundColor="@color/type_lost_text"
                     tools:text="Lost" />
 
                 <Space
                     android:layout_width="0dp"
-                    android:layout_height="1dp"
+                    android:layout_height="@dimen/space_1"
                     android:layout_weight="1" />
 
-                <!-- Available / Claimed badge -->
+                <!-- Available / claimed -->
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_status"
                     style="@style/Widget.ReClaim.Chip.Badge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="@color/text_primary"
-                    android:textSize="11sp"
+                    android:textSize="@dimen/text_size_11"
                     tools:chipBackgroundColor="@color/status_open_bg"
                     tools:text="Available" />
             </LinearLayout>
         </FrameLayout>
 
-        <!-- Text content -->
+        <!-- Text -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingStart="16dp"
-            android:paddingTop="14dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="16dp">
+            android:paddingStart="@dimen/space_16"
+            android:paddingTop="@dimen/space_14"
+            android:paddingEnd="@dimen/space_16"
+            android:paddingBottom="@dimen/space_16">
 
-            <!-- Item title — dark text on white card -->
+            <!-- Title -->
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/text_item_title"
                 android:layout_width="match_parent"
@@ -102,29 +102,29 @@
                 android:textColor="@color/text_primary"
                 tools:text="Black Leather Wallet" />
 
-            <!-- Category label — bronze accent -->
+            <!-- Category -->
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/text_item_category"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
+                android:layout_marginTop="@dimen/space_3"
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:textAppearance="?attr/textAppearanceLabelLarge"
                 android:textColor="@color/brand_accent"
                 tools:text="Wallets" />
 
-            <!-- Location row -->
+            <!-- Location -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="@dimen/space_10"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <ImageView
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
+                    android:layout_width="@dimen/space_14"
+                    android:layout_height="@dimen/space_14"
                     android:contentDescription="@string/label_location"
                     android:src="@android:drawable/ic_dialog_map"
                     app:tint="@color/text_secondary" />
@@ -133,7 +133,7 @@
                     android:id="@+id/text_item_location"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="@dimen/space_6"
                     android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"

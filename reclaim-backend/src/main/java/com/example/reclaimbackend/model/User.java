@@ -10,11 +10,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
- * MongoDB document representing a user of the ReClaim platform.
- * <p>
- * Stored in the {@code users} collection. The {@code email} field is
- * indexed as unique to prevent duplicate registrations.
- * </p>
+ * A user in the {@code users} collection. Email is unique.
  */
 @Getter
 @Setter
@@ -36,10 +32,10 @@ public class User {
 
     private String phoneNumber;
 
-    /** Device FCM registration token for push notifications (nullable). */
+    /** Device token for push notifications. May be empty. */
     private String fcmToken;
 
-    /** Download URL of the user's profile picture in Firebase Storage (nullable). */
+    /** Profile picture URL. May be empty. */
     private String profilePictureUrl;
 
 }

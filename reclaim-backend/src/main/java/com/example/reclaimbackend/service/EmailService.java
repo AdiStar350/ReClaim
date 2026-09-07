@@ -8,14 +8,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 /**
- * Sends transactional emails (currently registration OTP codes).
- * <p>
- * The {@link JavaMailSender} bean only exists when {@code spring.mail.host}
- * is configured. To keep local development friction-free, this service treats
- * mail as optional: if no sender is available (or a send fails), the OTP is
- * written to the server log instead of being emailed, so the flow can still
- * be exercised end-to-end.
- * </p>
+ * Sends signup and password-reset codes by email.
+ * If mail is not set up, the code is written to the log instead.
  */
 @Service
 @Slf4j
@@ -31,10 +25,10 @@ public class EmailService {
     }
 
     /**
-     * Emails a 6-digit verification code to the recipient.
+     * Emails a 6-digit signup code.
      *
-     * @param to   recipient email address
-     * @param code the 6-digit one-time code
+     * @param to   who receives it
+     * @param code the 6-digit code
      */
     public void sendOtpEmail(String to, String code) {
         sendCodeEmail(to, code, "registration",
@@ -47,10 +41,10 @@ public class EmailService {
     }
 
     /**
-     * Emails a 6-digit password-reset code to the recipient.
+     * Emails a 6-digit password-reset code.
      *
-     * @param to   recipient email address
-     * @param code the 6-digit one-time code
+     * @param to   who receives it
+     * @param code the 6-digit code
      */
     public void sendPasswordResetEmail(String to, String code) {
         sendCodeEmail(to, code, "password reset",
@@ -63,7 +57,7 @@ public class EmailService {
     }
 
     /**
-     * Shared sender: emails the code, or logs it when SMTP is not configured.
+     * Emails the code, or logs it when mail is not set up.
      */
     private void sendCodeEmail(String to, String code, String purpose,
                                String subject, String body) {
@@ -84,8 +78,7 @@ public class EmailService {
             sender.send(message);
             log.info("{} OTP email sent to {}", purpose, to);
         } catch (Exception e) {
-            // Don't fail the request if email delivery hiccups — log the code so
-            // the flow remains testable, and let the user retry/resend.
+            // Log the code if send fails so the user can still retry.
             log.error("Failed to send {} OTP email to {} — code was {}",
                     purpose, to, code, e);
         }

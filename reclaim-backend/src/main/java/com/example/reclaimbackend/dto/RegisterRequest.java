@@ -10,11 +10,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * Request DTO for the {@code POST /api/auth/register} endpoint.
- * <p>
- * Validates all required registration fields before the controller
- * passes them to the service layer.
- * </p>
+ * Details for creating an account.
  */
 @Getter
 @Setter

@@ -3,10 +3,10 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingStart="24dp"
-    android:paddingTop="8dp"
-    android:paddingEnd="24dp"
-    android:paddingBottom="4dp">
+    android:paddingStart="@dimen/space_24"
+    android:paddingTop="@dimen/space_8"
+    android:paddingEnd="@dimen/space_24"
+    android:paddingBottom="@dimen/space_4">
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/text_review_item"
@@ -18,7 +18,7 @@
     <com.google.android.material.textview.MaterialTextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="@dimen/space_16"
         android:text="@string/claim_review_question_label"
         android:textAppearance="?attr/textAppearanceLabelMedium"
         android:textColor="@color/text_secondary" />
@@ -27,14 +27,14 @@
         android:id="@+id/text_review_question"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="@dimen/space_4"
         android:textAppearance="?attr/textAppearanceBodyLarge"
         android:textColor="@color/brand_dark" />
 
     <com.google.android.material.textview.MaterialTextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="@dimen/space_16"
         android:text="@string/claim_review_answer_label"
         android:textAppearance="?attr/textAppearanceLabelMedium"
         android:textColor="@color/text_secondary" />
@@ -43,7 +43,7 @@
         android:id="@+id/text_review_answer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="@dimen/space_4"
         android:textAppearance="?attr/textAppearanceBodyLarge"
         android:textColor="@color/brand_dark" />
 

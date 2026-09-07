@@ -9,7 +9,7 @@ import androidx.fragment.app.Fragment;
 import com.example.reclaim.R;
 
 /**
- * Standalone profile & settings activity hosting {@link ProfileSettingsFragment}.
+ * Profile screen. Hosts {@link ProfileSettingsFragment}.
  */
 public class ProfileActivity extends AppCompatActivity {
 

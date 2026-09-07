@@ -16,8 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Compact horizontal-scroll adapter for home-screen preview rows.
- * Uses {@code item_card_preview.xml}: fixed 200dp width, 112dp image height.
+ * Small cards for the home preview rows.
  */
 public class PreviewItemAdapter extends RecyclerView.Adapter<PreviewItemAdapter.ViewHolder> {
 
@@ -72,10 +71,11 @@ public class PreviewItemAdapter extends RecyclerView.Adapter<PreviewItemAdapter.
             binding.textItemLocation.setText(item.getLocation());
 
             String type = item.getType() != null ? item.getType() : "";
-            binding.chipType.setText(type);
             if ("Lost".equalsIgnoreCase(type)) {
+                binding.chipType.setText(R.string.type_lost);
                 binding.chipType.setChipBackgroundColorResource(R.color.type_lost);
             } else {
+                binding.chipType.setText(type.isEmpty() ? "" : ctx.getString(R.string.type_found));
                 binding.chipType.setChipBackgroundColorResource(R.color.type_found);
             }
             binding.chipType.setTextColor(ctx.getColor(R.color.text_on_accent));

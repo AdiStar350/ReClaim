@@ -4,10 +4,13 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Patterns;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
 
@@ -20,20 +23,17 @@ import com.example.reclaim.network.ReClaimApiService;
 import com.example.reclaim.network.RetrofitClient;
 import com.example.reclaim.network.TokenManager;
 import com.example.reclaim.ui.dashboard.DashboardActivity;
+import com.example.reclaim.util.ConnectionToasts;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Login screen for the ReClaim application.
- * <p>
- * Provides email and password input fields, a login button, a link to
- * navigate to {@link RegisterActivity}, and a forgot-password action.
- * On successful authentication, the JWT token is persisted via
- * {@link TokenManager} and the user is navigated to
- * {@link DashboardActivity}.
- * </p>
+ * Sign-in screen. On success it saves the token and opens the home screen.
  */
 public class LoginActivity extends AppCompatActivity {
 
@@ -44,16 +44,16 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Enable edge-to-edge display
+        // Draw behind the system bars
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Obtain the API service singleton
+        // API client
         apiService = RetrofitClient.getApiService();
 
-        // If user is already logged in, skip to dashboard
+        // Already signed in
         if (TokenManager.hasToken(this)) {
             navigateToDashboard();
             return;
@@ -63,7 +63,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     /**
-     * Configures click listeners for all interactive elements on the login screen.
+     * Sets the button clicks.
      */
     private void setupClickListeners() {
         binding.btnLogin.setOnClickListener(v -> attemptLogin());
@@ -73,34 +73,66 @@ public class LoginActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        binding.btnForgotPassword.setOnClickListener(v -> attemptForgotPassword());
+        binding.btnForgotPassword.setOnClickListener(v -> showForgotPasswordDialog());
     }
 
     /**
-     * Starts the forgot-password flow using the email typed in the email field.
-     * Requests a reset code from the backend, then opens the OTP screen in
-     * reset mode.
+     * Asks for an email, then sends a reset code.
      */
-    private void attemptForgotPassword() {
-        binding.inputLayoutEmail.setError(null);
+    private void showForgotPasswordDialog() {
+        View dialogView = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_forgot_password, null);
+        TextInputLayout emailLayout = dialogView.findViewById(R.id.input_layout_reset_email);
+        TextInputEditText emailInput = dialogView.findViewById(R.id.edit_reset_email);
 
-        String email = binding.editEmail.getText() != null
+        String typedOnLogin = binding.editEmail.getText() != null
                 ? binding.editEmail.getText().toString().trim() : "";
-
-        if (TextUtils.isEmpty(email) || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            binding.inputLayoutEmail.setError(getString(R.string.msg_email_required_reset));
-            binding.editEmail.requestFocus();
-            return;
+        if (!TextUtils.isEmpty(typedOnLogin)) {
+            emailInput.setText(typedOnLogin);
         }
 
-        setLoadingState(true);
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.forgot_password_dialog_title)
+                .setView(dialogView)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.btn_send_reset_code, null)
+                .create();
+
+        dialog.setOnShowListener(d -> {
+            Button send = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            send.setOnClickListener(v -> {
+                emailLayout.setError(null);
+                String email = emailInput.getText() != null
+                        ? emailInput.getText().toString().trim() : "";
+                if (TextUtils.isEmpty(email)
+                        || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                    emailLayout.setError(getString(R.string.msg_email_required_reset));
+                    emailInput.requestFocus();
+                    return;
+                }
+                sendPasswordResetOtp(email, dialog, send);
+            });
+        });
+        dialog.show();
+    }
+
+    private void sendPasswordResetOtp(@NonNull String email,
+                                      @NonNull AlertDialog dialog,
+                                      @NonNull Button sendButton) {
+        sendButton.setEnabled(false);
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(false);
         apiService.sendPasswordResetOtp(new ForgotPasswordRequest(email))
                 .enqueue(new Callback<Void>() {
                     @Override
                     public void onResponse(@NonNull Call<Void> call,
                                            @NonNull Response<Void> response) {
-                        setLoadingState(false);
+                        if (isFinishing()) {
+                            return;
+                        }
+                        sendButton.setEnabled(true);
+                        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(true);
                         if (response.isSuccessful()) {
+                            dialog.dismiss();
                             Toast.makeText(LoginActivity.this,
                                     R.string.msg_reset_code_sent, Toast.LENGTH_LONG).show();
                             Intent intent = new Intent(LoginActivity.this,
@@ -117,58 +149,61 @@ public class LoginActivity extends AppCompatActivity {
 
                     @Override
                     public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
-                        setLoadingState(false);
-                        Toast.makeText(LoginActivity.this,
-                                "Network error: " + t.getLocalizedMessage(),
-                                Toast.LENGTH_LONG).show();
+                        if (isFinishing()) {
+                            return;
+                        }
+                        sendButton.setEnabled(true);
+                        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(true);
+                        ConnectionToasts.showIfOnline(LoginActivity.this,
+                                getString(R.string.msg_network_error, t.getLocalizedMessage()),
+                                Toast.LENGTH_LONG);
                     }
                 });
     }
 
     /**
-     * Extracts email and password from the input fields, validates them,
-     * and initiates the login API call.
+     * Checks the form and signs in.
      */
     private void attemptLogin() {
-        // Clear previous errors
+        // Clear old errors
         binding.inputLayoutEmail.setError(null);
         binding.inputLayoutPassword.setError(null);
 
-        // Extract text from inputs
+        // Read the fields
         String email = binding.editEmail.getText() != null
                 ? binding.editEmail.getText().toString().trim() : "";
         String password = binding.editPassword.getText() != null
                 ? binding.editPassword.getText().toString().trim() : "";
 
-        // ── Validate inputs ──────────────────────────────────────────
+        // Check the fields
         if (TextUtils.isEmpty(email)) {
-            binding.inputLayoutEmail.setError("Please enter your email");
+            binding.inputLayoutEmail.setError(getString(R.string.msg_enter_email));
             binding.editEmail.requestFocus();
             return;
         }
 
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            binding.inputLayoutEmail.setError("Please enter a valid email address");
+            binding.inputLayoutEmail.setError(getString(R.string.msg_enter_valid_email));
             binding.editEmail.requestFocus();
             return;
         }
 
         if (TextUtils.isEmpty(password)) {
-            binding.inputLayoutPassword.setError("Please enter your password");
+            binding.inputLayoutPassword.setError(getString(R.string.msg_enter_password));
             binding.editPassword.requestFocus();
             return;
         }
 
         if (password.length() < 6) {
-            binding.inputLayoutPassword.setError("Password must be at least 6 characters");
+            binding.inputLayoutPassword.setError(getString(R.string.msg_password_min_length));
             binding.editPassword.requestFocus();
             return;
         }
 
-        // ── Show loading state ───────────────────────────────────────
+        // Show loading
         setLoadingState(true);
 
-        // ── Make the API call ────────────────────────────────────────
+        // Sign in
         LoginRequest request = new LoginRequest(email, password);
         apiService.login(request).enqueue(new Callback<LoginResponse>() {
             @Override
@@ -179,28 +214,28 @@ public class LoginActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     String token = response.body().getToken();
                     if (!TextUtils.isEmpty(token)) {
-                        // Save the JWT token to SharedPreferences
+                        // Save the token
                         TokenManager.saveToken(LoginActivity.this, token);
 
                         Toast.makeText(LoginActivity.this,
-                                "Login successful!",
+                                R.string.msg_login_success,
                                 Toast.LENGTH_SHORT).show();
 
                         navigateToDashboard();
                     } else {
                         Toast.makeText(LoginActivity.this,
-                                "Login failed: no token received",
+                                R.string.msg_login_no_token,
                                 Toast.LENGTH_SHORT).show();
                     }
                 } else {
-                    // Server returned an error (401, 403, 500, etc.)
-                    String errorMsg = "Login failed";
+                    // Sign-in failed
+                    String errorMsg = getString(R.string.msg_login_failed);
                     if (response.code() == 401) {
-                        errorMsg = "Invalid email or password";
+                        errorMsg = getString(R.string.msg_invalid_credentials);
                     } else if (response.code() == 404) {
-                        errorMsg = "Account not found";
+                        errorMsg = getString(R.string.msg_account_not_found);
                     } else if (response.code() >= 500) {
-                        errorMsg = "Server error. Please try again later.";
+                        errorMsg = getString(R.string.msg_server_error);
                     }
                     Toast.makeText(LoginActivity.this,
                             errorMsg,
@@ -211,28 +246,21 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<LoginResponse> call, Throwable t) {
                 setLoadingState(false);
-
-                // Network error (no internet, timeout, DNS failure, etc.)
-                Toast.makeText(LoginActivity.this,
-                        "Network error: " + t.getLocalizedMessage(),
-                        Toast.LENGTH_LONG).show();
+                ConnectionToasts.showIfOnline(LoginActivity.this,
+                        getString(R.string.msg_network_error, t.getLocalizedMessage()),
+                        Toast.LENGTH_LONG);
             }
         });
     }
 
     /**
-     * Toggles the UI between a loading and an interactive state.
-     * <p>
-     * While loading, the login button is disabled and its text changes
-     * to a progress indicator. Input fields are also disabled to prevent
-     * double-submission.
-     * </p>
+     * Disables the form while signing in.
      *
-     * @param isLoading {@code true} to show loading state, {@code false} to restore
+     * @param isLoading {@code true} while waiting
      */
     private void setLoadingState(boolean isLoading) {
         binding.btnLogin.setEnabled(!isLoading);
-        binding.btnLogin.setText(isLoading ? "Signing in…" : "Sign In");
+        binding.btnLogin.setText(isLoading ? R.string.btn_signing_in : R.string.btn_login);
         binding.editEmail.setEnabled(!isLoading);
         binding.editPassword.setEnabled(!isLoading);
         binding.btnGoRegister.setEnabled(!isLoading);
@@ -240,8 +268,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     /**
-     * Navigates to {@link DashboardActivity} and clears the back stack
-     * so the user cannot press Back to return to the login screen.
+     * Opens home and clears the back stack so Back won't return here.
      */
     private void navigateToDashboard() {
         Intent intent = new Intent(LoginActivity.this, DashboardActivity.class);

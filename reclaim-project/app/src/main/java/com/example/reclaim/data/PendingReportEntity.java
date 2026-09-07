@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey;
 import com.example.reclaim.model.Item;
 
 /**
- * A report that could not be posted while the device was offline.
+ * A report that could not be sent while offline.
  */
 @Entity(tableName = "pending_reports")
 public class PendingReportEntity {
@@ -29,6 +29,10 @@ public class PendingReportEntity {
     public String remoteImageUrl;
     @Nullable
     public String localImagePath;
+    /**
+     * Owner of the queued report.
+     * {@code null} or empty means it waits for the next login.
+     */
     @Nullable
     public String userId;
     public long createdAtEpochMs;

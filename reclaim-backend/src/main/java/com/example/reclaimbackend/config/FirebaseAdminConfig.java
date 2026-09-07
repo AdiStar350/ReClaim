@@ -12,13 +12,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 /**
- * Initializes the Firebase Admin SDK used for sending FCM push notifications.
- * <p>
- * Credentials are resolved from the {@code FIREBASE_SERVICE_ACCOUNT} env var
- * (path to a service-account JSON) or Application Default Credentials
- * ({@code GOOGLE_APPLICATION_CREDENTIALS}). When neither is available the
- * backend still starts; pushes are simply skipped.
- * </p>
+ * Starts Firebase Admin for pushes and storage deletes.
+ * Looks at {@code FIREBASE_SERVICE_ACCOUNT} or default credentials.
+ * If neither is set, the app still starts and pushes are skipped.
  */
 @Configuration
 public class FirebaseAdminConfig {
@@ -34,6 +30,7 @@ public class FirebaseAdminConfig {
             GoogleCredentials credentials = loadCredentials();
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(credentials)
+                    .setStorageBucket("reclaim-5b4fd.firebasestorage.app")
                     .build();
             FirebaseApp.initializeApp(options);
             log.info("Firebase Admin initialized; push notifications enabled");

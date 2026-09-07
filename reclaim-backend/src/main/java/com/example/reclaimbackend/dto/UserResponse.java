@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Safe user profile representation without password data.
+ * User profile without the password.
  */
 @Getter
 @Setter

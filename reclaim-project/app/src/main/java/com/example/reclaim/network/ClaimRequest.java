@@ -3,13 +3,8 @@ package com.example.reclaim.network;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Request body for submitting an ownership claim
- * ({@code POST /api/claims}).
- * <p>
- * Contains the ID of the item being claimed and the claimant's
- * answer to the hidden verification question. The {@code claimantId}
- * is extracted from the JWT token on the server side.
- * </p>
+ * Body for {@code POST /api/claims}.
+ * Item id and the answer to the check question.
  */
 public class ClaimRequest {
 
@@ -20,10 +15,10 @@ public class ClaimRequest {
     private final String validationAnswer;
 
     /**
-     * Creates a new claim request.
+     * Item id and answer.
      *
-     * @param itemId           the ID of the item to claim
-     * @param validationAnswer the answer to the verification question
+     * @param itemId           item to claim
+     * @param validationAnswer answer to the check question
      */
     public ClaimRequest(String itemId, String validationAnswer) {
         this.itemId = itemId;

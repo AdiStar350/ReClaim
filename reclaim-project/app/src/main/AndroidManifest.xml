@@ -10,7 +10,7 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Camera feature (optional so app works on devices without camera) -->
+    <!-- Camera. Optional. -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
@@ -26,12 +26,12 @@
         android:windowSoftInputMode="adjustResize"
         android:theme="@style/Theme.ReClaim">
 
-        <!-- Google Maps API key: set GOOGLE_MAPS_API_KEY in secrets.properties -->
+        <!-- Maps key. Set GOOGLE_MAPS_API_KEY in secrets.properties. -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${GOOGLE_MAPS_API_KEY}" />
 
-        <!-- Main Entry Point (Splash/Router) -->
+        <!-- Entry point -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -41,7 +41,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Auth Screens -->
+        <!-- Auth screens -->
         <activity
             android:name=".ui.auth.LoginActivity"
             android:exported="false" />
@@ -58,28 +58,28 @@
             android:name=".ui.auth.ResetPasswordActivity"
             android:exported="false" />
 
-        <!-- Dashboard (Main Screen) -->
+        <!-- Dashboard -->
         <activity
             android:name=".ui.dashboard.DashboardActivity"
             android:exported="false"
             android:launchMode="singleTop" />
 
-        <!-- Report Screen -->
+        <!-- Report screen -->
         <activity
             android:name=".ui.report.ReportActivity"
             android:exported="false" />
 
-        <!-- Item Details Screen -->
+        <!-- Item details -->
         <activity
             android:name=".ui.details.ItemDetailsActivity"
             android:exported="false" />
 
-        <!-- Pending Claims Review -->
+        <!-- Pending claims -->
         <activity
             android:name=".ui.profile.PendingClaimsActivity"
             android:exported="false" />
 
-        <!-- Report History -->
+        <!-- Report history -->
         <activity
             android:name=".ui.profile.ReportHistoryActivity"
             android:exported="false" />
@@ -101,7 +101,7 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
-        <!-- Firebase Cloud Messaging: handles pushes in foreground and background -->
+        <!-- Push messages -->
         <service
             android:name=".notifications.ReclaimMessagingService"
             android:exported="false">
@@ -110,7 +110,7 @@
             </intent-filter>
         </service>
 
-        <!-- FileProvider for camera image capture -->
+        <!-- FileProvider for camera photos -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

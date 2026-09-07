@@ -4,22 +4,22 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="4dp"
-    android:layout_marginBottom="10dp"
+    android:layout_marginTop="@dimen/space_4"
+    android:layout_marginBottom="@dimen/space_10"
     app:cardBackgroundColor="@color/md_theme_surfaceContainerLowest"
-    app:cardCornerRadius="18dp"
-    app:cardElevation="2dp"
+    app:cardCornerRadius="@dimen/space_18"
+    app:cardElevation="@dimen/space_2"
     app:strokeColor="@color/md_theme_outlineVariant"
-    app:strokeWidth="0.5dp">
+    app:strokeWidth="@dimen/space_0_5">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <!-- Coloured left accent bar -->
+        <!-- Accent bar -->
         <View
-            android:layout_width="5dp"
+            android:layout_width="@dimen/space_5"
             android:layout_height="match_parent"
             android:background="@color/brand_accent" />
 
@@ -28,17 +28,17 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingStart="14dp"
-            android:paddingTop="14dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="12dp">
+            android:paddingStart="@dimen/space_14"
+            android:paddingTop="@dimen/space_14"
+            android:paddingEnd="@dimen/space_12"
+            android:paddingBottom="@dimen/space_12">
 
-            <!-- Thumbnail placeholder -->
+            <!-- Thumbnail -->
             <com.google.android.material.card.MaterialCardView
-                android:layout_width="60dp"
-                android:layout_height="60dp"
+                android:layout_width="@dimen/space_60"
+                android:layout_height="@dimen/space_60"
                 app:cardBackgroundColor="@color/md_theme_surfaceContainer"
-                app:cardCornerRadius="14dp"
+                app:cardCornerRadius="@dimen/space_14"
                 app:cardElevation="0dp">
 
                 <ImageView
@@ -50,15 +50,15 @@
                     android:src="@drawable/ic_item_placeholder" />
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Info column -->
+            <!-- Info -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
+                android:layout_marginStart="@dimen/space_14"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
-                <!-- Title + type chip on one row -->
+                <!-- Title and type -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -81,9 +81,9 @@
                         style="@style/Widget.ReClaim.Chip.Badge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
+                        android:layout_marginStart="@dimen/space_8"
                         android:textColor="@color/brand_white"
-                        android:textSize="11sp"
+                        android:textSize="@dimen/text_size_11"
                         tools:chipBackgroundColor="@color/type_lost_text"
                         tools:text="Lost" />
                 </LinearLayout>
@@ -93,7 +93,7 @@
                     android:id="@+id/text_category"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
+                    android:layout_marginTop="@dimen/space_4"
                     android:textAppearance="?attr/textAppearanceLabelLarge"
                     android:textColor="@color/brand_accent"
                     tools:text="Wallets" />
@@ -103,18 +103,18 @@
                     android:id="@+id/text_location"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
+                    android:layout_marginTop="@dimen/space_2"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:textAppearance="?attr/textAppearanceBodySmall"
                     android:textColor="@color/text_secondary"
                     tools:text="Central Station" />
 
-                <!-- Action buttons -->
+                <!-- Actions -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="@dimen/space_8"
                     android:gravity="end"
                     android:orientation="horizontal">
 
@@ -124,8 +124,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:minWidth="0dp"
-                        android:paddingStart="12dp"
-                        android:paddingEnd="4dp"
+                        android:paddingStart="@dimen/space_12"
+                        android:paddingEnd="@dimen/space_4"
                         android:text="@string/btn_edit"
                         android:textColor="@color/brand_accent" />
 
@@ -135,7 +135,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:minWidth="0dp"
-                        android:paddingStart="4dp"
+                        android:paddingStart="@dimen/space_4"
                         android:paddingEnd="0dp"
                         android:text="@string/btn_delete"
                         android:textColor="@color/type_lost" />

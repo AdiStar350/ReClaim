@@ -3,7 +3,7 @@ package com.example.reclaim.network;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Request body for {@code POST /api/auth/register/verify-otp}.
+ * Body for {@code POST /api/auth/register/verify-otp}.
  */
 public class VerifyOtpRequest {
 

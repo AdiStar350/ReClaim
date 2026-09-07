@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * REST controller for authenticated user profile endpoints.
+ * Profile endpoints for the signed-in user.
  */
 @RestController
 @RequestMapping("/api/users")

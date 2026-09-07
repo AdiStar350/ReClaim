@@ -15,9 +15,8 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
- * Fetches the device FCM token and registers it with the backend so the
- * server can address pushes to this user. Safe to call on every app start;
- * skips silently when the user is not logged in.
+ * Sends this device's push token to the backend.
+ * Fine to call on every start. Skips if not signed in.
  */
 public final class FcmTokenRegistrar {
 

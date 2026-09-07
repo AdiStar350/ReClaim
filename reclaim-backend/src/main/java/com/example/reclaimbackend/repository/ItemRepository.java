@@ -7,40 +7,40 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 /**
- * Spring Data MongoDB repository for {@link Item} documents.
+ * Items in MongoDB.
  */
 @Repository
 public interface ItemRepository extends MongoRepository<Item, String> {
 
     /**
-     * Finds all items belonging to a specific user.
+     * Items reported by one user.
      *
-     * @param ownerId the ID of the item owner
-     * @return list of items reported by the user
+     * @param ownerId the reporter
+     * @return that user's items
      */
     List<Item> findByOwnerId(String ownerId);
 
     /**
-     * Finds all items matching a given category.
+     * Items in one category.
      *
-     * @param category the category to filter by
-     * @return list of items in the specified category
+     * @param category the category
+     * @return matching items
      */
     List<Item> findByCategory(String category);
 
     /**
-     * Finds all items matching a given type ("Lost" or "Found").
+     * Items of one type ("Lost" or "Found").
      *
-     * @param type the type to filter by
-     * @return list of items of the specified type
+     * @param type Lost or Found
+     * @return matching items
      */
     List<Item> findByType(String type);
 
     /**
-     * Finds all items matching a given status.
+     * Items with one status.
      *
-     * @param status the status to filter by (e.g. "OPEN", "CLOSED")
-     * @return list of items with the specified status
+     * @param status OPEN or CLOSED
+     * @return matching items
      */
     List<Item> findByStatus(String status);
 }

@@ -3,12 +3,7 @@ package com.example.reclaim.model;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Data model representing a claim on a lost or found item.
- * <p>
- * A claim is created when a user identifies an item as theirs and
- * provides a verification answer. The reporter then reviews the claim
- * and can accept or reject it.
- * </p>
+ * A claim on a lost or found item.
  */
 public class Claim {
 
@@ -43,19 +38,19 @@ public class Claim {
     private boolean decisionAcknowledged;
 
     /**
-     * Default no-arg constructor required by Gson.
+     * Empty constructor for Gson.
      */
     public Claim() {
     }
 
     /**
-     * Full constructor for creating a Claim with all fields.
+     * Builds a claim with the main fields.
      *
-     * @param id               unique identifier
-     * @param itemId           ID of the item being claimed
-     * @param claimantId       ID of the user making the claim
-     * @param validationAnswer answer to the verification question
-     * @param status           current status (e.g. "Pending", "Approved", "Rejected")
+     * @param id               claim id
+     * @param itemId           item being claimed
+     * @param claimantId       who is claiming
+     * @param validationAnswer answer to the check question
+     * @param status           e.g. Pending, Approved, Rejected
      */
     public Claim(String id, String itemId, String claimantId,
                  String validationAnswer, String status) {
@@ -66,7 +61,7 @@ public class Claim {
         this.status = status;
     }
 
-    // ── Getters ──────────────────────────────────────────────────────────
+    // Getters
 
     public String getId() {
         return id;
@@ -108,7 +103,7 @@ public class Claim {
         return decisionAcknowledged;
     }
 
-    // ── Setters ──────────────────────────────────────────────────────────
+    // Setters
 
     public void setId(String id) {
         this.id = id;

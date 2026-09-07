@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 /**
- * Enables MongoDB multi-document transactions for sensitive workflows.
+ * Turns on MongoDB transactions for work that must save together.
  */
 @Configuration
 @EnableTransactionManagement

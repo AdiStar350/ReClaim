@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Request body for account deletion — requires name and password confirmation.
+ * Name and password needed to delete an account.
  */
 @Getter
 @Setter

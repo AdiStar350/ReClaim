@@ -17,22 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * RecyclerView adapter that binds a list of {@link Item} objects to
- * {@code item_card.xml} cards.
- * <p>
- * Uses View Binding ({@link ItemCardBinding}) for type-safe view access
- * and Glide for loading item images. Exposes an {@link OnItemClickListener}
- * callback interface so the hosting Activity/Fragment can handle navigation
- * to the Item Details screen.
- * </p>
- *
- * <h3>Usage example:</h3>
- * <pre>{@code
- * ItemAdapter adapter = new ItemAdapter(itemList, item -> {
- *     // Navigate to ItemDetailsActivity with item.getId()
- * });
- * recyclerView.setAdapter(adapter);
- * }</pre>
+ * Shows a list of {@link Item} cards.
  */
 public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder> {
 
@@ -40,24 +25,22 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
     private final OnItemClickListener listener;
 
     /**
-     * Callback interface for item click events.
+     * Called when a card is tapped.
      */
     public interface OnItemClickListener {
         /**
-         * Called when a user taps on an item card.
+         * The tapped item.
          *
-         * @param item the {@link Item} that was clicked
+         * @param item the item
          */
         void onItemClick(@NonNull Item item);
     }
 
     /**
-     * Creates a new adapter with the given item list and click listener.
+     * Builds an adapter from a list and a click listener.
      *
-     * @param items    the list of items to display; the adapter keeps a
-     *                 reference to this list and reflects external mutations
-     *                 when {@link #notifyDataSetChanged()} is called
-     * @param listener callback invoked when an item card is tapped
+     * @param items    items to show
+     * @param listener called when a card is tapped
      */
     public ItemAdapter(@NonNull List<Item> items, @NonNull OnItemClickListener listener) {
         this.items = items;
@@ -83,10 +66,9 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
     }
 
     /**
-     * Replaces the current data set with a new list of items and refreshes
-     * the RecyclerView.
+     * Replaces the list and redraws.
      *
-     * @param newItems the updated list of items
+     * @param newItems the new items
      */
     public void updateItems(@NonNull List<Item> newItems) {
         items.clear();
@@ -94,11 +76,10 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
         notifyDataSetChanged();
     }
 
-    // ── ViewHolder ───────────────────────────────────────────────────────
+    // ViewHolder
 
     /**
-     * Holds references to the views inside a single {@code item_card.xml}
-     * via {@link ItemCardBinding}.
+     * Views for one card.
      */
     class ItemViewHolder extends RecyclerView.ViewHolder {
 
@@ -110,46 +91,46 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
         }
 
         /**
-         * Populates the card views with data from the given {@link Item}.
+         * Fills the card from {@code item}.
          *
-         * @param item the item whose data should be displayed
+         * @param item the item to show
          */
         void bind(@NonNull Item item) {
             Context context = binding.getRoot().getContext();
 
-            // ── Text fields ──────────────────────────────────────────
+            // Title, category, place
             binding.textItemTitle.setText(item.getTitle());
             binding.textItemCategory.setText(item.getCategory());
             binding.textItemLocation.setText(item.getLocation());
 
-            // ── Type chip (Lost / Found) ─────────────────────────────
+            // Lost / Found chip
             String type = item.getType();
-            binding.chipType.setText(type != null ? type : "");
             if ("Lost".equalsIgnoreCase(type)) {
-                // dark red bg (#BF360C) → white text, 4.5:1 contrast
+                binding.chipType.setText(R.string.type_lost);
+                // Dark red, white text
                 binding.chipType.setChipBackgroundColorResource(R.color.type_lost);
-                binding.chipType.setTextColor(context.getColor(R.color.text_on_accent));
             } else {
-                // dark green bg (#2E7D32) → white text, 4.8:1 contrast
+                binding.chipType.setText(type != null ? context.getString(R.string.type_found) : "");
+                // Dark green, white text
                 binding.chipType.setChipBackgroundColorResource(R.color.type_found);
-                binding.chipType.setTextColor(context.getColor(R.color.text_on_accent));
             }
+            binding.chipType.setTextColor(context.getColor(R.color.text_on_accent));
 
-            // ── Status chip (OPEN / CLOSED) ──────────────────────────
+            // Open / Closed chip
             String status = item.getStatus();
             if ("CLOSED".equalsIgnoreCase(status)) {
-                // slate bg → cream text, 4.7:1 contrast
+                // Slate, cream text
                 binding.chipStatus.setText(R.string.status_closed);
                 binding.chipStatus.setChipBackgroundColorResource(R.color.status_closed_bg);
                 binding.chipStatus.setTextColor(context.getColor(R.color.status_closed_text));
             } else {
-                // light green bg → dark green text, high contrast
+                // Light green, dark text
                 binding.chipStatus.setText(R.string.status_open);
                 binding.chipStatus.setChipBackgroundColorResource(R.color.status_open_bg);
                 binding.chipStatus.setTextColor(context.getColor(R.color.status_open_text));
             }
 
-            // ── Image loading via Glide ──────────────────────────────
+            // Photo
             Glide.with(context)
                     .load(item.getImageUrl())
                     .placeholder(R.drawable.ic_item_placeholder)
@@ -158,7 +139,7 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ItemViewHolder
                     .transition(DrawableTransitionOptions.withCrossFade(200))
                     .into(binding.imageItem);
 
-            // ── Click listener ───────────────────────────────────────
+            // Tap
             binding.getRoot().setOnClickListener(v -> listener.onItemClick(item));
         }
     }

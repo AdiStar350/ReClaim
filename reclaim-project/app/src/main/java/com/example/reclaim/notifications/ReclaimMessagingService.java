@@ -5,24 +5,15 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.example.reclaim.R;
+import com.example.reclaim.data.AppDataRefresh;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
 import java.util.Map;
 
 /**
- * Receives FCM messages from the ReClaim backend.
- * <p>
- * The backend sends <b>data-only</b> messages so this service is invoked
- * in both foreground and background and builds the notification itself.
- * Supported {@code type} values:
- * <ul>
- *   <li>{@code ITEM_MATCH} — a lost/found item matching one of the user's
- *       reports was posted; taps open the matched item's details.</li>
- *   <li>{@code CLAIM_PENDING} — someone claimed the user's item and the
- *       answer needs validation; taps open the pending claims screen.</li>
- * </ul>
- * </p>
+ * Incoming push messages from the backend.
+ * Data-only, so this service builds the notification itself.
  */
 public class ReclaimMessagingService extends FirebaseMessagingService {
 
@@ -45,7 +36,7 @@ public class ReclaimMessagingService extends FirebaseMessagingService {
         String title = data.get("title");
         String body = data.get("body");
 
-        // Fallback for notification-type payloads (e.g. console test sends).
+        // Fallback if the payload has a notification block.
         if ((title == null || body == null) && message.getNotification() != null) {
             if (title == null) {
                 title = message.getNotification().getTitle();
@@ -59,6 +50,12 @@ public class ReclaimMessagingService extends FirebaseMessagingService {
         }
         if (body == null) {
             body = "";
+        }
+
+        if ("ITEM_MATCH".equals(type)
+                || "CLAIM_PENDING".equals(type)
+                || "CLAIM_DECISION".equals(type)) {
+            AppDataRefresh.notifyChanged();
         }
 
         if ("ITEM_MATCH".equals(type)) {
