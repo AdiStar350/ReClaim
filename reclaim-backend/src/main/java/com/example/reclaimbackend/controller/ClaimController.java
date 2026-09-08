@@ -136,7 +136,7 @@ public class ClaimController {
     }
 
     /**
-     * Owner contact for an approved claim. Claimant only.
+     * Contact for the other party on an approved claim.
      */
     @GetMapping("/{claimId}/contact")
     public ResponseEntity<ContactResponse> getClaimContact(

@@ -158,7 +158,7 @@ public class ClaimService {
             // Otherwise just close this one as "claim approved".
             item.setStatus("CLOSED");
             Item matchingLostReport =
-                    findActiveMatchingLostReport(item, claim.getClaimantId());
+                    findLinkedOrMatchingLostReport(item, claim.getClaimantId());
             if (matchingLostReport != null) {
                 item.setClosureReason(ClosureReasons.OWNER_FOUND);
                 matchingLostReport.setStatus("CLOSED");
@@ -214,6 +214,26 @@ public class ClaimService {
      * @param claimantId  the user whose claim was approved
      * @return the best matching lost report, or {@code null}
      */
+    /**
+     * Uses the explicit lost-report link when this found report was filed
+     * with "I found this". Otherwise looks for a similar open lost report.
+     */
+    private Item findLinkedOrMatchingLostReport(Item claimedItem, String claimantId) {
+        if (claimedItem.getTargetLostReportId() != null
+                && !claimedItem.getTargetLostReportId().isBlank()) {
+            Item linked = itemRepository.findById(claimedItem.getTargetLostReportId())
+                    .orElse(null);
+            if (linked != null
+                    && "LOST".equalsIgnoreCase(linked.getType())
+                    && "OPEN".equalsIgnoreCase(linked.getStatus())
+                    && claimantId != null
+                    && claimantId.equals(linked.getOwnerId())) {
+                return linked;
+            }
+        }
+        return findActiveMatchingLostReport(claimedItem, claimantId);
+    }
+
     private Item findActiveMatchingLostReport(Item claimedItem, String claimantId) {
         if (claimantId == null) {
             return null;
@@ -319,11 +339,21 @@ public class ClaimService {
             List<Claim> pendingClaims = claimRepository.findByItemIdAndStatus(
                     item.getId(), "PENDING");
             for (Claim claim : pendingClaims) {
+                String claimantName = null;
+                if (claim.getClaimantId() != null) {
+                    try {
+                        claimantName = userService.getUserEntity(claim.getClaimantId()).getName();
+                    } catch (Exception ignored) {
+                        // Name is only for the review list.
+                    }
+                }
                 responses.add(PendingClaimResponse.builder()
                         .claimId(claim.getId())
                         .itemId(item.getId())
                         .itemTitle(item.getTitle())
+                        .itemImageUrl(item.getImageUrl())
                         .claimantId(claim.getClaimantId())
+                        .claimantName(claimantName)
                         .validationAnswer(claim.getValidationAnswer())
                         .status(claim.getStatus())
                         .verificationQuestion(item.getVerificationQuestion())
@@ -355,7 +385,7 @@ public class ClaimService {
     }
 
     /**
-     * Owner contact, only if the claim is approved and the caller is the claimant.
+     * Mutual contact after approval: claimant sees the owner, owner sees the claimant.
      */
     public ContactResponse getContactForApprovedClaim(String claimId, String requesterId) {
         Claim claim = getClaimById(claimId);
@@ -366,21 +396,24 @@ public class ClaimService {
                     "Contact details are only available for approved claims");
         }
 
-        if (!requesterId.equals(claim.getClaimantId())) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "Only the claimant can view contact details");
-        }
-
         Item item = itemRepository.findById(claim.getItemId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Associated item not found"));
 
-        User owner = userService.getUserEntity(item.getOwnerId());
+        boolean isClaimant = requesterId.equals(claim.getClaimantId());
+        boolean isOwner = requesterId.equals(item.getOwnerId());
+        if (!isClaimant && !isOwner) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Only the claimant or item owner can view contact details");
+        }
+
+        User otherParty = userService.getUserEntity(
+                isClaimant ? item.getOwnerId() : claim.getClaimantId());
         return ContactResponse.builder()
-                .name(owner.getName())
-                .email(owner.getEmail())
-                .phoneNumber(owner.getPhoneNumber())
+                .name(otherParty.getName())
+                .email(otherParty.getEmail())
+                .phoneNumber(otherParty.getPhoneNumber())
                 .build();
     }
 }

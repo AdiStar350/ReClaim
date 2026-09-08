@@ -196,7 +196,13 @@
     <!-- Item details -->
     <string name="item_details_title">Item Details</string>
     <string name="btn_claim">This is Mine!</string>
+    <string name="btn_claim_pending">Claim Pending</string>
+    <string name="btn_report_submitted">Report Submitted</string>
     <string name="btn_show_contact_info">Show contact information</string>
+    <string name="btn_i_found_this">I found this</string>
+    <string name="report_found_for_lost_title">Report a found item</string>
+    <string name="home_targeted_found_title">Someone found your item</string>
+    <string name="home_targeted_found_subtitle">%1$s. Tap to review and claim it.</string>
     <string name="label_reported_by">Reported by</string>
     <string name="label_date_found">Date Found</string>
     <string name="label_location">Location</string>
@@ -219,8 +225,6 @@
     <string name="home_pending_claims_subtitle">%1$d awaiting your review</string>
 
     <!-- Incoming claim (home) -->
-    <string name="home_new_claim_title">New ownership claim</string>
-    <string name="home_new_claim_subtitle">Someone claims your item is theirs. Tap to review.</string>
     <string name="claim_review_title">Review ownership claim</string>
     <string name="claim_review_question_label">Secret question</string>
     <string name="claim_review_answer_label">Their answer</string>
@@ -257,6 +261,12 @@
     <string name="btn_change_photo">Change Photo</string>
     <string name="msg_uploading_photo">Uploading photo…</string>
     <string name="pending_claims_title">Pending Claims</string>
+    <string name="pending_claims_sheet_title">Review Pending Claims (%1$d)</string>
+    <string name="label_claimant">From %1$s</string>
+    <string name="pending_claim_unknown_claimant">a ReClaim user</string>
+    <string name="claim_reject_confirm_title">Reject this claim?</string>
+    <string name="claim_reject_confirm_message">The claimant will be notified that their claim was declined.</string>
+    <string name="contact_claimant_title">Claimant contact info</string>
     <string name="hint_profile_name">Full Name</string>
     <string name="hint_profile_phone">Phone Number</string>
     <string name="contact_details_title">Owner Contact</string>

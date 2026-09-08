@@ -49,6 +49,7 @@ public final class PendingReportStore {
         entity.location = item.getLocation();
         entity.type = item.getType();
         entity.verificationQuestion = item.getVerificationQuestion();
+        entity.targetLostReportId = item.getTargetLostReportId();
         entity.latitude = item.getLatitude();
         entity.longitude = item.getLongitude();
         entity.remoteImageUrl = item.getImageUrl();

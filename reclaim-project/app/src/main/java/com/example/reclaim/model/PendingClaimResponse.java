@@ -13,8 +13,14 @@ public class PendingClaimResponse {
     @SerializedName("itemTitle")
     private String itemTitle;
 
+    @SerializedName("itemImageUrl")
+    private String itemImageUrl;
+
     @SerializedName("claimantId")
     private String claimantId;
+
+    @SerializedName("claimantName")
+    private String claimantName;
 
     @SerializedName("validationAnswer")
     private String validationAnswer;
@@ -37,8 +43,16 @@ public class PendingClaimResponse {
         return itemTitle;
     }
 
+    public String getItemImageUrl() {
+        return itemImageUrl;
+    }
+
     public String getClaimantId() {
         return claimantId;
+    }
+
+    public String getClaimantName() {
+        return claimantName;
     }
 
     public String getValidationAnswer() {

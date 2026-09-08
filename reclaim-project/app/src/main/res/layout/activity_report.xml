@@ -242,11 +242,13 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:completionThreshold="3"
+                            android:dropDownSelector="@android:color/transparent"
                             android:imeOptions="actionDone"
                             android:inputType="textPostalAddress|textCapSentences"
-                            android:popupBackground="@color/md_theme_surfaceContainerLowest"
-                            android:textColor="@color/text_primary"
-                            android:paddingStart="@dimen/space_15" />
+                            android:paddingStart="@dimen/space_15"
+                            android:popupBackground="@drawable/bg_popup_menu"
+                            android:popupTheme="@style/ThemeOverlay.ReClaim.PopupMenu"
+                            android:textColor="@color/text_primary" />
 
                     </com.google.android.material.textfield.TextInputLayout>
 

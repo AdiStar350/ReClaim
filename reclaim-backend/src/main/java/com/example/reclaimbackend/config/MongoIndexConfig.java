@@ -33,6 +33,11 @@ public class MongoIndexConfig {
                     .ensureIndex(new Index()
                             .on("latitude", Sort.Direction.ASC)
                             .on("longitude", Sort.Direction.ASC));
+
+            mongoTemplate.indexOps(Item.class)
+                    .ensureIndex(new Index()
+                            .on("targetLostReportId", Sort.Direction.ASC)
+                            .on("status", Sort.Direction.ASC));
         } catch (Exception ex) {
             log.warn("Could not create MongoDB indexes on startup: {}", ex.getMessage());
         }

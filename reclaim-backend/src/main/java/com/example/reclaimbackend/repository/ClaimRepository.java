@@ -36,4 +36,10 @@ public interface ClaimRepository extends MongoRepository<Claim, String> {
      * @return matching claims
      */
     List<Claim> findByItemIdAndStatus(String itemId, String status);
+
+    /**
+     * One person's claims on one item with one status.
+     */
+    List<Claim> findByItemIdAndClaimantIdAndStatus(
+            String itemId, String claimantId, String status);
 }

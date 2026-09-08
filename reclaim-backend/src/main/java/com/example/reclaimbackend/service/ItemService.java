@@ -3,6 +3,7 @@ package com.example.reclaimbackend.service;
 import com.example.reclaimbackend.dto.ContactResponse;
 import com.example.reclaimbackend.model.Item;
 import com.example.reclaimbackend.model.User;
+import com.example.reclaimbackend.repository.ClaimRepository;
 import com.example.reclaimbackend.repository.ItemRepository;
 import com.example.reclaimbackend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,7 @@ public class ItemService {
     private final UserRepository userRepository;
     private final PushNotificationService pushNotificationService;
     private final FirebaseStorageService firebaseStorageService;
+    private final ClaimRepository claimRepository;
 
     /**
      * Feed for home and search. Hides closed reports and the viewer's own.
@@ -50,8 +52,19 @@ public class ItemService {
     public List<Item> getAllItems(String viewerId) {
         List<Item> items = itemRepository.findAll();
         items.removeIf(item -> "CLOSED".equalsIgnoreCase(item.getStatus())
+                || isPrivateTargeted(item)
                 || (viewerId != null && viewerId.equals(item.getOwnerId())));
         return enrichWithOwners(items);
+    }
+
+    /**
+     * Finds one item by id if the viewer is allowed to see it.
+     */
+    public Optional<Item> getVisibleItem(String id, String viewerId) {
+        return itemRepository.findById(id)
+                .filter(item -> canViewerSee(item, viewerId))
+                .map(this::enrichWithOwner)
+                .map(item -> enrichViewerInteraction(item, viewerId));
     }
 
     /**
@@ -62,6 +75,29 @@ public class ItemService {
      */
     public Optional<Item> getItemById(String id) {
         return itemRepository.findById(id).map(this::enrichWithOwner);
+    }
+
+    /**
+     * Private found reports aimed at this user's open lost reports.
+     */
+    public List<Item> getTargetedFoundReportsForLostOwner(String lostOwnerId) {
+        List<String> lostIds = new ArrayList<>();
+        for (Item owned : itemRepository.findByOwnerId(lostOwnerId)) {
+            if ("LOST".equalsIgnoreCase(owned.getType())
+                    && "OPEN".equalsIgnoreCase(owned.getStatus())
+                    && owned.getId() != null) {
+                lostIds.add(owned.getId());
+            }
+        }
+        if (lostIds.isEmpty()) {
+            return List.of();
+        }
+        List<Item> targeted = itemRepository.findByTargetLostReportIdIn(lostIds);
+        targeted.removeIf(item -> !"OPEN".equalsIgnoreCase(item.getStatus())
+                || !"FOUND".equalsIgnoreCase(item.getType()));
+        targeted.sort(Comparator.comparing(Item::getReportedAt,
+                Comparator.nullsLast(Comparator.reverseOrder())));
+        return enrichWithOwners(targeted);
     }
 
     /**
@@ -111,7 +147,9 @@ public class ItemService {
      * @return matching items
      */
     public List<Item> getItemsByCategory(String category) {
-        return enrichWithOwners(itemRepository.findByCategory(category));
+        List<Item> items = itemRepository.findByCategory(category);
+        items.removeIf(ItemService::isPrivateTargeted);
+        return enrichWithOwners(items);
     }
 
     /**
@@ -121,13 +159,64 @@ public class ItemService {
      * @return the saved item
      */
     public Item createItem(Item item) {
+        applyTargetedFoundRules(item);
         item.setStatus("OPEN");
         if (item.getReportedAt() == null) {
             item.setReportedAt(Instant.now());
         }
         Item saved = itemRepository.save(item);
-        notifyOwnersOfPotentialMatches(saved);
+        if (isPrivateTargeted(saved)) {
+            notifyTargetedLostOwner(saved);
+        } else {
+            notifyOwnersOfPotentialMatches(saved);
+        }
         return saved;
+    }
+
+    /**
+     * A targeted found report must point at someone else's open lost report.
+     */
+    private void applyTargetedFoundRules(Item item) {
+        if (!StringUtils.hasText(item.getTargetLostReportId())) {
+            item.setTargetLostReportId(null);
+            return;
+        }
+        Item lost = itemRepository.findById(item.getTargetLostReportId().trim())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Lost report not found"));
+        if (!"LOST".equalsIgnoreCase(lost.getType())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Target must be a lost report");
+        }
+        if (!"OPEN".equalsIgnoreCase(lost.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "That lost report is already closed");
+        }
+        if (lost.getOwnerId() != null && lost.getOwnerId().equals(item.getOwnerId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "You cannot file a found report against your own lost item");
+        }
+        item.setTargetLostReportId(lost.getId());
+        item.setType("Found");
+    }
+
+    /**
+     * Tells the lost-item owner that someone filed a private found report.
+     */
+    private void notifyTargetedLostOwner(Item foundItem) {
+        try {
+            Item lost = itemRepository.findById(foundItem.getTargetLostReportId())
+                    .orElse(null);
+            if (lost == null || lost.getOwnerId() == null) {
+                return;
+            }
+            userRepository.findById(lost.getOwnerId()).ifPresent(owner ->
+                    pushNotificationService.notifyTargetedFound(owner, lost, foundItem));
+        } catch (Exception e) {
+            log.warn("Targeted found notification failed for item {}: {}",
+                    foundItem.getId(), e.getMessage());
+        }
     }
 
     /**
@@ -136,6 +225,9 @@ public class ItemService {
      */
     private void notifyOwnersOfPotentialMatches(Item newItem) {
         try {
+            if (isPrivateTargeted(newItem)) {
+                return;
+            }
             if (newItem.getCategory() == null || newItem.getType() == null) {
                 return;
             }
@@ -148,6 +240,9 @@ public class ItemService {
                     continue;
                 }
                 if (!"OPEN".equalsIgnoreCase(candidate.getStatus())) {
+                    continue;
+                }
+                if (isPrivateTargeted(candidate)) {
                     continue;
                 }
                 if (candidate.getOwnerId() == null
@@ -286,6 +381,10 @@ public class ItemService {
             if (lostItem.getId() != null && lostItem.getId().equals(candidate.getId())) {
                 continue;
             }
+            if (isPrivateTargeted(candidate)
+                    && !lostItem.getId().equals(candidate.getTargetLostReportId())) {
+                continue;
+            }
             matches.add(candidate);
         }
 
@@ -325,6 +424,10 @@ public class ItemService {
         // Search hides closed reports.
         // My Items and Report History still show them.
         criteriaList.add(Criteria.where("status").not().regex("^closed$", "i"));
+        criteriaList.add(new Criteria().orOperator(
+                Criteria.where("targetLostReportId").exists(false),
+                Criteria.where("targetLostReportId").is(null),
+                Criteria.where("targetLostReportId").is("")));
         if (StringUtils.hasText(viewerId)) {
             criteriaList.add(Criteria.where("ownerId").ne(viewerId));
         }
@@ -385,6 +488,34 @@ public class ItemService {
     }
 
     /**
+     * Sets whether this viewer already acted on the report.
+     */
+    private Item enrichViewerInteraction(Item item, String viewerId) {
+        item.setHasUserAlreadyInteracted(hasUserAlreadyInteracted(item, viewerId));
+        return item;
+    }
+
+    private boolean hasUserAlreadyInteracted(Item item, String viewerId) {
+        if (item == null || item.getId() == null || !StringUtils.hasText(viewerId)) {
+            return false;
+        }
+        if (viewerId.equals(item.getOwnerId())) {
+            return false;
+        }
+        if ("FOUND".equalsIgnoreCase(item.getType())) {
+            return !claimRepository
+                    .findByItemIdAndClaimantIdAndStatus(item.getId(), viewerId, "PENDING")
+                    .isEmpty();
+        }
+        if ("LOST".equalsIgnoreCase(item.getType())) {
+            return !itemRepository
+                    .findByOwnerIdAndTargetLostReportId(viewerId, item.getId())
+                    .isEmpty();
+        }
+        return false;
+    }
+
+    /**
      * Same as {@link #enrichWithOwner(Item)}, for a list. Reuses lookups.
      */
     private List<Item> enrichWithOwners(List<Item> items) {
@@ -418,6 +549,22 @@ public class ItemService {
                 * Math.sin(dLon / 2) * Math.sin(dLon / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return earthRadiusKm * c;
+    }
+
+    private static boolean isPrivateTargeted(Item item) {
+        return item != null && StringUtils.hasText(item.getTargetLostReportId());
+    }
+
+    private boolean canViewerSee(Item item, String viewerId) {
+        if (!isPrivateTargeted(item)) {
+            return true;
+        }
+        if (viewerId != null && viewerId.equals(item.getOwnerId())) {
+            return true;
+        }
+        return itemRepository.findById(item.getTargetLostReportId())
+                .map(lost -> viewerId != null && viewerId.equals(lost.getOwnerId()))
+                .orElse(false);
     }
 
     private static String blankToNull(String value) {

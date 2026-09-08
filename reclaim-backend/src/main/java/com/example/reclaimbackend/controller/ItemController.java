@@ -67,6 +67,13 @@ public class ItemController {
         return ResponseEntity.ok(itemService.getItemsByCategory(category));
     }
 
+    @GetMapping("/targeted-for-me")
+    public ResponseEntity<List<Item>> getTargetedFoundReports(
+            Authentication authentication) {
+        return ResponseEntity.ok(
+                itemService.getTargetedFoundReportsForLostOwner(authentication.getName()));
+    }
+
     @GetMapping("/{id}/matches")
     public ResponseEntity<List<Item>> getMatchesForLostItem(
             @PathVariable String id,
@@ -82,8 +89,9 @@ public class ItemController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Item> getItemById(@PathVariable String id) {
-        return itemService.getItemById(id)
+    public ResponseEntity<Item> getItemById(@PathVariable String id,
+                                            Authentication authentication) {
+        return itemService.getVisibleItem(id, authentication.getName())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

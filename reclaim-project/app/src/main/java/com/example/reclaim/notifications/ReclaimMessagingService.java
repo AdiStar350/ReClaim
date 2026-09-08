@@ -5,7 +5,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.example.reclaim.R;
-import com.example.reclaim.data.AppDataRefresh;
+import com.example.reclaim.data.AppStateEvents;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
@@ -53,12 +53,13 @@ public class ReclaimMessagingService extends FirebaseMessagingService {
         }
 
         if ("ITEM_MATCH".equals(type)
+                || "TARGETED_FOUND".equals(type)
                 || "CLAIM_PENDING".equals(type)
                 || "CLAIM_DECISION".equals(type)) {
-            AppDataRefresh.notifyChanged();
+            AppStateEvents.notifyMutation();
         }
 
-        if ("ITEM_MATCH".equals(type)) {
+        if ("ITEM_MATCH".equals(type) || "TARGETED_FOUND".equals(type)) {
             AppNotifications.showItemMatch(this, title, body, data);
         } else if ("CLAIM_PENDING".equals(type)) {
             IncomingClaimEvents.notifyReceived();

@@ -55,6 +55,12 @@ public class Item {
     @SerializedName("ownerProfilePictureUrl")
     private String ownerProfilePictureUrl;
 
+    @SerializedName("targetLostReportId")
+    private String targetLostReportId;
+
+    @SerializedName("hasUserAlreadyInteracted")
+    private boolean hasUserAlreadyInteracted;
+
     public Item() {
     }
 
@@ -198,5 +204,21 @@ public class Item {
 
     public void setOwnerId(String ownerId) {
         this.ownerId = ownerId;
+    }
+
+    public String getTargetLostReportId() {
+        return targetLostReportId;
+    }
+
+    public void setTargetLostReportId(String targetLostReportId) {
+        this.targetLostReportId = targetLostReportId;
+    }
+
+    public boolean hasUserAlreadyInteracted() {
+        return hasUserAlreadyInteracted;
+    }
+
+    public void setHasUserAlreadyInteracted(boolean hasUserAlreadyInteracted) {
+        this.hasUserAlreadyInteracted = hasUserAlreadyInteracted;
     }
 }

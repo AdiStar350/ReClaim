@@ -43,4 +43,14 @@ public interface ItemRepository extends MongoRepository<Item, String> {
      * @return matching items
      */
     List<Item> findByStatus(String status);
+
+    /**
+     * Found reports written for one of these lost reports.
+     */
+    List<Item> findByTargetLostReportIdIn(List<String> targetLostReportIds);
+
+    /**
+     * Found reports one user filed for a specific lost report.
+     */
+    List<Item> findByOwnerIdAndTargetLostReportId(String ownerId, String targetLostReportId);
 }

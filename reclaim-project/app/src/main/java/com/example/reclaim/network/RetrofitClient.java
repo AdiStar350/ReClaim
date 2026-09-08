@@ -1,6 +1,6 @@
 package com.example.reclaim.network;
 
-import com.example.reclaim.data.AppDataRefresh;
+import com.example.reclaim.data.AppStateEvents;
 import com.example.reclaim.sync.BackendAvailability;
 import com.example.reclaim.sync.OfflineProtocol;
 
@@ -81,7 +81,7 @@ public final class RetrofitClient {
             } else {
                 BackendAvailability.markReachable();
                 if (response.isSuccessful() && isDataMutation(request)) {
-                    AppDataRefresh.notifyChanged();
+                    AppStateEvents.notifyMutation();
                 }
             }
             return response;

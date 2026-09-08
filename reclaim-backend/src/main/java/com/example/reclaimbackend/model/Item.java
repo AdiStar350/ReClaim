@@ -65,6 +65,13 @@ public class Item {
     /** Who reported this item. */
     private String ownerId;
 
+    /**
+     * If set, this found report is only for the owner of that lost report.
+     * It stays off public search and map lists.
+     */
+    @Indexed
+    private String targetLostReportId;
+
     /** Reporter's name. Filled on read, not saved. */
     @Transient
     private String ownerName;
@@ -72,5 +79,13 @@ public class Item {
     /** Reporter's picture URL. Filled on read, not saved. */
     @Transient
     private String ownerProfilePictureUrl;
+
+    /**
+     * True if this viewer already claimed a found report
+     * or filed a found report for this lost item.
+     * Filled on read, not saved.
+     */
+    @Transient
+    private Boolean hasUserAlreadyInteracted;
 
 }

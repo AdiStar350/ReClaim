@@ -24,16 +24,15 @@ import com.bumptech.glide.Glide;
 import com.example.reclaim.R;
 import com.example.reclaim.adapter.ItemAdapter;
 import com.example.reclaim.adapter.PreviewItemAdapter;
-import com.example.reclaim.data.AppDataRefresh;
+import com.example.reclaim.data.AppStateEvents;
 import com.example.reclaim.databinding.FragmentHomeBinding;
-import com.example.reclaim.ui.profile.PendingClaimsActivity;
+import com.example.reclaim.ui.profile.PendingClaimsSheet;
 import com.example.reclaim.ui.report.ReportActivity;
 import com.example.reclaim.model.Claim;
 import com.example.reclaim.model.ContactResponse;
 import com.example.reclaim.model.Item;
 import com.example.reclaim.model.PendingClaimResponse;
 import com.example.reclaim.model.User;
-import com.example.reclaim.network.ClaimReviewRequest;
 import com.example.reclaim.network.ReClaimApiService;
 import com.example.reclaim.network.RetrofitClient;
 import com.example.reclaim.network.TokenManager;
@@ -68,24 +67,16 @@ public class HomeFragment extends Fragment {
     private Double userLatitude;
     private Double userLongitude;
     private List<Item> myItems = new ArrayList<>();
+    private List<Item> targetedFoundReports = new ArrayList<>();
     private List<PendingClaimResponse> pendingClaims = new ArrayList<>();
     private List<Claim> unacknowledgedDecisions = new ArrayList<>();
-
-    @Nullable
-    private androidx.appcompat.app.AlertDialog claimReviewDialog;
-    @Nullable
-    private String reviewingClaimId;
-    @Nullable
-    private MaterialTextView reviewItemView;
-    @Nullable
-    private MaterialTextView reviewQuestionView;
-    @Nullable
-    private MaterialTextView reviewAnswerView;
 
     @Nullable
     private androidx.appcompat.app.AlertDialog claimDecisionDialog;
     @Nullable
     private String decidingClaimId;
+    @Nullable
+    private PendingClaimsSheet pendingClaimsSheet;
 
     @Nullable
     @Override
@@ -137,14 +128,14 @@ public class HomeFragment extends Fragment {
         binding.fabAddReport.setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), ReportActivity.class)));
 
-        binding.cardPendingClaims.setOnClickListener(v ->
-                startActivity(new Intent(requireContext(), PendingClaimsActivity.class)));
-
-        binding.cardNewClaim.setOnClickListener(v -> {
-            if (!pendingClaims.isEmpty()) {
-                showClaimReviewDialog(pendingClaims.get(0));
+        binding.cardTargetedFound.setOnClickListener(v -> {
+            if (!targetedFoundReports.isEmpty()) {
+                startActivity(ItemNavigationHelper.createDetailsIntent(
+                        requireContext(), targetedFoundReports.get(0)));
             }
         });
+
+        binding.cardPendingClaims.setOnClickListener(v -> showPendingClaimsSheet());
 
         binding.cardClaimDecision.setOnClickListener(v -> {
             if (!unacknowledgedDecisions.isEmpty()) {
@@ -154,7 +145,7 @@ public class HomeFragment extends Fragment {
 
         fetchLocationIfAllowed();
         observeItems();
-        AppDataRefresh.observeNew(getViewLifecycleOwner(), this::refreshFromServer);
+        AppStateEvents.observeNew(getViewLifecycleOwner(), this::refreshFromServer);
         IncomingClaimEvents.live().observe(getViewLifecycleOwner(), tick -> {
             if (tick != null) {
                 loadPendingClaims();
@@ -179,7 +170,50 @@ public class HomeFragment extends Fragment {
         loadMyItems();
         loadUserGreeting();
         loadPendingClaims();
+        loadTargetedFoundReports();
         loadClaimDecisions();
+    }
+
+    /**
+     * Loads private found reports sent for this user's lost items.
+     */
+    private void loadTargetedFoundReports() {
+        String authHeader = TokenManager.getAuthHeader(requireContext());
+        if (authHeader == null) return;
+
+        apiService.getTargetedFoundReports(authHeader)
+                .enqueue(new Callback<List<Item>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<List<Item>> call,
+                                           @NonNull Response<List<Item>> response) {
+                        if (binding == null || !isAdded()) return;
+                        targetedFoundReports = response.isSuccessful()
+                                && response.body() != null
+                                ? response.body() : new ArrayList<>();
+                        renderTargetedFoundCard();
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<List<Item>> call,
+                                          @NonNull Throwable t) {
+                        if (binding == null || !isAdded()) return;
+                        targetedFoundReports = new ArrayList<>();
+                        renderTargetedFoundCard();
+                    }
+                });
+    }
+
+    private void renderTargetedFoundCard() {
+        if (binding == null) return;
+        boolean hasTargeted = !targetedFoundReports.isEmpty();
+        binding.cardTargetedFound.setVisibility(hasTargeted ? View.VISIBLE : View.GONE);
+        if (hasTargeted) {
+            Item latest = targetedFoundReports.get(0);
+            String title = !TextUtils.isEmpty(latest.getTitle())
+                    ? latest.getTitle() : getString(R.string.item_details_title);
+            binding.textTargetedFoundSubtitle.setText(getString(
+                    R.string.home_targeted_found_subtitle, title));
+        }
     }
 
     /**
@@ -199,7 +233,7 @@ public class HomeFragment extends Fragment {
                 pendingClaims = response.isSuccessful() && response.body() != null
                         ? response.body() : new ArrayList<>();
                 renderClaimCards();
-                syncClaimReviewDialog();
+                syncPendingClaimsSheet();
             }
 
             @Override
@@ -208,8 +242,46 @@ public class HomeFragment extends Fragment {
                 if (binding == null || !isAdded()) return;
                 pendingClaims = new ArrayList<>();
                 renderClaimCards();
+                syncPendingClaimsSheet();
             }
         });
+    }
+
+    private void showPendingClaimsSheet() {
+        if (pendingClaims.isEmpty()) {
+            return;
+        }
+        if (pendingClaimsSheet != null && pendingClaimsSheet.isShowing()) {
+            pendingClaimsSheet.replaceClaims(pendingClaims);
+            return;
+        }
+        pendingClaimsSheet = PendingClaimsSheet.show(this, pendingClaims,
+                new PendingClaimsSheet.Listener() {
+                    @Override
+                    public void onClaimsChanged(@NonNull List<PendingClaimResponse> remaining) {
+                        pendingClaims = new ArrayList<>(remaining);
+                        renderClaimCards();
+                    }
+
+                    @Override
+                    public void onSheetDismissed() {
+                        pendingClaimsSheet = null;
+                        if (binding != null && isAdded()) {
+                            refreshFromServer();
+                        }
+                    }
+                });
+    }
+
+    private void syncPendingClaimsSheet() {
+        if (pendingClaimsSheet == null || !pendingClaimsSheet.isShowing()) {
+            return;
+        }
+        if (pendingClaims.isEmpty()) {
+            pendingClaimsSheet.dismiss();
+            return;
+        }
+        pendingClaimsSheet.replaceClaims(pendingClaims);
     }
 
     /**
@@ -221,17 +293,10 @@ public class HomeFragment extends Fragment {
         int count = pendingClaims.size();
         boolean hasClaims = count > 0;
 
-        binding.cardNewClaim.setVisibility(hasClaims ? View.VISIBLE : View.GONE);
         binding.cardPendingClaims.setVisibility(hasClaims ? View.VISIBLE : View.GONE);
         if (hasClaims) {
             binding.textPendingClaimsCount.setText(getString(
                     R.string.home_pending_claims_subtitle, count));
-            PendingClaimResponse latest = pendingClaims.get(0);
-            if (!TextUtils.isEmpty(latest.getItemTitle())) {
-                binding.textNewClaimSubtitle.setText(latest.getItemTitle());
-            } else {
-                binding.textNewClaimSubtitle.setText(R.string.home_new_claim_subtitle);
-            }
         }
     }
 
@@ -422,109 +487,6 @@ public class HomeFragment extends Fragment {
                 });
     }
 
-    /**
-     * Asks the owner to approve or decline one incoming claim.
-     */
-    private void showClaimReviewDialog(PendingClaimResponse claim) {
-        View dialogView = LayoutInflater.from(requireContext())
-                .inflate(R.layout.dialog_review_incoming_claim, null);
-
-        reviewItemView = dialogView.findViewById(R.id.text_review_item);
-        reviewQuestionView = dialogView.findViewById(R.id.text_review_question);
-        reviewAnswerView = dialogView.findViewById(R.id.text_review_answer);
-        reviewingClaimId = claim.getClaimId();
-        bindClaimReview(claim);
-
-        claimReviewDialog = new MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.claim_review_title)
-                .setView(dialogView)
-                .setPositiveButton(R.string.btn_approve_claim, (d, w) ->
-                        reviewClaim(claim.getClaimId(), "APPROVED"))
-                .setNegativeButton(R.string.btn_decline_claim, (d, w) ->
-                        reviewClaim(claim.getClaimId(), "REJECTED"))
-                .create();
-        claimReviewDialog.setOnDismissListener(d -> {
-            claimReviewDialog = null;
-            reviewingClaimId = null;
-            reviewItemView = null;
-            reviewQuestionView = null;
-            reviewAnswerView = null;
-        });
-        claimReviewDialog.show();
-    }
-
-    private void bindClaimReview(@NonNull PendingClaimResponse claim) {
-        if (reviewItemView == null || reviewQuestionView == null || reviewAnswerView == null) {
-            return;
-        }
-        reviewItemView.setText(!TextUtils.isEmpty(claim.getItemTitle())
-                ? claim.getItemTitle() : getString(R.string.item_details_title));
-        reviewQuestionView.setText(!TextUtils.isEmpty(claim.getVerificationQuestion())
-                ? claim.getVerificationQuestion()
-                : getString(R.string.claim_default_question));
-        reviewAnswerView.setText(!TextUtils.isEmpty(claim.getValidationAnswer())
-                ? claim.getValidationAnswer() : getString(R.string.placeholder_em_dash));
-    }
-
-    private void syncClaimReviewDialog() {
-        if (claimReviewDialog == null || !claimReviewDialog.isShowing()
-                || reviewingClaimId == null) {
-            return;
-        }
-        PendingClaimResponse match = null;
-        for (PendingClaimResponse claim : pendingClaims) {
-            if (reviewingClaimId.equals(claim.getClaimId())) {
-                match = claim;
-                break;
-            }
-        }
-        if (match == null) {
-            claimReviewDialog.dismiss();
-            return;
-        }
-        bindClaimReview(match);
-    }
-
-    /**
-     * Sends the owner's decision. The card is removed right away, then the list is refreshed.
-     */
-    private void reviewClaim(String claimId, String status) {
-        String authHeader = TokenManager.getAuthHeader(requireContext());
-        if (authHeader == null) return;
-
-        List<PendingClaimResponse> snapshot = new ArrayList<>(pendingClaims);
-        pendingClaims.removeIf(c -> claimId.equals(c.getClaimId()));
-        renderClaimCards();
-
-        apiService.reviewClaim(authHeader, claimId, new ClaimReviewRequest(status))
-                .enqueue(new Callback<Claim>() {
-            @Override
-            public void onResponse(@NonNull Call<Claim> call, @NonNull Response<Claim> response) {
-                if (binding == null || !isAdded()) return;
-                Toast.makeText(requireContext(),
-                        response.isSuccessful()
-                                ? R.string.msg_claim_reviewed
-                                : R.string.msg_claim_review_failed,
-                        Toast.LENGTH_SHORT).show();
-                if (response.isSuccessful()) {
-                    loadPendingClaims();
-                } else {
-                    pendingClaims = snapshot;
-                    renderClaimCards();
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<Claim> call, @NonNull Throwable t) {
-                if (binding == null || !isAdded()) return;
-                pendingClaims = snapshot;
-                renderClaimCards();
-                Toast.makeText(requireContext(),
-                        R.string.msg_claim_review_failed, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
     private void loadUserGreeting() {
         String authHeader = TokenManager.getAuthHeader(requireContext());
         if (authHeader == null) return;
@@ -683,11 +645,12 @@ public class HomeFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
-        if (claimReviewDialog != null) {
-            claimReviewDialog.dismiss();
-        }
         if (claimDecisionDialog != null) {
             claimDecisionDialog.dismiss();
+        }
+        if (pendingClaimsSheet != null) {
+            pendingClaimsSheet.dismissQuietly();
+            pendingClaimsSheet = null;
         }
         super.onDestroyView();
         binding = null;

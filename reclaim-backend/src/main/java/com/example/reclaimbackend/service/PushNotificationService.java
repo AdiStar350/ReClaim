@@ -28,6 +28,9 @@ public class PushNotificationService {
     /** A new item that may match one of the user's reports. */
     public static final String TYPE_ITEM_MATCH = "ITEM_MATCH";
 
+    /** Someone filed a private found report for this user's lost item. */
+    public static final String TYPE_TARGETED_FOUND = "TARGETED_FOUND";
+
     /** Someone claimed the user's item and needs a review. */
     public static final String TYPE_CLAIM_PENDING = "CLAIM_PENDING";
 
@@ -63,6 +66,35 @@ public class PushNotificationService {
         data.put("itemVerificationQuestion", safe(newItem.getVerificationQuestion()));
 
         send(recipient, data);
+    }
+
+    /**
+     * Tells the lost-item owner that someone says they found it.
+     */
+    public void notifyTargetedFound(User lostOwner, Item lostItem, Item foundItem) {
+        String foundTitle = foundItem != null ? foundItem.getTitle() : "";
+        String lostTitle = lostItem != null ? lostItem.getTitle() : "";
+        String title = "Someone found your item";
+        String body = "A found \"" + foundTitle + "\" was sent for your lost \""
+                + lostTitle + "\". Tap to review it.";
+
+        Map<String, String> data = new HashMap<>();
+        data.put("type", TYPE_TARGETED_FOUND);
+        data.put("title", title);
+        data.put("body", body);
+        data.put("itemId", safe(foundItem != null ? foundItem.getId() : null));
+        data.put("itemTitle", safe(foundTitle));
+        data.put("itemDescription", safe(foundItem != null ? foundItem.getDescription() : null));
+        data.put("itemLocation", safe(foundItem != null ? foundItem.getLocation() : null));
+        data.put("itemStatus", safe(foundItem != null ? foundItem.getStatus() : null));
+        data.put("itemCategory", safe(foundItem != null ? foundItem.getCategory() : null));
+        data.put("itemType", safe(foundItem != null ? foundItem.getType() : null));
+        data.put("itemImageUrl", safe(foundItem != null ? foundItem.getImageUrl() : null));
+        data.put("itemVerificationQuestion",
+                safe(foundItem != null ? foundItem.getVerificationQuestion() : null));
+        data.put("itemOwnerId", safe(foundItem != null ? foundItem.getOwnerId() : null));
+
+        send(lostOwner, data);
     }
 
     /**

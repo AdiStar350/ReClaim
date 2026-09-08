@@ -107,6 +107,12 @@ public interface ReClaimApiService {
     Call<List<Item>> getMyItems(@Header("Authorization") String authHeader);
 
     /**
+     * Private found reports aimed at this user's lost items.
+     */
+    @GET("api/items/targeted-for-me")
+    Call<List<Item>> getTargetedFoundReports(@Header("Authorization") String authHeader);
+
+    /**
      * Items in one category.
      */
     @GET("api/items/category/{category}")

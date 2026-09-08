@@ -176,9 +176,9 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- New claim waiting. Tap to approve or decline. -->
+            <!-- Private found report aimed at this user's lost item. -->
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_new_claim"
+                android:id="@+id/card_targeted_found"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/screen_padding_horizontal"
@@ -227,17 +227,17 @@
                         <com.google.android.material.textview.MaterialTextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="@string/home_new_claim_title"
+                            android:text="@string/home_targeted_found_title"
                             android:textAppearance="?attr/textAppearanceTitleMedium"
                             android:textColor="@color/text_on_accent"
                             android:textStyle="bold" />
 
                         <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/text_new_claim_subtitle"
+                            android:id="@+id/text_targeted_found_subtitle"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="@dimen/space_2"
-                            android:text="@string/home_new_claim_subtitle"
+                            android:text="@string/home_targeted_found_title"
                             android:textAppearance="?attr/textAppearanceBodySmall"
                             android:textColor="@color/text_on_accent" />
                     </LinearLayout>

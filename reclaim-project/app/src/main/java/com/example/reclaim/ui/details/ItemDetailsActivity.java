@@ -1,11 +1,14 @@
 package com.example.reclaim.ui.details;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -13,7 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.example.reclaim.R;
-import com.example.reclaim.data.AppDataRefresh;
+import com.example.reclaim.data.AppStateEvents;
 import com.example.reclaim.databinding.ActivityItemDetailsBinding;
 import com.example.reclaim.model.Claim;
 import com.example.reclaim.model.ContactResponse;
@@ -23,6 +26,7 @@ import com.example.reclaim.network.ReClaimApiService;
 import com.example.reclaim.network.RetrofitClient;
 import com.example.reclaim.network.TokenManager;
 import com.example.reclaim.ui.profile.ContactInfoDialog;
+import com.example.reclaim.ui.report.ReportActivity;
 import com.example.reclaim.util.ConnectionToasts;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
@@ -56,6 +60,7 @@ public class ItemDetailsActivity extends AppCompatActivity {
     public static final String EXTRA_ITEM_REPORTED_AT = "ITEM_REPORTED_AT";
     public static final String EXTRA_ITEM_OWNER_NAME = "ITEM_OWNER_NAME";
     public static final String EXTRA_ITEM_OWNER_PROFILE_URL = "ITEM_OWNER_PROFILE_URL";
+    public static final String EXTRA_HAS_USER_ALREADY_INTERACTED = "HAS_USER_ALREADY_INTERACTED";
 
     private ActivityItemDetailsBinding binding;
     private ReClaimApiService apiService;
@@ -68,6 +73,15 @@ public class ItemDetailsActivity extends AppCompatActivity {
     private String ownerId;
     private String itemType;
     private boolean claimSubmitting;
+    private boolean hasUserAlreadyInteracted;
+
+    private final ActivityResultLauncher<Intent> foundReportLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        if (result.getResultCode() == RESULT_OK) {
+                            markInteractedLocally();
+                        }
+                    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,7 +95,7 @@ public class ItemDetailsActivity extends AppCompatActivity {
         setupToolbar();
         populateFromIntent();
         setupBottomAction();
-        AppDataRefresh.observeNew(this, this::refreshFromServer);
+        AppStateEvents.observeNew(this, this::refreshFromServer);
     }
 
     @Override
@@ -111,6 +125,9 @@ public class ItemDetailsActivity extends AppCompatActivity {
         verificationQuestion = getIntent().getStringExtra(EXTRA_ITEM_VERIFICATION_QUESTION);
         ownerId = getIntent().getStringExtra(EXTRA_ITEM_OWNER_ID);
         itemType = getIntent().getStringExtra(EXTRA_ITEM_TYPE);
+        hasUserAlreadyInteracted = getIntent().getBooleanExtra(
+                EXTRA_HAS_USER_ALREADY_INTERACTED, false)
+                || AppStateEvents.wasItemInteracted(itemId);
 
         bindFields(
                 getIntent().getStringExtra(EXTRA_ITEM_TITLE),
@@ -157,6 +174,8 @@ public class ItemDetailsActivity extends AppCompatActivity {
         verificationQuestion = item.getVerificationQuestion();
         ownerId = item.getOwnerId();
         itemType = item.getType();
+        hasUserAlreadyInteracted = item.hasUserAlreadyInteracted()
+                || AppStateEvents.wasItemInteracted(itemId);
         bindFields(
                 item.getTitle(),
                 item.getDescription(),
@@ -257,7 +276,8 @@ public class ItemDetailsActivity extends AppCompatActivity {
     }
 
     /**
-     * Lost reports show the reporter's contact. Found reports show a claim button, hidden if you own it.
+     * Lost reports let a finder file a found report.
+     * Found reports show a claim button. Hidden if you own the report.
      */
     private void setupBottomAction() {
         if (claimSubmitting) {
@@ -268,13 +288,57 @@ public class ItemDetailsActivity extends AppCompatActivity {
             return;
         }
         binding.bottomClaimContainer.setVisibility(View.VISIBLE);
+        if (hasUserAlreadyInteracted) {
+            showInteractedButton();
+            return;
+        }
+        binding.btnClaim.setEnabled(true);
+        binding.btnClaim.setAlpha(1f);
         if ("LOST".equalsIgnoreCase(itemType)) {
-            binding.btnClaim.setText(R.string.btn_show_contact_info);
-            binding.btnClaim.setOnClickListener(v -> loadReporterContact());
+            binding.btnClaim.setText(R.string.btn_i_found_this);
+            binding.btnClaim.setOnClickListener(v -> openFoundReportForLostItem());
             return;
         }
         binding.btnClaim.setText(R.string.btn_claim);
         binding.btnClaim.setOnClickListener(v -> showClaimDialog());
+    }
+
+    /**
+     * Keeps the button visible but not tappable.
+     */
+    private void showInteractedButton() {
+        boolean lost = "LOST".equalsIgnoreCase(itemType);
+        binding.btnClaim.setText(lost
+                ? R.string.btn_report_submitted
+                : R.string.btn_claim_pending);
+        binding.btnClaim.setEnabled(false);
+        binding.btnClaim.setAlpha(0.5f);
+        binding.btnClaim.setOnClickListener(null);
+    }
+
+    /**
+     * Updates the button right away, without waiting for a reload.
+     */
+    private void markInteractedLocally() {
+        hasUserAlreadyInteracted = true;
+        if (!TextUtils.isEmpty(itemId)) {
+            AppStateEvents.markItemInteracted(itemId);
+        }
+        setupBottomAction();
+    }
+
+    /**
+     * Opens a found-report form locked to this lost item.
+     */
+    private void openFoundReportForLostItem() {
+        if (TextUtils.isEmpty(itemId)) {
+            Toast.makeText(this, R.string.msg_item_id_missing, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent intent = new Intent(this, ReportActivity.class);
+        intent.putExtra(ReportActivity.EXTRA_LOCK_FOUND_TYPE, true);
+        intent.putExtra(ReportActivity.EXTRA_TARGET_LOST_REPORT_ID, itemId);
+        foundReportLauncher.launch(intent);
     }
 
     private void loadReporterContact() {
@@ -408,14 +472,14 @@ public class ItemDetailsActivity extends AppCompatActivity {
         apiService.submitClaim(authHeader, request).enqueue(new Callback<Claim>() {
             @Override
             public void onResponse(Call<Claim> call, Response<Claim> response) {
-                setClaimButtonLoading(false);
-
                 if (response.isSuccessful() && response.body() != null) {
                     Toast.makeText(ItemDetailsActivity.this,
                             R.string.msg_claim_submitted,
                             Toast.LENGTH_LONG).show();
-                    finish();
+                    claimSubmitting = false;
+                    markInteractedLocally();
                 } else {
+                    setClaimButtonLoading(false);
                     handleClaimError(response.code());
                 }
             }

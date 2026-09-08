@@ -22,6 +22,7 @@ import androidx.core.content.FileProvider;
 
 import com.bumptech.glide.Glide;
 import com.example.reclaim.R;
+import com.example.reclaim.data.AppStateEvents;
 import com.example.reclaim.data.PendingReportStore;
 import com.example.reclaim.databinding.ActivityReportBinding;
 import com.example.reclaim.model.Item;
@@ -69,6 +70,8 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     private static final String TAG = "ReportActivity";
 
     public static final String EXTRA_ITEM_ID = "extra_item_id";
+    public static final String EXTRA_LOCK_FOUND_TYPE = "extra_lock_found_type";
+    public static final String EXTRA_TARGET_LOST_REPORT_ID = "extra_target_lost_report_id";
 
     /** How far the map is zoomed. */
     private static final float DEFAULT_ZOOM = 15f;
@@ -100,6 +103,9 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     private String editingItemId;
     @androidx.annotation.Nullable
     private String existingImageUrl;
+    @androidx.annotation.Nullable
+    private String targetLostReportId;
+    private boolean lockFoundType;
 
     // ---
     //  Photo, gallery, and permission results
@@ -184,6 +190,10 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
         setupSubmitButton();
 
         editingItemId = getIntent().getStringExtra(EXTRA_ITEM_ID);
+        targetLostReportId = getIntent().getStringExtra(EXTRA_TARGET_LOST_REPORT_ID);
+        lockFoundType = getIntent().getBooleanExtra(EXTRA_LOCK_FOUND_TYPE, false)
+                || !TextUtils.isEmpty(targetLostReportId);
+        applyFoundTypeLock();
 
         if (editingItemId != null) {
             if (getSupportActionBar() != null) {
@@ -419,14 +429,22 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
     private void setupPlacesAutocomplete() {
         String apiKey = readMapsApiKey();
         if (apiKey == null || apiKey.isEmpty()) {
+            Log.e(TAG, "Places key is missing. Autocomplete will not run.");
             return;
         }
 
-        if (!Places.isInitialized()) {
-            Places.initialize(getApplicationContext(), apiKey);
+        try {
+            if (!Places.isInitialized()) {
+                Places.initialize(getApplicationContext(), apiKey);
+                Log.d(TAG, "Places.initialize() completed before autocomplete requests.");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Places.initialize() failed", e);
+            return;
         }
         placesClient = Places.createClient(this);
         placesAdapter = new PlacesAutocompleteAdapter(this, placesClient);
+        placesAdapter.bindField(binding.editLocation);
         binding.editLocation.setAdapter(placesAdapter);
 
         binding.editLocation.setOnItemClickListener((parent, view, position, id) -> {
@@ -638,7 +656,27 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
      */
     private void setupReportTypeChips() {
         binding.chipGroupReportType.setOnCheckedStateChangeListener(
-                (group, checkedIds) -> updateVerificationVisibility());
+                (group, checkedIds) -> {
+                    if (lockFoundType && !binding.chipTypeFound.isChecked()) {
+                        binding.chipTypeFound.setChecked(true);
+                    }
+                    updateVerificationVisibility();
+                });
+        updateVerificationVisibility();
+    }
+
+    /**
+     * "I found this" can only create a found report.
+     */
+    private void applyFoundTypeLock() {
+        if (!lockFoundType) {
+            return;
+        }
+        binding.chipTypeFound.setChecked(true);
+        binding.chipTypeLost.setEnabled(false);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle(R.string.report_found_for_lost_title);
+        }
         updateVerificationVisibility();
     }
 
@@ -892,6 +930,9 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
             item.setLatitude(selectedLatLng.latitude);
             item.setLongitude(selectedLatLng.longitude);
         }
+        if (!TextUtils.isEmpty(targetLostReportId)) {
+            item.setTargetLostReportId(targetLostReportId);
+        }
         return item;
     }
 
@@ -923,9 +964,20 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
      */
     private void finishAfterOfflineSave() {
         setSubmitting(false);
+        notifyTargetedFoundSubmitted();
         Toast.makeText(getApplicationContext(),
                 R.string.msg_report_saved, Toast.LENGTH_LONG).show();
         finishAffinity();
+    }
+
+    /**
+     * Tells details and the dashboard this lost item already has a found report.
+     */
+    private void notifyTargetedFoundSubmitted() {
+        if (editingItemId == null && !TextUtils.isEmpty(targetLostReportId)) {
+            AppStateEvents.markItemInteracted(targetLostReportId);
+            setResult(RESULT_OK);
+        }
     }
 
     private void submitItemToBackend(String authHeader, Item item, String imageUrl) {
@@ -942,6 +994,7 @@ public class ReportActivity extends AppCompatActivity implements OnMapReadyCallb
                             ? R.string.msg_report_updated
                             : R.string.msg_report_submitted;
                     Toast.makeText(ReportActivity.this, message, Toast.LENGTH_SHORT).show();
+                    notifyTargetedFoundSubmitted();
                     finish();
                 } else {
                     if (editingItemId == null

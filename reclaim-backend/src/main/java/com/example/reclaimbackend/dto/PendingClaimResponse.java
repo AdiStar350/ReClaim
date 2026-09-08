@@ -19,7 +19,9 @@ public class PendingClaimResponse {
     private String claimId;
     private String itemId;
     private String itemTitle;
+    private String itemImageUrl;
     private String claimantId;
+    private String claimantName;
     private String validationAnswer;
     private String status;
 

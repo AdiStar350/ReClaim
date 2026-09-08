@@ -31,6 +31,8 @@ public final class ItemNavigationHelper {
         intent.putExtra(ItemDetailsActivity.EXTRA_ITEM_OWNER_NAME, item.getOwnerName());
         intent.putExtra(ItemDetailsActivity.EXTRA_ITEM_OWNER_PROFILE_URL,
                 item.getOwnerProfilePictureUrl());
+        intent.putExtra(ItemDetailsActivity.EXTRA_HAS_USER_ALREADY_INTERACTED,
+                item.hasUserAlreadyInteracted());
         return intent;
     }
 }

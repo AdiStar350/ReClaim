@@ -22,6 +22,8 @@ public class PendingReportEntity {
     public String type;
     public String verificationQuestion;
     @Nullable
+    public String targetLostReportId;
+    @Nullable
     public Double latitude;
     @Nullable
     public Double longitude;
@@ -48,6 +50,7 @@ public class PendingReportEntity {
         item.setLatitude(latitude);
         item.setLongitude(longitude);
         item.setImageUrl(remoteImageUrl);
+        item.setTargetLostReportId(targetLostReportId);
         return item;
     }
 }

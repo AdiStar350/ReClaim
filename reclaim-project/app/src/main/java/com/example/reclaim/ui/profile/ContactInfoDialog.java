@@ -34,7 +34,7 @@ public final class ContactInfoDialog {
     }
 
     public static void show(@NonNull Context context, @Nullable ContactResponse contact) {
-        show(context, contact, null, null);
+        show(context, contact, null, null, R.string.contact_info_title);
     }
 
     /**
@@ -44,12 +44,20 @@ public final class ContactInfoDialog {
                             @Nullable ContactResponse contact,
                             @Nullable LifecycleOwner owner,
                             @Nullable ContactReloader reloader) {
+        show(context, contact, owner, reloader, R.string.contact_info_title);
+    }
+
+    public static void show(@NonNull Context context,
+                            @Nullable ContactResponse contact,
+                            @Nullable LifecycleOwner owner,
+                            @Nullable ContactReloader reloader,
+                            int titleRes) {
         DialogContactInfoBinding binding = DialogContactInfoBinding.inflate(
                 LayoutInflater.from(context));
         bindContact(context, binding, contact);
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(context)
-                .setTitle(R.string.contact_info_title)
+                .setTitle(titleRes)
                 .setView(binding.getRoot())
                 .setPositiveButton(android.R.string.ok, null)
                 .create();
