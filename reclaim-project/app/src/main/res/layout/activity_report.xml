@@ -22,7 +22,7 @@
             app:navigationIconTint="@color/brand_cream"
             app:title="@string/report_title"
             app:titleTextColor="@color/brand_cream"
-            android:paddingTop="@dimen/screen_padding_top"/>
+            android:paddingTop="@dimen/space_60" />
 
         <LinearLayout
             android:layout_width="match_parent"
