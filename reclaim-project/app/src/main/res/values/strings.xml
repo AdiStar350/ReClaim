@@ -66,7 +66,9 @@
     <string name="nav_search">Search</string>
     <string name="nav_my_items">My Items</string>
     <string name="nav_profile">Profile</string>
+    <string name="nav_report_placeholder"> </string>
     <string name="btn_report_fab">Report a Find</string>
+    <string name="cd_create_report">Create report</string>
     <string name="btn_new_report">New Report</string>
     <string name="btn_show_more">Show more</string>
     <string name="btn_edit">Edit</string>

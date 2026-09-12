@@ -12,9 +12,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
@@ -98,5 +100,50 @@ class ItemServiceTest {
 
         assertTrue(result.isPresent());
         assertFalse(Boolean.TRUE.equals(result.get().getHasUserAlreadyInteracted()));
+    }
+
+    @Test
+    void findMatchesForLostItem_ignoresClosedLostReports() {
+        Item lost = new Item();
+        lost.setId("lost-1");
+        lost.setType("Lost");
+        lost.setStatus("CLOSED");
+        lost.setOwnerId("owner-1");
+        lost.setCategory("Pets");
+
+        when(itemRepository.findById("lost-1")).thenReturn(Optional.of(lost));
+
+        assertTrue(itemService.findMatchesForLostItem("lost-1", "owner-1").isEmpty());
+    }
+
+    @Test
+    void findMatchesForLostItem_keepsOpenFoundInSameCategoryOnOrAfterLostDate() {
+        Instant lostAt = Instant.parse("2026-04-01T10:00:00Z");
+        Item lost = new Item();
+        lost.setId("lost-1");
+        lost.setType("Lost");
+        lost.setStatus("OPEN");
+        lost.setOwnerId("owner-1");
+        lost.setCategory("Pets");
+        lost.setReportedAt(lostAt);
+
+        Item match = new Item();
+        match.setId("found-1");
+        match.setType("Found");
+        match.setStatus("OPEN");
+        match.setOwnerId("finder-1");
+        match.setCategory("Pets");
+        match.setReportedAt(Instant.parse("2026-04-02T10:00:00Z"));
+
+        when(itemRepository.findById("lost-1")).thenReturn(Optional.of(lost));
+        when(itemRepository
+                .findByTypeIgnoreCaseAndStatusIgnoreCaseAndCategoryAndReportedAtGreaterThanEqual(
+                        "Found", "OPEN", "Pets", lostAt))
+                .thenReturn(List.of(match));
+
+        List<Item> matches = itemService.findMatchesForLostItem("lost-1", "owner-1");
+
+        assertEquals(1, matches.size());
+        assertEquals("found-1", matches.get(0).getId());
     }
 }

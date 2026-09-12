@@ -27,7 +27,6 @@ import com.example.reclaim.adapter.PreviewItemAdapter;
 import com.example.reclaim.data.AppStateEvents;
 import com.example.reclaim.databinding.FragmentHomeBinding;
 import com.example.reclaim.ui.profile.PendingClaimsSheet;
-import com.example.reclaim.ui.report.ReportActivity;
 import com.example.reclaim.model.Claim;
 import com.example.reclaim.model.ContactResponse;
 import com.example.reclaim.model.Item;
@@ -124,9 +123,6 @@ public class HomeFragment extends Fragment {
             if (requireActivity() instanceof DashboardNavigator navigator)
                 navigator.selectTab(R.id.nav_search);
         });
-
-        binding.fabAddReport.setOnClickListener(v ->
-                startActivity(new Intent(requireContext(), ReportActivity.class)));
 
         binding.cardTargetedFound.setOnClickListener(v -> {
             if (!targetedFoundReports.isEmpty()) {
@@ -600,8 +596,12 @@ public class HomeFragment extends Fragment {
         binding.layoutMatches.removeAllViews();
         List<Item> lostItems = new ArrayList<>();
 
-        for (Item item : myItems)
-            if ("LOST".equalsIgnoreCase(item.getType())) lostItems.add(item);
+        for (Item item : myItems) {
+            if ("LOST".equalsIgnoreCase(item.getType())
+                    && "OPEN".equalsIgnoreCase(item.getStatus())) {
+                lostItems.add(item);
+            }
+        }
 
         String userId = TokenManager.getUserId(requireContext());
 

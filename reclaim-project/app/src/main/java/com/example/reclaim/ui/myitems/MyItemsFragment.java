@@ -81,11 +81,6 @@ public class MyItemsFragment extends Fragment implements MyReportAdapter.Listene
             }
         });
 
-        binding.fabAddReport.setOnClickListener(v -> {
-            Intent intent = new Intent(requireContext(), ReportActivity.class);
-            startActivity(intent);
-        });
-
         AppDataRefresh.observeNew(getViewLifecycleOwner(), this::loadMyItems);
     }
 

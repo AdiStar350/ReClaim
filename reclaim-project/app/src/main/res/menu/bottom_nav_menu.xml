@@ -11,6 +11,14 @@
         android:icon="@drawable/ic_nav_search"
         android:title="@string/nav_search" />
 
+    <!-- Empty slot so the report FAB can sit in the middle. -->
+    <item
+        android:id="@+id/nav_report_placeholder"
+        android:checkable="false"
+        android:enabled="false"
+        android:icon="@drawable/ic_nav_placeholder"
+        android:title="@string/nav_report_placeholder" />
+
     <item
         android:id="@+id/nav_my_items"
         android:icon="@drawable/ic_nav_my_items"

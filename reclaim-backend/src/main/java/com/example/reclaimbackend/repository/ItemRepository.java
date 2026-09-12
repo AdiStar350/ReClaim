@@ -4,6 +4,7 @@ import com.example.reclaimbackend.model.Item;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -53,4 +54,22 @@ public interface ItemRepository extends MongoRepository<Item, String> {
      * Found reports one user filed for a specific lost report.
      */
     List<Item> findByOwnerIdAndTargetLostReportId(String ownerId, String targetLostReportId);
+
+    /**
+     * One user's reports of a given type and status.
+     */
+    List<Item> findByOwnerIdAndTypeIgnoreCaseAndStatusIgnoreCase(
+            String ownerId, String type, String status);
+
+    /**
+     * Open found reports in one category, reported at or after a lost date.
+     */
+    List<Item> findByTypeIgnoreCaseAndStatusIgnoreCaseAndCategoryAndReportedAtGreaterThanEqual(
+            String type, String status, String category, Instant reportedAt);
+
+    /**
+     * Open found reports in one category when the lost date is missing.
+     */
+    List<Item> findByTypeIgnoreCaseAndStatusIgnoreCaseAndCategory(
+            String type, String status, String category);
 }

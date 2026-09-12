@@ -28,4 +28,20 @@
         app:paddingBottomSystemWindowInsets="false"
         app:paddingTopSystemWindowInsets="false" />
 
+    <!-- Sits in the empty middle slot of the bottom bar. -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_add_report"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="@dimen/space_40"
+        android:contentDescription="@string/cd_create_report"
+        app:backgroundTint="@color/brand_accent"
+        app:borderWidth="0dp"
+        app:elevation="@dimen/space_16"
+        app:fabCustomSize="@dimen/space_64"
+        app:maxImageSize="@dimen/space_28"
+        app:srcCompat="@drawable/ic_add_24"
+        app:tint="@color/text_on_accent" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

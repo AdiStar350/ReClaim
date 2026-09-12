@@ -466,17 +466,4 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- FAB, bottom-end -->
-    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-        android:id="@+id/fab_add_report"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginBottom="@dimen/space_40"
-        android:layout_marginEnd="@dimen/space_20"
-        android:textColor="@color/text_on_accent"
-        app:backgroundTint="@color/brand_accent"
-        app:icon="@android:drawable/ic_input_add"
-        app:iconTint="@color/text_on_accent" />
-
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

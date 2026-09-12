@@ -82,10 +82,8 @@ public class ItemService {
      */
     public List<Item> getTargetedFoundReportsForLostOwner(String lostOwnerId) {
         List<String> lostIds = new ArrayList<>();
-        for (Item owned : itemRepository.findByOwnerId(lostOwnerId)) {
-            if ("LOST".equalsIgnoreCase(owned.getType())
-                    && "OPEN".equalsIgnoreCase(owned.getStatus())
-                    && owned.getId() != null) {
+        for (Item owned : getOpenLostItemsByOwner(lostOwnerId)) {
+            if (owned.getId() != null) {
                 lostIds.add(owned.getId());
             }
         }
@@ -125,6 +123,14 @@ public class ItemService {
                 .email(owner.getEmail())
                 .phoneNumber(owner.getPhoneNumber())
                 .build();
+    }
+
+    /**
+     * Open lost reports for this user. Closed ones are left out of matching.
+     */
+    public List<Item> getOpenLostItemsByOwner(String ownerId) {
+        return itemRepository.findByOwnerIdAndTypeIgnoreCaseAndStatusIgnoreCase(
+                ownerId, "Lost", "OPEN");
     }
 
     /**
@@ -360,21 +366,25 @@ public class ItemService {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN, "Not allowed to view matches for this item");
         }
-        if (!"LOST".equalsIgnoreCase(lostItem.getType())) {
+        if (!"LOST".equalsIgnoreCase(lostItem.getType())
+                || !"OPEN".equalsIgnoreCase(lostItem.getStatus())) {
             return List.of();
         }
 
         String category = lostItem.getCategory();
-        List<Item> candidates = itemRepository.findByCategory(category);
-        List<Item> matches = new ArrayList<>();
+        if (!StringUtils.hasText(category)) {
+            return List.of();
+        }
 
+        List<Item> candidates = lostItem.getReportedAt() != null
+                ? itemRepository
+                .findByTypeIgnoreCaseAndStatusIgnoreCaseAndCategoryAndReportedAtGreaterThanEqual(
+                        "Found", "OPEN", category, lostItem.getReportedAt())
+                : itemRepository.findByTypeIgnoreCaseAndStatusIgnoreCaseAndCategory(
+                        "Found", "OPEN", category);
+
+        List<Item> matches = new ArrayList<>();
         for (Item candidate : candidates) {
-            if (!"FOUND".equalsIgnoreCase(candidate.getType())) {
-                continue;
-            }
-            if (!"OPEN".equalsIgnoreCase(candidate.getStatus())) {
-                continue;
-            }
             if (userId.equals(candidate.getOwnerId())) {
                 continue;
             }

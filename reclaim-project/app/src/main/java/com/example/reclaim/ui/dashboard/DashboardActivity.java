@@ -23,6 +23,7 @@ import com.example.reclaim.databinding.ActivityDashboardBinding;
 import com.example.reclaim.notifications.FcmTokenRegistrar;
 import com.example.reclaim.sync.OfflineProtocol;
 import com.example.reclaim.ui.myitems.MyItemsFragment;
+import com.example.reclaim.ui.report.ReportActivity;
 import com.example.reclaim.ui.profile.ProfileSettingsFragment;
 import com.example.reclaim.ui.search.SearchFragment;
 
@@ -57,7 +58,13 @@ public class DashboardActivity extends AppCompatActivity implements DashboardNav
         requestNotificationPermissionIfNeeded();
         FcmTokenRegistrar.register(this);
 
+        binding.fabAddReport.setOnClickListener(v ->
+                startActivity(new Intent(this, ReportActivity.class)));
+
         binding.bottomNavigation.setOnItemSelectedListener(item -> {
+            if (item.getItemId() == R.id.nav_report_placeholder) {
+                return false;
+            }
             showTab(item.getItemId());
             return true;
         });
@@ -109,6 +116,13 @@ public class DashboardActivity extends AppCompatActivity implements DashboardNav
             params.bottomMargin = baseNavHeight + systemBars.bottom;
             binding.fragmentContainer.setLayoutParams(params);
 
+            // Keep the report button over the middle of the nav bar.
+            ViewGroup.MarginLayoutParams fabParams =
+                    (ViewGroup.MarginLayoutParams) binding.fabAddReport.getLayoutParams();
+            fabParams.bottomMargin = getResources()
+                    .getDimensionPixelSize(R.dimen.space_40) + systemBars.bottom;
+            binding.fabAddReport.setLayoutParams(fabParams);
+
             return WindowInsetsCompat.CONSUMED;
         });
     }
@@ -130,6 +144,9 @@ public class DashboardActivity extends AppCompatActivity implements DashboardNav
     }
 
     private void showTab(@IdRes int itemId) {
+        if (itemId == R.id.nav_report_placeholder) {
+            return;
+        }
         if (itemId == R.id.nav_search) {
             showFragment(TAG_SEARCH, SearchFragment::new);
         } else if (itemId == R.id.nav_my_items) {

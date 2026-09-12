@@ -2,6 +2,7 @@ package com.example.reclaim.ui.dashboard;
 
 import com.example.reclaim.model.Item;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -23,7 +24,8 @@ public final class ItemMatchHelper {
         List<MatchGroup> groups = new ArrayList<>();
 
         for (Item lostItem : myLostItems) {
-            if (!"LOST".equalsIgnoreCase(lostItem.getType())) {
+            if (!"LOST".equalsIgnoreCase(lostItem.getType())
+                    || !"OPEN".equalsIgnoreCase(lostItem.getStatus())) {
                 continue;
             }
             List<Item> matches = findMatches(allItems, lostItem, userId);
@@ -48,8 +50,10 @@ public final class ItemMatchHelper {
             if (userId != null && userId.equals(candidate.getOwnerId())) {
                 continue;
             }
-            if (category != null && candidate.getCategory() != null
-                    && !category.equalsIgnoreCase(candidate.getCategory())) {
+            if (category == null || !category.equals(candidate.getCategory())) {
+                continue;
+            }
+            if (!foundOnOrAfterLost(lostItem, candidate)) {
                 continue;
             }
             matches.add(candidate);
@@ -76,6 +80,29 @@ public final class ItemMatchHelper {
             return copy.subList(0, limit);
         }
         return copy;
+    }
+
+    /**
+     * Found date should be the same day as the lost date, or later.
+     */
+    private static boolean foundOnOrAfterLost(Item lostItem, Item foundItem) {
+        Instant lostAt = parseReportedAt(lostItem.getReportedAt());
+        Instant foundAt = parseReportedAt(foundItem.getReportedAt());
+        if (lostAt == null) {
+            return true;
+        }
+        return foundAt != null && !foundAt.isBefore(lostAt);
+    }
+
+    private static Instant parseReportedAt(String reportedAt) {
+        if (reportedAt == null || reportedAt.isEmpty()) {
+            return null;
+        }
+        try {
+            return Instant.parse(reportedAt);
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private static int titleOverlapScore(String lostTitle, String foundTitle) {

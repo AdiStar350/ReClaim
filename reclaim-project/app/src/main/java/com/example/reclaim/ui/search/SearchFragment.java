@@ -26,7 +26,6 @@ import android.content.Intent;
 
 import com.example.reclaim.R;
 import com.example.reclaim.adapter.ItemAdapter;
-import com.example.reclaim.ui.report.ReportActivity;
 import com.example.reclaim.data.AppDataRefresh;
 import com.example.reclaim.databinding.FragmentSearchBinding;
 import com.example.reclaim.model.Item;
@@ -117,9 +116,6 @@ public class SearchFragment extends Fragment implements OnMapReadyCallback {
 
         binding.swipeRefresh.setColorSchemeResources(R.color.brand_accent, R.color.brand_slate);
         binding.swipeRefresh.setOnRefreshListener(() -> viewModel.loadItems());
-
-        binding.fabAddReport.setOnClickListener(v ->
-                startActivity(new Intent(requireContext(), ReportActivity.class)));
 
         binding.editSearch.addTextChangedListener(new TextWatcher() {
             @Override
