@@ -182,10 +182,12 @@ public class ProfileSettingsFragment extends Fragment {
                             intent.putExtra(VerifyOtpActivity.EXTRA_MODE,
                                     VerifyOtpActivity.MODE_RESET);
                             startActivity(intent);
-                        } else {
-                            Toast.makeText(requireContext(),
-                                    R.string.error_generic, Toast.LENGTH_SHORT).show();
+                            return;
                         }
+                        int message = (response.code() == 404 || response.code() == 400)
+                                ? R.string.msg_no_account_for_email
+                                : R.string.error_generic;
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
                     }
 
                     @Override

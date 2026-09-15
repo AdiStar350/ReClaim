@@ -45,13 +45,15 @@
     <string name="forgot_password_dialog_message">Enter the email address for your account. We\'ll send a verification code.</string>
     <string name="btn_send_reset_code">Send code</string>
     <string name="msg_email_required_reset">Please enter a valid email address</string>
-    <string name="msg_reset_code_sent">If the email exists, a reset code has been sent</string>
+    <string name="msg_no_account_for_email">No account found with this email</string>
+    <string name="msg_reset_code_sent">Verification code sent</string>
     <string name="reset_password_title">Create new password</string>
     <string name="reset_password_subtitle">Choose a new password for your account.</string>
     <string name="hint_new_password">New Password</string>
     <string name="hint_confirm_new_password">Confirm New Password</string>
     <string name="btn_update_password">Update Password</string>
-    <string name="msg_password_updated">Password updated! Please sign in.</string>
+    <string name="msg_password_updated">Password updated</string>
+    <string name="msg_reset_sign_in_failed">Password updated. Please sign in.</string>
     <string name="msg_reset_invalid">Invalid or expired reset code</string>
 
     <!-- Dashboard -->

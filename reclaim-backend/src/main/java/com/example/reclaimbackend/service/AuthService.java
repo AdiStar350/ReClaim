@@ -252,16 +252,14 @@ public class AuthService {
     // ---
 
     /**
-     * Emails a 6-digit reset code if the account exists.
-     * Always looks like it worked, so unused emails stay hidden.
-     *
-     * @param email the account email
+     * Emails a reset code. Stops with 404 if the email is unknown.
      */
     public void startPasswordReset(String email) {
         Optional<User> user = userRepository.findByEmail(email);
         if (user.isEmpty()) {
-            log.info("Password reset requested for unknown email — {} (ignored)", email);
-            return;
+            log.info("Password reset requested for unknown email — {}", email);
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "No account found with this email");
         }
 
         passwordResetTokenRepository.deleteByEmail(email);

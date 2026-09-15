@@ -12,9 +12,13 @@ import androidx.core.view.WindowCompat;
 
 import com.example.reclaim.R;
 import com.example.reclaim.databinding.ActivityResetPasswordBinding;
+import com.example.reclaim.network.LoginRequest;
+import com.example.reclaim.network.LoginResponse;
 import com.example.reclaim.network.ReClaimApiService;
 import com.example.reclaim.network.ResetPasswordRequest;
 import com.example.reclaim.network.RetrofitClient;
+import com.example.reclaim.network.TokenManager;
+import com.example.reclaim.ui.dashboard.DashboardActivity;
 import com.example.reclaim.util.ConnectionToasts;
 
 import retrofit2.Call;
@@ -89,15 +93,13 @@ public class ResetPasswordActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(@NonNull Call<Void> call,
                                            @NonNull Response<Void> response) {
-                        setLoading(false);
                         if (response.isSuccessful()) {
-                            Toast.makeText(ResetPasswordActivity.this,
-                                    R.string.msg_password_updated, Toast.LENGTH_LONG).show();
-                            navigateToLogin();
-                        } else {
-                            binding.inputLayoutNewPassword.setError(
-                                    getString(R.string.msg_reset_invalid));
+                            loginWithNewPassword(password);
+                            return;
                         }
+                        setLoading(false);
+                        binding.inputLayoutNewPassword.setError(
+                                getString(R.string.msg_reset_invalid));
                     }
 
                     @Override
@@ -110,6 +112,42 @@ public class ResetPasswordActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * Signs in with the new password so we get a real token.
+     */
+    private void loginWithNewPassword(@NonNull String password) {
+        apiService.login(new LoginRequest(email, password))
+                .enqueue(new Callback<LoginResponse>() {
+                    @Override
+                    public void onResponse(@NonNull Call<LoginResponse> call,
+                                           @NonNull Response<LoginResponse> response) {
+                        if (response.isSuccessful() && response.body() != null
+                                && !TextUtils.isEmpty(response.body().getToken())) {
+                            TokenManager.saveToken(ResetPasswordActivity.this,
+                                    response.body().getToken());
+                            Toast.makeText(ResetPasswordActivity.this,
+                                    R.string.msg_password_updated, Toast.LENGTH_SHORT).show();
+                            navigateToDashboard();
+                            return;
+                        }
+                        setLoading(false);
+                        Toast.makeText(ResetPasswordActivity.this,
+                                R.string.msg_reset_sign_in_failed, Toast.LENGTH_LONG).show();
+                        navigateToLogin();
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<LoginResponse> call,
+                                          @NonNull Throwable t) {
+                        setLoading(false);
+                        ConnectionToasts.showIfOnline(ResetPasswordActivity.this,
+                                getString(R.string.msg_network_error, t.getLocalizedMessage()),
+                                Toast.LENGTH_LONG);
+                        navigateToLogin();
+                    }
+                });
+    }
+
     private void setLoading(boolean loading) {
         binding.progress.setVisibility(loading ? View.VISIBLE : View.GONE);
         binding.btnUpdatePassword.setEnabled(!loading);
@@ -117,6 +155,13 @@ public class ResetPasswordActivity extends AppCompatActivity {
         binding.editConfirmNewPassword.setEnabled(!loading);
         binding.btnUpdatePassword.setText(loading
                 ? getString(R.string.btn_updating) : getString(R.string.btn_update_password));
+    }
+
+    private void navigateToDashboard() {
+        Intent intent = new Intent(this, DashboardActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 
     private void navigateToLogin() {

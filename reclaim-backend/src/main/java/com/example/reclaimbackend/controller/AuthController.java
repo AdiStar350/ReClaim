@@ -121,14 +121,19 @@ public class AuthController {
     // ---
 
     /**
-     * Emails a 6-digit reset code. Always returns 200 so unused emails stay hidden.
+     * Emails a 6-digit reset code. Returns 404 if the email is not registered.
      */
     @PostMapping("/forgot-password/send-otp")
     public ResponseEntity<?> sendPasswordResetOtp(
             @Valid @RequestBody ForgotPasswordRequest request) {
-        authService.startPasswordReset(request.getEmail());
-        return ResponseEntity.ok(Map.of("message",
-                "If an account exists for this email, a reset code has been sent"));
+        try {
+            authService.startPasswordReset(request.getEmail());
+            return ResponseEntity.ok(Map.of("message", "A reset code has been sent"));
+        } catch (ResponseStatusException e) {
+            return ResponseEntity
+                    .status(e.getStatusCode())
+                    .body(Map.of("error", e.getReason()));
+        }
     }
 
     /**

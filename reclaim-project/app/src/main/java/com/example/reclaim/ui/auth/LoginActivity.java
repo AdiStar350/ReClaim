@@ -110,15 +110,20 @@ public class LoginActivity extends AppCompatActivity {
                     emailInput.requestFocus();
                     return;
                 }
-                sendPasswordResetOtp(email, dialog, send);
+                sendPasswordResetOtp(email, dialog, send, emailLayout, emailInput);
             });
         });
         dialog.show();
     }
 
+    /**
+     * Asks the server for a reset code. Stays here if the email is unknown.
+     */
     private void sendPasswordResetOtp(@NonNull String email,
                                       @NonNull AlertDialog dialog,
-                                      @NonNull Button sendButton) {
+                                      @NonNull Button sendButton,
+                                      @NonNull TextInputLayout emailLayout,
+                                      @NonNull TextInputEditText emailInput) {
         sendButton.setEnabled(false);
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(false);
         apiService.sendPasswordResetOtp(new ForgotPasswordRequest(email))
@@ -141,10 +146,15 @@ public class LoginActivity extends AppCompatActivity {
                             intent.putExtra(VerifyOtpActivity.EXTRA_MODE,
                                     VerifyOtpActivity.MODE_RESET);
                             startActivity(intent);
-                        } else {
-                            Toast.makeText(LoginActivity.this,
-                                    R.string.error_generic, Toast.LENGTH_SHORT).show();
+                            return;
                         }
+                        if (response.code() == 404 || response.code() == 400) {
+                            emailLayout.setError(getString(R.string.msg_no_account_for_email));
+                            emailInput.requestFocus();
+                            return;
+                        }
+                        Toast.makeText(LoginActivity.this,
+                                R.string.error_generic, Toast.LENGTH_SHORT).show();
                     }
 
                     @Override
