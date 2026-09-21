@@ -268,6 +268,10 @@ public class RegisterActivity extends AppCompatActivity {
             case 422:
                 errorMsg = getString(R.string.msg_validation_error);
                 break;
+            case 500:
+                // Server is up but the code email failed to send.
+                errorMsg = getString(R.string.msg_otp_send_failed);
+                break;
             default:
                 if (statusCode >= 500) {
                     errorMsg = getString(R.string.msg_server_error);

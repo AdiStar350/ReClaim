@@ -3,9 +3,11 @@ package com.example.reclaimbackend.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Sends signup and password-reset codes by email.
@@ -78,9 +80,12 @@ public class EmailService {
             sender.send(message);
             log.info("{} OTP email sent to {}", purpose, to);
         } catch (Exception e) {
-            // Log the code if send fails so the user can still retry.
+            // Mail is set up but the send broke, so tell the caller.
+            // 500, not 502, so the app does not read this as the server being down.
             log.error("Failed to send {} OTP email to {} — code was {}",
                     purpose, to, code, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Couldn't send the email. Please try again.");
         }
     }
 }

@@ -182,11 +182,13 @@ public class VerifyOtpActivity extends AppCompatActivity {
             public void onResponse(@NonNull Call<Void> call,
                                    @NonNull Response<Void> response) {
                 setLoading(false);
-                int msg = response.isSuccessful()
-                        ? R.string.msg_otp_sent : R.string.error_generic;
                 if (response.isSuccessful()) {
-                    Toast.makeText(VerifyOtpActivity.this, msg, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(VerifyOtpActivity.this,
+                            R.string.msg_otp_sent, Toast.LENGTH_SHORT).show();
                 } else {
+                    // 500 means the code email could not be sent.
+                    int msg = response.code() == 500
+                            ? R.string.msg_otp_send_failed : R.string.error_generic;
                     ConnectionToasts.showIfOnline(VerifyOtpActivity.this, msg, Toast.LENGTH_SHORT);
                 }
             }

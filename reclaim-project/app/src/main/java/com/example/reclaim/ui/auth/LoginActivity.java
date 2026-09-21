@@ -153,8 +153,10 @@ public class LoginActivity extends AppCompatActivity {
                             emailInput.requestFocus();
                             return;
                         }
-                        Toast.makeText(LoginActivity.this,
-                                R.string.error_generic, Toast.LENGTH_SHORT).show();
+                        // 500 means the server could not send the email.
+                        int msg = response.code() == 500
+                                ? R.string.msg_otp_send_failed : R.string.error_generic;
+                        Toast.makeText(LoginActivity.this, msg, Toast.LENGTH_SHORT).show();
                     }
 
                     @Override

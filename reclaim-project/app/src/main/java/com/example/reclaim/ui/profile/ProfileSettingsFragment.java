@@ -184,9 +184,15 @@ public class ProfileSettingsFragment extends Fragment {
                             startActivity(intent);
                             return;
                         }
-                        int message = (response.code() == 404 || response.code() == 400)
-                                ? R.string.msg_no_account_for_email
-                                : R.string.error_generic;
+                        int message;
+                        if (response.code() == 404 || response.code() == 400) {
+                            message = R.string.msg_no_account_for_email;
+                        } else if (response.code() == 500) {
+                            // Server reached but the email did not go out.
+                            message = R.string.msg_otp_send_failed;
+                        } else {
+                            message = R.string.error_generic;
+                        }
                         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
                     }
 

@@ -12,17 +12,22 @@ if [[ -f "$ROOT_DIR/.env" ]]; then
   set +a
 fi
 
-# Lombok 1.18.36 (Spring Boot 3.4.1) fails silently on JDK 24+,
-# so always run on JDK 22 regardless of the shell's JAVA_HOME.
-if JAVA_22_HOME="$(/usr/libexec/java_home -v 22 2>/dev/null)"; then
-  export JAVA_HOME="$JAVA_22_HOME"
-else
-  export JAVA_HOME="/Library/Java/JavaVirtualMachines/jdk-22.jdk/Contents/Home"
+# I look for JDK 25 (LTS). 22 is gone from most downloads.
+if command -v /usr/libexec/java_home >/dev/null 2>&1; then
+  if JAVA_25_HOME="$(/usr/libexec/java_home -v 25 2>/dev/null)"; then
+    export JAVA_HOME="$JAVA_25_HOME"
+  fi
 fi
 
-if [[ ! -x "$JAVA_HOME/bin/java" ]]; then
-  echo "error: no JDK 22 found at $JAVA_HOME — install JDK 22 (Lombok breaks on JDK 24+)" >&2
+if [[ -z "${JAVA_HOME:-}" || ! -x "$JAVA_HOME/bin/java" ]]; then
+  echo "error: no JDK 25 found. Install Temurin 25 and set JAVA_HOME." >&2
   exit 1
+fi
+
+# Relative paths in .env are from the repo root, not this folder.
+if [[ -n "${FIREBASE_SERVICE_ACCOUNT:-}" && "$FIREBASE_SERVICE_ACCOUNT" != /* ]]; then
+  FIREBASE_SERVICE_ACCOUNT="$ROOT_DIR/$FIREBASE_SERVICE_ACCOUNT"
+  export FIREBASE_SERVICE_ACCOUNT
 fi
 
 if [[ -z "${FIREBASE_SERVICE_ACCOUNT:-}" ]]; then
