@@ -1,3 +1,28 @@
+# ClaimController.java
+
+## Overview
+This is a **controller** for ownership **claims** on lost/found items (see `docs/GLOSSARY.md`). Routes under `/api/claims` require a signed-in user (JWT). The controller reads the user id from Spring Security's `Authentication`, never from the request body, then delegates create/review/list/contact work to `ClaimService`.
+
+## Concepts used here
+- **Controller / endpoint / REST** — HTTP doors for claim actions; see `docs/GLOSSARY.md`.
+- **Authentication vs authorization** — JWT proves who is calling; the service checks ownership for reviews; see `docs/GLOSSARY.md`.
+- **DTO** — `ClaimRequest`, `ClaimReviewRequest`, `PendingClaimResponse`, `ContactResponse`; see `docs/GLOSSARY.md`.
+- **Validation** — `@Valid` on request bodies; see `docs/GLOSSARY.md`.
+- **Dependency injection** — `ClaimService` is injected; see `docs/GLOSSARY.md`.
+
+## Libraries and imports
+- **Spring Web** (`@RestController`, mappings, `ResponseEntity`, `@PathVariable`, `@RequestBody`): HTTP routing and responses.
+- **Spring Security** (`Authentication`): provides the signed-in user id via `getName()`.
+- **Jakarta Validation** (`@Valid`): validates DTOs.
+- **Lombok** (`@RequiredArgsConstructor`): injects `claimService`.
+- **Project types**: claim DTOs/model and `ClaimService`.
+
+## Fields
+- `claimService` (`ClaimService`) — business rules for submitting, reviewing, and listing claims.
+
+## Functions
+
+### `public ResponseEntity<Claim> submitClaim(@Valid @RequestBody ClaimRequest request, Authentication authentication)`
 ```java
 @PostMapping
 public ResponseEntity<Claim> submitClaim(
@@ -10,13 +35,15 @@ public ResponseEntity<Claim> submitClaim(
     return ResponseEntity.status(HttpStatus.CREATED).body(claim);
 }
 ```
+- **What it does:** creates a new claim for the signed-in user on the item named in the body.
+- **Where it's called:** by Spring MVC on `POST /api/claims`.
+- **Why it's written this way:** taking `claimantId` from the token stops clients from claiming as someone else.
+- **Step by step:**
+  1. Read claimant id from `authentication.getName()`.
+  2. Call `claimService.submitClaim`.
+  3. Return `201` with the saved `Claim`.
 
-What that function does: I save a new claim for the signed-in user.
-What the function is responsible for: I am POST /api/claims.
-Where it works: I am an HTTP endpoint. I call ClaimService.submitClaim.
-Why I chose to write the code of the function the way its written: I take claimantId from the token, not the body, so a caller cannot claim as someone else. 201 marks a new claim.
-More: I use @Valid ClaimRequest, Authentication.getName, and HttpStatus.CREATED.
-
+### `public ResponseEntity<Claim> reviewClaim(@PathVariable String claimId, @Valid @RequestBody ClaimReviewRequest request, Authentication authentication)`
 ```java
 @PutMapping("/{claimId}/review")
 public ResponseEntity<Claim> reviewClaim(
@@ -31,13 +58,15 @@ public ResponseEntity<Claim> reviewClaim(
     return ResponseEntity.ok(updatedClaim);
 }
 ```
+- **What it does:** approves or rejects a claim; the service enforces that only the item owner may review.
+- **Where it's called:** by Spring MVC on `PUT /api/claims/{claimId}/review`.
+- **Why it's written this way:** status comes from the DTO; identity comes from the token so review rights cannot be spoofed in the body.
+- **Step by step:**
+  1. Read reviewer id from authentication.
+  2. Call `claimService.reviewClaim` with claim id, status, and reviewer id.
+  3. Return `200` with the updated claim.
 
-What that function does: I approve or decline a claim as the item owner.
-What the function is responsible for: I am PUT /api/claims/{claimId}/review.
-Where it works: I am an HTTP endpoint. I call ClaimService.reviewClaim. ClaimServiceTest checks that service method.
-Why I chose to write the code of the function the way its written: I pass reviewerId from the token so only the owner can review. Status comes from the validated body.
-More: I use ClaimReviewRequest.getStatus and @PathVariable claimId.
-
+### `public ResponseEntity<Claim> acknowledgeClaimDecision(@PathVariable String claimId, Authentication authentication)`
 ```java
 @PutMapping("/{claimId}/acknowledge")
 public ResponseEntity<Claim> acknowledgeClaimDecision(
@@ -47,13 +76,15 @@ public ResponseEntity<Claim> acknowledgeClaimDecision(
     return ResponseEntity.ok(claimService.acknowledgeDecision(claimId, claimantId));
 }
 ```
+- **What it does:** lets the claimant mark an approve/reject decision as seen.
+- **Where it's called:** by Spring MVC on `PUT /api/claims/{claimId}/acknowledge`.
+- **Why it's written this way:** acknowledgment is a separate step so the app can clear UI prompts after the user has read the result.
+- **Step by step:**
+  1. Read claimant id from authentication.
+  2. Call `claimService.acknowledgeDecision`.
+  3. Return the updated claim.
 
-What that function does: I mark the claim decision as seen by the claimant.
-What the function is responsible for: I am PUT /api/claims/{claimId}/acknowledge.
-Where it works: I am an HTTP endpoint. I call ClaimService.acknowledgeDecision.
-Why I chose to write the code of the function the way its written: I pass the token user id so only the claimant can dismiss their own card.
-More: I use Authentication.getName and ResponseEntity.ok.
-
+### `public ResponseEntity<List<Claim>> getClaimsByItem(@PathVariable String itemId)`
 ```java
 @GetMapping("/item/{itemId}")
 public ResponseEntity<List<Claim>> getClaimsByItem(@PathVariable String itemId) {
@@ -61,13 +92,14 @@ public ResponseEntity<List<Claim>> getClaimsByItem(@PathVariable String itemId) 
     return ResponseEntity.ok(claims);
 }
 ```
+- **What it does:** lists all claims for one item.
+- **Where it's called:** by Spring MVC on `GET /api/claims/item/{itemId}`.
+- **Why it's written this way:** a simple pass-through keeps listing logic in the service/repository.
+- **Step by step:**
+  1. Call `claimService.getClaimsByItem`.
+  2. Return `200` with the list.
 
-What that function does: I return all claims on one item.
-What the function is responsible for: I am GET /api/claims/item/{itemId}.
-Where it works: I am an HTTP endpoint. I call ClaimService.getClaimsByItem.
-Why I chose to write the code of the function the way its written: I keep this lookup thin. The service does the repository call.
-More: I use @PathVariable itemId. This route still needs a signed-in user.
-
+### `public ResponseEntity<List<Claim>> getMyClaims(Authentication authentication)`
 ```java
 @GetMapping("/my-claims")
 public ResponseEntity<List<Claim>> getMyClaims(Authentication authentication) {
@@ -76,13 +108,15 @@ public ResponseEntity<List<Claim>> getMyClaims(Authentication authentication) {
     return ResponseEntity.ok(claims);
 }
 ```
+- **What it does:** lists claims filed by the signed-in user.
+- **Where it's called:** by Spring MVC on `GET /api/claims/my-claims`.
+- **Why it's written this way:** the user id comes from the token so a client cannot ask for another user's claim history by id.
+- **Step by step:**
+  1. Read claimant id from authentication.
+  2. Call `claimService.getClaimsByClaimant`.
+  3. Return the list.
 
-What that function does: I return claims made by the signed-in user.
-What the function is responsible for: I am GET /api/claims/my-claims.
-Where it works: I am an HTTP endpoint. I call ClaimService.getClaimsByClaimant.
-Why I chose to write the code of the function the way its written: I take the id from the token so the list is always "my" claims.
-More: I use Authentication.getName.
-
+### `public ResponseEntity<Claim> getClaimById(@PathVariable String claimId)`
 ```java
 @GetMapping("/{claimId}")
 public ResponseEntity<Claim> getClaimById(@PathVariable String claimId) {
@@ -90,13 +124,14 @@ public ResponseEntity<Claim> getClaimById(@PathVariable String claimId) {
     return ResponseEntity.ok(claim);
 }
 ```
+- **What it does:** returns one claim by id (service throws if missing).
+- **Where it's called:** by Spring MVC on `GET /api/claims/{claimId}`.
+- **Why it's written this way:** thin controller; not-found handling lives in the service.
+- **Step by step:**
+  1. Call `claimService.getClaimById`.
+  2. Return `200` with the claim.
 
-What that function does: I return one claim by id.
-What the function is responsible for: I am GET /api/claims/{claimId}.
-Where it works: I am an HTTP endpoint. I call ClaimService.getClaimById.
-Why I chose to write the code of the function the way its written: I let the service throw 404 if the claim is missing.
-More: I use @PathVariable claimId. This route still needs a signed-in user.
-
+### `public ResponseEntity<List<PendingClaimResponse>> getPendingClaimsOnMyItems(Authentication authentication)`
 ```java
 @GetMapping("/pending-on-my-items")
 public ResponseEntity<List<PendingClaimResponse>> getPendingClaimsOnMyItems(
@@ -105,13 +140,15 @@ public ResponseEntity<List<PendingClaimResponse>> getPendingClaimsOnMyItems(
     return ResponseEntity.ok(claimService.getPendingClaimsForOwner(ownerId));
 }
 ```
+- **What it does:** returns pending claims on items the signed-in user reported, as richer DTOs for the UI.
+- **Where it's called:** by Spring MVC on `GET /api/claims/pending-on-my-items`.
+- **Why it's written this way:** the owner id comes from the token; the service joins claim + item details into `PendingClaimResponse`.
+- **Step by step:**
+  1. Read owner id from authentication.
+  2. Call `claimService.getPendingClaimsForOwner`.
+  3. Return the list.
 
-What that function does: I return pending claims on items this user reported.
-What the function is responsible for: I am GET /api/claims/pending-on-my-items.
-Where it works: I am an HTTP endpoint. I call ClaimService.getPendingClaimsForOwner.
-Why I chose to write the code of the function the way its written: I pass the owner id from the token so the review list is only for this user's items.
-More: I return List of PendingClaimResponse.
-
+### `public ResponseEntity<ContactResponse> getClaimContact(@PathVariable String claimId, Authentication authentication)`
 ```java
 @GetMapping("/{claimId}/contact")
 public ResponseEntity<ContactResponse> getClaimContact(
@@ -123,9 +160,10 @@ public ResponseEntity<ContactResponse> getClaimContact(
     return ResponseEntity.ok(contact);
 }
 ```
-
-What that function does: I return contact for the other party on an approved claim.
-What the function is responsible for: I am GET /api/claims/{claimId}/contact.
-Where it works: I am an HTTP endpoint. I call ClaimService.getContactForApprovedClaim. ClaimServiceTest checks that service method.
-Why I chose to write the code of the function the way its written: I pass requesterId so the service can allow only owner or claimant.
-More: I use ContactResponse and Authentication.getName.
+- **What it does:** returns the other party's contact info only when the claim is approved and the caller is involved.
+- **Where it's called:** by Spring MVC on `GET /api/claims/{claimId}/contact`.
+- **Why it's written this way:** contact details are gated in the service so random users cannot scrape phone/email from claim ids.
+- **Step by step:**
+  1. Read requester id from authentication.
+  2. Call `claimService.getContactForApprovedClaim`.
+  3. Return `ContactResponse`.

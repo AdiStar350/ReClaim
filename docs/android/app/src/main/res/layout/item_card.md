@@ -1,141 +1,93 @@
+# item_card.xml
+
+## Overview
+This layout is one item card — a single row in the search results list: a photo with
+Lost/Found and status chips over it, then the title, category, and location. It is
+inflated once per item by `ItemAdapter` through `ItemCardBinding` and shown in the
+search list (`recycler_items` in `fragment_search.xml`).
+
+Key idea: an **Adapter** inflates this layout once per list item and a **ViewHolder**
+holds its views so the list can scroll smoothly. See `docs/GLOSSARY.md`.
+
+## Concepts used here
+- **MaterialCardView** — the rounded, tappable card that is the row's root. See `docs/GLOSSARY.md`.
+- **LinearLayout** — stacks the image block over the text block, and the text lines. See `docs/GLOSSARY.md`.
+- **FrameLayout** — overlays the scrim and chips on top of the photo. See `docs/GLOSSARY.md`.
+- **Chip** — the Lost/Found and status badges. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `ItemCardBinding`. See `docs/GLOSSARY.md`.
+
+## Screen structure
+
+```
+MaterialCardView (@id/card_item — root)
+└── LinearLayout (vertical)
+    ├── FrameLayout (image area)
+    │   ├── ImageView image_item
+    │   ├── View (gradient scrim)
+    │   └── LinearLayout (bottom): chip_type + Space + chip_status
+    └── LinearLayout (text area)
+        ├── text_item_title
+        ├── text_item_category
+        └── LinearLayout: map icon + text_item_location
+```
+
+The root is a `MaterialCardView` because each list row is a self-contained, tappable card
+with rounded corners and a subtle border.
+
+## Components
+
+### Root card
 ```xml
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<com.google.android.material.card.MaterialCardView
     android:id="@+id/card_item"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginBottom="@dimen/space_14"
     android:clickable="true"
     android:focusable="true"
-    app:cardBackgroundColor="@color/md_theme_surfaceContainerLowest"
     app:cardCornerRadius="@dimen/item_card_radius"
-    app:cardElevation="@dimen/space_2"
-    app:rippleColor="@color/brand_accent"
-    app:strokeColor="@color/md_theme_outlineVariant"
-    app:strokeWidth="@dimen/space_0_5">
+    app:rippleColor="@color/brand_accent">
 ```
+- **What it shows:** the whole card container for one item.
+- **Why it's set up this way:** `clickable`/`focusable` plus `rippleColor` make the whole
+  card a tap target with a ripple; the corner radius and stroke give the card look.
+- **How the code uses it:** `ItemAdapter` sets a click listener on the card's root
+  (`binding.getRoot().setOnClickListener(...)`) to open the item's details.
 
-What that function does: I am one lost/found card: photo, chips, title, category, place.
-What the function is responsible for: I am the root of item_card.
-Where it works: ItemAdapter inflates me. SearchFragment and HomeFragment matches use that adapter. A tap opens ItemDetailsActivity.
-Why I chose to write the code of the function the way its written: Clickable card with a ripple is the whole row.
-More: I use Widget.ReClaim card colors.
-
+### Image with chips
 ```xml
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/space_172">
-
-            <ImageView
-                android:id="@+id/image_item"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@color/md_theme_surfaceContainer"
-                android:contentDescription="@string/item_details_title"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_item_placeholder" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@drawable/bg_item_image_scrim" />
+<FrameLayout android:layout_height="@dimen/space_172">
+    <ImageView android:id="@+id/image_item" android:scaleType="centerCrop" ... />
+    <View android:background="@drawable/bg_item_image_scrim" />
+    <LinearLayout android:layout_gravity="bottom" android:orientation="horizontal">
+        <com.google.android.material.chip.Chip android:id="@+id/chip_type" ... />
+        <Space android:layout_weight="1" ... />
+        <com.google.android.material.chip.Chip android:id="@+id/chip_status" ... />
+    </LinearLayout>
+</FrameLayout>
 ```
+- **What it shows:** the item photo, darkened by a gradient at the bottom, with a
+  Lost/Found chip on the left and a status (Available/Claimed) chip on the right.
+- **Why it's set up this way:** a `FrameLayout` stacks the scrim and chips over the
+  image; the scrim keeps the white chip text readable on bright photos. A `Space` with
+  `layout_weight="1"` between the two chips pushes them to opposite ends.
+- **How the code uses it:** the adapter loads the photo into `binding.imageItem` (Glide),
+  and sets `binding.chipType` (Lost/Found, color, text) and `binding.chipStatus`
+  (Open/Closed, color, text) from the item.
 
-What that function does: I am the photo with a dark scrim so the chips stay readable.
-What the function is responsible for: I show the item image.
-Where it works: ItemAdapter loads image_item with Glide.
-Why I chose to write the code of the function the way its written: centerCrop fills the 172dp band. Placeholder shows until the URL loads.
-More: I use bg_item_image_scrim.
-
+### Text block
 ```xml
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/chip_type"
-                    style="@style/Widget.ReClaim.Chip.Badge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/brand_white"
-                    android:textSize="@dimen/text_size_11"
-                    tools:chipBackgroundColor="@color/type_lost_text"
-                    tools:text="Lost" />
-
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/chip_status"
-                    style="@style/Widget.ReClaim.Chip.Badge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/text_primary"
-                    android:textSize="@dimen/text_size_11"
-                    tools:chipBackgroundColor="@color/status_open_bg"
-                    tools:text="Available" />
+<LinearLayout android:orientation="vertical">
+    <com.google.android.material.textview.MaterialTextView android:id="@+id/text_item_title" android:maxLines="1" android:ellipsize="end" ... />
+    <com.google.android.material.textview.MaterialTextView android:id="@+id/text_item_category" ... />
+    <LinearLayout android:orientation="horizontal">
+        <ImageView android:src="@android:drawable/ic_dialog_map" ... />
+        <com.google.android.material.textview.MaterialTextView android:id="@+id/text_item_location" android:layout_weight="1" ... />
+    </LinearLayout>
+</LinearLayout>
 ```
-
-What that function does: I show lost/found on the left and open/closed on the right.
-What the function is responsible for: I am the photo badges.
-Where it works: ItemAdapter sets chip_type and chip_status.
-Why I chose to write the code of the function the way its written: A Space between them pushes status to the end.
-More: I use Widget.ReClaim.Chip.Badge.
-
-```xml
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/text_item_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textAppearance="?attr/textAppearanceTitleMedium"
-                android:textColor="@color/text_primary"
-                tools:text="Black Leather Wallet" />
-
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/text_item_category"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_3"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textAppearance="?attr/textAppearanceLabelLarge"
-                android:textColor="@color/brand_accent"
-                tools:text="Wallets" />
-```
-
-What that function does: I show title and category under the photo.
-What the function is responsible for: I am the card text.
-Where it works: ItemAdapter sets text_item_title and text_item_category.
-Why I chose to write the code of the function the way its written: One line each keeps the list dense. Accent color marks category.
-More: I use ellipsize end.
-
-```xml
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_10"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <ImageView
-                    android:layout_width="@dimen/space_14"
-                    android:layout_height="@dimen/space_14"
-                    android:contentDescription="@string/label_location"
-                    android:src="@android:drawable/ic_dialog_map"
-                    app:tint="@color/text_secondary" />
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/text_item_location"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/space_6"
-                    android:layout_weight="1"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textAppearance="?attr/textAppearanceBodySmall"
-                    android:textColor="@color/text_secondary"
-                    tools:text="Central Bus Station, Tel Aviv" />
-            </LinearLayout>
-```
-
-What that function does: I show the place with a small map icon.
-What the function is responsible for: I am the location line.
-Where it works: ItemAdapter sets text_item_location.
-Why I chose to write the code of the function the way its written: Secondary color keeps this quieter than the title.
-More: I use ic_dialog_map.
+- **What it shows:** the item title (one line), the category in accent color, and a
+  location row with a small map icon.
+- **Why it's set up this way:** `maxLines="1"` + `ellipsize="end"` keep long titles and
+  locations from breaking the card height; the location text uses `layout_weight="1"` so
+  it fills the row next to the icon.
+- **How the code uses it:** the adapter sets `binding.textItemTitle`,
+  `binding.textItemCategory`, and `binding.textItemLocation` from the item data.

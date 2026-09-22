@@ -1,3 +1,39 @@
+# ReclaimMessagingService.java
+
+## Overview
+This file is the app's **Firebase Messaging Service**. It receives data-only push
+messages from the backend, builds the on-device notification itself, and fans out
+side effects (refresh signals for matches/claims). Android starts this service when a
+message arrives or when the FCM token rotates; it is declared in
+`AndroidManifest.xml`.
+
+## Concepts used here
+- **Firebase / FCM.** Push delivery; `RemoteMessage` carries a data map; see
+  `docs/GLOSSARY.md`.
+- **Notification channels (indirect).** `AppNotifications.createChannels` ensures
+  channels exist before posting; see Toast/notifications in `docs/GLOSSARY.md`.
+- **LiveData events (indirect).** `IncomingClaimEvents` / `ClaimDecisionEvents` wake
+  Home while the app is open.
+- **Service.** A long-lived Android component (here, Firebase's messaging subclass)
+  that is not a full Activity screen.
+
+## Libraries and imports
+- **Android (`Log`).** Debug/warn logging.
+- **AndroidX annotations (`NonNull`).** Required overrides.
+- **Firebase Messaging (`FirebaseMessagingService`, `RemoteMessage`).** Base class and
+  incoming payload.
+- **Java (`Map`).** The data payload key/value map.
+- **Project classes.** `R.string.app_name` — fallback title; `AppStateEvents` —
+  mutation signal for list refresh; `AppNotifications` — show typed notifications;
+  `IncomingClaimEvents` / `ClaimDecisionEvents` — in-app LiveData pings;
+  `FcmTokenRegistrar` — re-register rotated tokens.
+
+## Fields
+- `private static final String TAG = "ReclaimMessaging"` — log tag.
+
+## Functions
+
+### `public void onNewToken(@NonNull String token)`
 ```java
 @Override
 public void onNewToken(@NonNull String token) {
@@ -5,13 +41,15 @@ public void onNewToken(@NonNull String token) {
     FcmTokenRegistrar.sendToken(getApplicationContext(), token);
 }
 ```
+- **What it does:** when Firebase issues a new device token, sends it to the backend.
+- **Where it's called:** by the Firebase SDK when the FCM token is created or
+  rotated (system callback, not app Java).
+- **Why it's written this way:** without re-registering, the backend would keep an
+  old token and pushes would miss this device.
+- **Step by step:** 1) log rotation; 2) call `FcmTokenRegistrar.sendToken` with the
+  app context and new token.
 
-What that function does: I send a rotated FCM token to the backend.
-What the function is responsible for: I am Firebase's token-refresh callback.
-Where it works: AndroidManifest names me as ReclaimMessagingService. Firebase calls me when the token changes.
-Why I chose to write the code of the function the way its written: I reuse FcmTokenRegistrar so start-up and rotation share one PUT.
-More: I use FcmTokenRegistrar.sendToken and getApplicationContext.
-
+### `public void onMessageReceived(@NonNull RemoteMessage message)`
 ```java
 @Override
 public void onMessageReceived(@NonNull RemoteMessage message) {
@@ -61,9 +99,20 @@ public void onMessageReceived(@NonNull RemoteMessage message) {
     }
 }
 ```
-
-What that function does: I build a local notification from a data push and tick home when needed.
-What the function is responsible for: I am the incoming FCM handler. Data-only messages do not auto-show.
-Where it works: Firebase calls me while the process is running. AndroidManifest lists me as the messaging service.
-Why I chose to write the code of the function the way its written: I fall back to the notification block and the app name so a thin payload still shows something. Known types also notify AppStateEvents so lists refresh.
-More: I use RemoteMessage.getData, AppNotifications, IncomingClaimEvents, ClaimDecisionEvents, and AppStateEvents.notifyMutation.
+- **What it does:** reads the push `type`, ensures notification channels exist, fills
+  title/body (with fallbacks), notifies app state / claim event buses for known types,
+  and shows the matching notification.
+- **Where it's called:** by the Firebase SDK when a data message arrives while the
+  service can handle it (system callback).
+- **Why it's written this way:** data-only pushes mean the app must build the
+  notification; known types also poke LiveData/AppState so open screens refresh;
+  unknown types still show something useful instead of silent failure.
+- **Step by step:**
+  1. Read the data map and `type`; log keys.
+  2. Create notification channels.
+  3. Read title/body from data; fall back to the notification block, then app name /
+     empty body.
+  4. For match/claim types, call `AppStateEvents.notifyMutation()`.
+  5. Branch on type: match → `showItemMatch`; pending → event + `showClaimPending`;
+     decision → event + `showClaimDecision`; else warn and show a generic pending-style
+     notification.

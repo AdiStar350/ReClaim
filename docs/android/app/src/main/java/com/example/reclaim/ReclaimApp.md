@@ -1,3 +1,20 @@
+# ReclaimApp.java
+
+## Overview
+This is the custom **Application** class — the object Android creates once when the process starts, before any screen. It wires up notification channels, offline-report helpers, network watching, background sync scheduling, and the push-notification token registrar so those pieces are ready for the rest of the app.
+
+## Concepts used here
+- **Application** — a long-lived app-wide object (not a screen). Declared in `AndroidManifest.xml` as `android:name=".ReclaimApp"`.
+- **Firebase / FCM** — push notifications; the token registrar runs at startup. See `docs/GLOSSARY.md`.
+- **WorkManager (via `ReportSyncScheduler`)** — schedules reliable background sync of offline reports. See `docs/GLOSSARY.md`.
+
+## Libraries and imports
+- **Android framework**: `Application` is the base class.
+- **Project classes**: `AppNotifications` creates notification channels; `OfflineProtocol` and `NetworkMonitor` watch connectivity / offline behavior; `ReportSyncScheduler` queues report sync work; `FcmTokenRegistrar` registers the device for push notifications.
+
+## Functions
+
+### `public void onCreate()`
 ```java
 @Override
 public void onCreate() {
@@ -9,9 +26,13 @@ public void onCreate() {
     FcmTokenRegistrar.register(this);
 }
 ```
-
-What that function does: I start notice channels, offline watch, network watch, queued report send, and the push token.
-What the function is responsible for: I am app start setup. Screens do not have to do this themselves.
-Where it works: I am named in AndroidManifest as the Application. I run once when the process starts.
-Why I chose to write the code of the function the way its written: I keep one place for work that must exist before any screen.
-More: I call AppNotifications.createChannels, OfflineProtocol.attach, NetworkMonitor.register, ReportSyncScheduler.enqueue, and FcmTokenRegistrar.register.
+- **What it does:** Runs one-time app startup setup: notification channels, offline protocol, network monitor, report sync job, and FCM token registration.
+- **Where it's called:** By the Android system when the app process starts (because the manifest names this class as the Application).
+- **Why it's written this way:** Putting shared setup here means every screen can rely on channels, sync, and push registration without each Activity repeating the work.
+- **Step by step:**
+  1. Call `super.onCreate()`.
+  2. Create notification channels via `AppNotifications.createChannels`.
+  3. Attach `OfflineProtocol` to this Application.
+  4. Register `NetworkMonitor` to watch connectivity.
+  5. Enqueue `ReportSyncScheduler` so offline reports can sync later.
+  6. Register the FCM push token through `FcmTokenRegistrar`.

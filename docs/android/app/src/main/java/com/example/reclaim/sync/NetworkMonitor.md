@@ -1,14 +1,41 @@
-```java
-private NetworkMonitor() {
-}
-```
+# NetworkMonitor.java
 
-What that function does: I stop anyone from making an instance of this helper.
-What the function is responsible for: I keep network checks as static methods.
-Where it works: I am not called. Java uses me when someone tries `new NetworkMonitor()`.
-Why I chose to write the code of the function the way its written: I made the constructor private so ReclaimApp calls register.
-More: I use a private constructor. The class is final.
+## Overview
+This file is a **singleton helper** that answers "does the phone have working internet?"
+and watches for internet coming back. It wraps Android's `ConnectivityManager`, the
+system service that reports network state. See `docs/GLOSSARY.md` for related terms.
+Note the difference: this class checks the *device's* connection; whether the *backend*
+answered is tracked separately in `BackendAvailability`.
 
+## Concepts used here
+- **ConnectivityManager.** The Android system service that reports the active network
+  and its capabilities.
+- **Network callback.** A listener the system calls when a network becomes available or
+  is lost.
+- **Capabilities check.** "Has internet" needs both the INTERNET capability and the
+  VALIDATED capability (the network actually reached the internet, not just a Wi-Fi with
+  a login page).
+- **`synchronized` guard.** Registration happens only once, protected against being run
+  twice.
+
+## Libraries and imports
+- **Android (`android.content.Context`, `android.net.ConnectivityManager`, `Network`,
+  `NetworkCapabilities`, `android.util.Log`).** `getSystemService(...)` gets the
+  manager; `getActiveNetwork()`/`getNetworkCapabilities(...)` read the current state;
+  `registerDefaultNetworkCallback(...)` subscribes to changes.
+- **AndroidX annotations (`androidx.annotation.NonNull`).** Documents non-null
+  parameters.
+- **Project classes.** `ReportSyncScheduler` (queue a sync when internet returns) and
+  `BackendAvailability` (combine device + backend state).
+
+## Fields
+- `private static final String TAG` — the log tag `"NetworkMonitor"`.
+- `private static boolean registered` — whether the network callback has already been
+  registered, so it is not registered twice.
+
+## Functions
+
+### `public static boolean isOnline(@NonNull Context context)`
 ```java
 public static boolean isOnline(@NonNull Context context) {
     ConnectivityManager manager = context.getSystemService(ConnectivityManager.class);
@@ -25,13 +52,20 @@ public static boolean isOnline(@NonNull Context context) {
             && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
 }
 ```
+- **What it does:** returns `true` only if the device currently has a validated
+  internet connection.
+- **Where it's called:** `OfflineProtocol.showIfNeeded` (to decide "device offline"),
+  and via `isBackendAvailable` below.
+- **Why it's written this way:** it checks both INTERNET and VALIDATED so a Wi-Fi that is
+  connected but cannot reach the internet (e.g. a captive portal) counts as offline. It
+  returns `false` on any missing piece instead of throwing.
+- **Step by step:**
+  1. Get the `ConnectivityManager`; if null, return `false`.
+  2. Get the active network; if none, return `false`.
+  3. Get its capabilities; return `true` only if they include both INTERNET and
+     VALIDATED.
 
-What that function does: I return true when the device has a validated internet network.
-What the function is responsible for: I am the device-online check, not the API check.
-Where it works: I am called by isBackendAvailable and OfflineProtocol.showIfNeeded.
-Why I chose to write the code of the function the way its written: VALIDATED means the network actually has internet, not just Wi-Fi with no path.
-More: I use ConnectivityManager.getActiveNetwork and NetworkCapabilities.
-
+### `public static synchronized void register(@NonNull Context context)`
 ```java
 public static synchronized void register(@NonNull Context context) {
     if (registered) {
@@ -57,46 +91,32 @@ public static synchronized void register(@NonNull Context context) {
     registered = true;
 }
 ```
+- **What it does:** registers a one-time listener that schedules a report sync whenever
+  a network with internet becomes available.
+- **Where it's called:** `ReclaimApp.onCreate`, once at app startup.
+- **Why it's written this way:** `synchronized` plus the `registered` flag guarantees the
+  callback is added only once, even if called again. It uses the application context so
+  the listener lives for the whole app. When connectivity returns, it enqueues the sync
+  worker so queued offline reports go out automatically.
+- **Step by step:**
+  1. If already registered, return.
+  2. Get the app context and the `ConnectivityManager`; if null, return.
+  3. Register a default network callback whose `onAvailable` schedules a report sync and
+     whose `onLost` just logs.
+  4. Mark `registered = true`.
 
-What that function does: I watch for a network coming back, once per process.
-What the function is responsible for: I start queued report send when internet returns.
-Where it works: I am called by ReclaimApp.onCreate.
-Why I chose to write the code of the function the way its written: synchronized plus a registered flag stops a second callback. I use the app context so the callback outlives an activity.
-More: I use ConnectivityManager.registerDefaultNetworkCallback.
-
-```java
-public void onAvailable(@NonNull Network network) {
-    Log.d(TAG, "Network available; scheduling pending report sync");
-    ReportSyncScheduler.enqueue(app);
-}
-```
-
-What that function does: I queue a report sync when a network becomes available.
-What the function is responsible for: I am the "back online" hook.
-Where it works: ConnectivityManager calls me from the callback registered in register.
-Why I chose to write the code of the function the way its written: I enqueue even if the user is mid-screen so drafts send without a tap.
-More: I call ReportSyncScheduler.enqueue with the application context.
-
-```java
-public void onLost(@NonNull Network network) {
-    Log.d(TAG, "Network lost");
-}
-```
-
-What that function does: I log that the network was lost.
-What the function is responsible for: I fill the callback. The offline dialog comes from failed HTTP, not from this.
-Where it works: ConnectivityManager calls me from the callback registered in register.
-Why I chose to write the code of the function the way its written: A lost network is noisy, so I only log. Retrofit marks the API down on the next failed call.
-More: I use Log.d.
-
+### `public static boolean isBackendAvailable(@NonNull Context context)`
 ```java
 public static boolean isBackendAvailable(@NonNull Context context) {
     return isOnline(context) && BackendAvailability.isReachable();
 }
 ```
-
-What that function does: I return true when the device is online and the last API call reached the server.
-What the function is responsible for: I gate toasts and whether ReportActivity should queue instead of POST.
-Where it works: I am called by ConnectionToasts, ReportActivity, and ItemsViewModel.
-Why I chose to write the code of the function the way its written: Device internet and API up are different, so I require both.
-More: I use isOnline and BackendAvailability.isReachable.
+- **What it does:** returns `true` only when the device is online *and* the last API
+  call reached the server.
+- **Where it's called:** `ConnectionToasts.showIfOnline`, `ReportActivity`,
+  `ItemsViewModel`, and other screens that only show "online" behavior when the backend
+  is really usable.
+- **Why it's written this way:** it combines two facts — device connectivity and backend
+  reachability — because the phone can have internet while the server is down. Both must
+  be true to treat the app as truly online.
+- **Step by step:** 1) check device internet; 2) AND with `BackendAvailability.isReachable()`.

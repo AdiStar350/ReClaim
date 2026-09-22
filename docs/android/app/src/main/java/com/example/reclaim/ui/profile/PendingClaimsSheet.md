@@ -1,176 +1,64 @@
+# PendingClaimsSheet.java
+
+## Overview
+This is a helper that shows a Material **BottomSheetDialog** listing every pending claim the signed-in owner still needs to review. Unlike `PendingClaimsActivity`, it lives on top of a host **Fragment** (Home), can confirm reject, and after Approve it opens `ContactInfoDialog` with the claimant’s contact info.
+
+## Concepts used here
+- **BottomSheetDialog / BottomSheetBehavior** — sheet that expands over the current screen.
+- **Fragment** — host that must stay added while network callbacks run. See `docs/GLOSSARY.md`.
+- **RecyclerView / Adapter** — `PendingClaimAdapter`. See `docs/GLOSSARY.md`.
+- **Retrofit Call / Callback** — review claim and fetch contact. See `docs/GLOSSARY.md`.
+- **JWT (TokenManager)** — auth header. See `docs/GLOSSARY.md`.
+
+## Libraries and imports
+- **Material**: BottomSheetDialog, BottomSheetBehavior, MaterialAlertDialogBuilder.
+- **AndroidX**: Fragment, LinearLayoutManager, annotations.
+- **Retrofit**: Call, Callback, Response.
+- **Project**: `PendingClaimAdapter`, `PendingClaimResponse`, `Claim`, `ClaimReviewRequest`, `ContactResponse`, `ContactInfoDialog`, `TokenManager`, `RetrofitClient`.
+
+## Fields
+- `private final Fragment host` — Fragment that owns the sheet (must be added for UI/API).
+- `private final Listener listener` — notified when the list changes or the sheet dismisses.
+- `private final BottomSheetDialog dialog` — the sheet window.
+- `private final DialogPendingClaimsBinding binding` — sheet layout.
+- `private final PendingClaimAdapter adapter` — claim rows.
+- `private final ReClaimApiService apiService` — API client.
+- `private boolean notifyHostOnDismiss` — whether dismiss should call `onSheetDismissed`.
+- `private boolean reviewing` — true while an approve/reject request is in flight (blocks `replaceClaims`).
+
+## Functions
+
+### `public interface Listener` — `onClaimsChanged` / `onSheetDismissed`
 ```java
-void onClaimsChanged(@NonNull List<PendingClaimResponse> remaining);
+public interface Listener {
+    void onClaimsChanged(@NonNull List<PendingClaimResponse> remaining);
+
+    void onSheetDismissed();
+}
 ```
+- **What it does:** Lets Home keep its pending-claims card/count in sync and clear its sheet reference when closed.
+- **Where it's called:** Implemented in `HomeFragment.showPendingClaimsSheet`; invoked from `afterListChanged` and the dialog dismiss listener.
+- **Why it's written this way:** The sheet does not own Home’s LiveData; it reports changes upward.
+- **Step by step:**
+  1. `onClaimsChanged` receives the remaining list after a review.
+  2. `onSheetDismissed` runs when the user closes the sheet (unless dismissed quietly).
 
-What that function does: I tell the host the remaining pending claims after a review.
-What the function is responsible for: I am the list-changed callback.
-Where it works: afterListChanged calls me. HomeFragment implements me.
-Why I chose to write the code of the function the way its written: Home can hide its card when the list is empty.
-More: I pass adapter.getClaims().
-
-```java
-void onSheetDismissed();
-```
-
-What that function does: I tell the host the sheet closed.
-What the function is responsible for: I am the dismiss callback.
-Where it works: The dialog dismiss listener calls me unless dismissQuietly was used. HomeFragment implements me.
-Why I chose to write the code of the function the way its written: Quiet dismiss lets Home replace the sheet without a loop.
-More: I take no arguments.
-
+### `private PendingClaimsSheet(Fragment host, Listener listener)` (constructor)
 ```java
 private PendingClaimsSheet(@NonNull Fragment host, @NonNull Listener listener) {
-    this.host = host;
-    this.listener = listener;
-    this.apiService = RetrofitClient.getApiService();
-
-    Context context = host.requireContext();
-    binding = DialogPendingClaimsBinding.inflate(LayoutInflater.from(context));
-    adapter = new PendingClaimAdapter(new PendingClaimAdapter.ReviewListener() {
-        @Override
-        public void onApprove(PendingClaimResponse claim) {
-            reviewClaim(claim, true);
-        }
-
-        @Override
-        public void onReject(PendingClaimResponse claim) {
-            confirmReject(claim);
-        }
-    });
-
-    binding.recyclerPendingClaims.setLayoutManager(new LinearLayoutManager(context));
-    binding.recyclerPendingClaims.setAdapter(adapter);
-    binding.recyclerPendingClaims.setNestedScrollingEnabled(true);
-    ViewGroup.LayoutParams listParams = binding.recyclerPendingClaims.getLayoutParams();
-    listParams.height = (int) (context.getResources().getDisplayMetrics().heightPixels * 0.55f);
-    binding.recyclerPendingClaims.setLayoutParams(listParams);
-
-    dialog = new BottomSheetDialog(context);
-    dialog.setContentView(binding.getRoot());
-    dialog.setOnShowListener(d -> expandSheet());
-    dialog.setOnDismissListener(d -> {
-        if (notifyHostOnDismiss) {
-            listener.onSheetDismissed();
-        }
-    });
+    // inflate binding, create adapter with approve/reject, size list, build dialog
 }
 ```
+- **What it does:** Builds adapter (approve → `reviewClaim`, reject → `confirmReject`), sets list height to ~55% of screen, creates the BottomSheetDialog.
+- **Where it's called:** Only from static `show`.
+- **Why it's written this way:** Private constructor forces callers through `show`, which also loads claims and displays the dialog. Nested scrolling + fixed height keeps the list usable inside the sheet.
+- **Step by step:**
+  1. Store host/listener; get API service.
+  2. Inflate binding; create Adapter with review listeners.
+  3. Configure RecyclerView; set height to 55% of display pixels.
+  4. Create dialog, set content, expand on show, notify dismiss.
 
-What that function does: I build the bottom sheet, the list, and the review callbacks.
-What the function is responsible for: I am the private constructor. show() is the public entry.
-Where it works: show() constructs me. I inflate dialog_pending_claims.xml.
-Why I chose to write the code of the function the way its written: 55% screen height keeps the list scrollable. Reject asks first. Approve goes straight to review.
-More: I use BottomSheetDialog and PendingClaimAdapter.
-
-```java
-public void onApprove(PendingClaimResponse claim) {
-    reviewClaim(claim, true);
-}
-```
-
-What that function does: I approve that claim without an extra confirm.
-What the function is responsible for: I am the adapter approve callback.
-Where it works: PendingClaimAdapter.bind calls me.
-Why I chose to write the code of the function the way its written: Approve also shows contact, so I skip a second dialog.
-More: I call reviewClaim(true).
-
-```java
-public void onReject(PendingClaimResponse claim) {
-    confirmReject(claim);
-}
-```
-
-What that function does: I ask before rejecting.
-What the function is responsible for: I am the adapter reject callback.
-Where it works: PendingClaimAdapter.bind calls me.
-Why I chose to write the code of the function the way its written: Reject is harder to undo, so I confirm.
-More: I call confirmReject.
-
-```java
-@NonNull
-public static PendingClaimsSheet show(@NonNull Fragment host,
-                                      @NonNull List<PendingClaimResponse> claims,
-                                      @NonNull Listener listener) {
-    PendingClaimsSheet sheet = new PendingClaimsSheet(host, listener);
-    sheet.replaceClaims(claims);
-    sheet.dialog.show();
-    return sheet;
-}
-```
-
-What that function does: I create the sheet, fill it, and show it.
-What the function is responsible for: I am the public open method.
-Where it works: HomeFragment calls me.
-Why I chose to write the code of the function the way its written: Returning the instance lets Home dismiss or replace it later.
-More: I call replaceClaims then dialog.show.
-
-```java
-public boolean isShowing() {
-    return dialog.isShowing();
-}
-```
-
-What that function does: I return whether the sheet is on screen.
-What the function is responsible for: I let Home avoid opening a second sheet.
-Where it works: HomeFragment checks me.
-Why I chose to write the code of the function the way its written: I forward to BottomSheetDialog.
-More: I use dialog.isShowing.
-
-```java
-public void dismiss() {
-    dismiss(true);
-}
-```
-
-What that function does: I close the sheet and tell the host.
-What the function is responsible for: I am the normal dismiss.
-Where it works: afterListChanged calls me when the list is empty.
-Why I chose to write the code of the function the way its written: notifyHost true is the default.
-More: I call dismiss(true).
-
-```java
-public void dismissQuietly() {
-    dismiss(false);
-}
-```
-
-What that function does: I close the sheet without telling the host.
-What the function is responsible for: I stop a dismiss loop when Home replaces me.
-Where it works: HomeFragment can call me before opening a new sheet.
-Why I chose to write the code of the function the way its written: Quiet skip of onSheetDismissed avoids extra reloads.
-More: I call dismiss(false).
-
-```java
-private void dismiss(boolean notifyHost) {
-    notifyHostOnDismiss = notifyHost;
-    if (dialog.isShowing()) {
-        dialog.dismiss();
-    }
-}
-```
-
-What that function does: I set whether to notify, then I dismiss if showing.
-What the function is responsible for: I am the shared close path.
-Where it works: I am called by dismiss and dismissQuietly.
-Why I chose to write the code of the function the way its written: The flag is read in the dismiss listener.
-More: I use dialog.dismiss.
-
-```java
-public void replaceClaims(@NonNull List<PendingClaimResponse> claims) {
-    if (reviewing) {
-        return;
-    }
-    adapter.updateClaims(new ArrayList<>(claims));
-    updateHeader();
-}
-```
-
-What that function does: I replace the list unless a review is in flight.
-What the function is responsible for: I refresh the sheet from Home without closing it.
-Where it works: show() and HomeFragment call me.
-Why I chose to write the code of the function the way its written: Skipping while reviewing stops a refresh from wiping the busy state.
-More: I copy the list into the adapter.
-
+### `private void expandSheet()`
 ```java
 private void expandSheet() {
     FrameLayout bottomSheet = dialog.findViewById(
@@ -183,26 +71,28 @@ private void expandSheet() {
     behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
 }
 ```
+- **What it does:** Forces the sheet open fully and skips the half-collapsed state.
+- **Where it's called:** From the dialog’s `setOnShowListener`.
+- **Why it's written this way:** Pending claims should be readable immediately without an extra drag.
+- **Step by step:**
+  1. Find Material’s `design_bottom_sheet` FrameLayout.
+  2. Get behavior; skip collapsed; set EXPANDED.
 
-What that function does: I expand the sheet fully and skip the half-open state.
-What the function is responsible for: I make the list usable as soon as it shows.
-Where it works: The dialog onShow listener calls me.
-Why I chose to write the code of the function the way its written: SkipCollapsed stops a peek that hides the buttons.
-More: I use BottomSheetBehavior.STATE_EXPANDED.
-
+### `private void updateHeader()`
 ```java
 private void updateHeader() {
     binding.textPendingClaimsHeader.setText(host.getString(
             R.string.pending_claims_sheet_title, adapter.getItemCount()));
 }
 ```
+- **What it does:** Sets the header text to include the current claim count.
+- **Where it's called:** From `replaceClaims` and `afterListChanged`.
+- **Why it's written this way:** Keeps the title count accurate as rows are removed.
+- **Step by step:**
+  1. Format the title string with `adapter.getItemCount()`.
+  2. Set it on the header TextView.
 
-What that function does: I put the remaining count in the header.
-What the function is responsible for: I keep the title in sync with the list.
-Where it works: I am called from replaceClaims and afterListChanged.
-Why I chose to write the code of the function the way its written: The string takes the count as an argument.
-More: I use adapter.getItemCount.
-
+### `private void confirmReject(PendingClaimResponse claim)`
 ```java
 private void confirmReject(PendingClaimResponse claim) {
     if (!host.isAdded()) {
@@ -216,121 +106,15 @@ private void confirmReject(PendingClaimResponse claim) {
             .show();
 }
 ```
+- **What it does:** Asks the owner to confirm before rejecting.
+- **Where it's called:** From the Adapter’s `onReject`.
+- **Why it's written this way:** Reject is destructive for the claimant; a confirm dialog reduces accidents. Approve goes straight to `reviewClaim`.
+- **Step by step:**
+  1. Abort if host Fragment not added.
+  2. Show Material confirm dialog.
+  3. On positive, call `reviewClaim(claim, false)`.
 
-What that function does: I ask before sending REJECTED.
-What the function is responsible for: I am the reject confirm dialog.
-Where it works: I am called from onReject.
-Why I chose to write the code of the function the way its written: host.isAdded stops a dialog after the fragment left.
-More: I use MaterialAlertDialogBuilder.
-
-```java
-private void reviewClaim(PendingClaimResponse claim, boolean approve) {
-    if (!host.isAdded() || claim.getClaimId() == null) {
-        return;
-    }
-    String authHeader = TokenManager.getAuthHeader(host.requireContext());
-    if (authHeader == null) {
-        return;
-    }
-
-    reviewing = true;
-    adapter.setBusyClaimId(claim.getClaimId());
-    String status = approve ? "APPROVED" : "REJECTED";
-    apiService.reviewClaim(authHeader, claim.getClaimId(), new ClaimReviewRequest(status))
-            .enqueue(new Callback<Claim>() {
-                @Override
-                public void onResponse(@NonNull Call<Claim> call,
-                                       @NonNull Response<Claim> response) {
-                    if (!host.isAdded()) {
-                        return;
-                    }
-                    if (!response.isSuccessful()) {
-                        reviewing = false;
-                        adapter.setBusyClaimId(null);
-                        Toast.makeText(host.requireContext(),
-                                R.string.msg_claim_review_failed, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    if (approve) {
-                        revealClaimantContact(claim.getClaimId());
-                        adapter.removeClaimsForItem(claim.getItemId());
-                    } else {
-                        adapter.removeClaim(claim.getClaimId());
-                    }
-                    reviewing = false;
-                    adapter.setBusyClaimId(null);
-                    afterListChanged();
-                }
-
-                @Override
-                public void onFailure(@NonNull Call<Claim> call, @NonNull Throwable t) {
-                    if (!host.isAdded()) {
-                        return;
-                    }
-                    reviewing = false;
-                    adapter.setBusyClaimId(null);
-                    Toast.makeText(host.requireContext(),
-                            R.string.msg_claim_review_failed, Toast.LENGTH_SHORT).show();
-                }
-            });
-}
-```
-
-What that function does: I send approve or reject, lock the buttons, then I update the list.
-What the function is responsible for: I am PUT review from the sheet.
-Where it works: I am called from onApprove and confirmReject.
-Why I chose to write the code of the function the way its written: Approve removes every pending claim on that item because the server auto-rejects siblings. Reject removes only that row.
-More: I use adapter.setBusyClaimId and ClaimReviewRequest.
-
-```java
-public void onResponse(@NonNull Call<Claim> call,
-                       @NonNull Response<Claim> response) {
-    if (!host.isAdded()) {
-        return;
-    }
-    if (!response.isSuccessful()) {
-        reviewing = false;
-        adapter.setBusyClaimId(null);
-        Toast.makeText(host.requireContext(),
-                R.string.msg_claim_review_failed, Toast.LENGTH_SHORT).show();
-        return;
-    }
-    if (approve) {
-        revealClaimantContact(claim.getClaimId());
-        adapter.removeClaimsForItem(claim.getItemId());
-    } else {
-        adapter.removeClaim(claim.getClaimId());
-    }
-    reviewing = false;
-    adapter.setBusyClaimId(null);
-    afterListChanged();
-}
-```
-
-What that function does: I show claimant contact after approve, remove rows, then I tell Home.
-What the function is responsible for: I am the Retrofit success path for review from the sheet.
-Where it works: Retrofit calls me from reviewClaim.
-Why I chose to write the code of the function the way its written: Contact comes right after approve so the owner can reach the claimant.
-More: I call revealClaimantContact and afterListChanged.
-
-```java
-public void onFailure(@NonNull Call<Claim> call, @NonNull Throwable t) {
-    if (!host.isAdded()) {
-        return;
-    }
-    reviewing = false;
-    adapter.setBusyClaimId(null);
-    Toast.makeText(host.requireContext(),
-            R.string.msg_claim_review_failed, Toast.LENGTH_SHORT).show();
-}
-```
-
-What that function does: I unlock the buttons and toast that review failed.
-What the function is responsible for: I am the Retrofit failure path for review from the sheet.
-Where it works: Retrofit calls me from reviewClaim.
-Why I chose to write the code of the function the way its written: reviewing false lets replaceClaims work again.
-More: I use setBusyClaimId(null).
-
+### `private void afterListChanged()`
 ```java
 private void afterListChanged() {
     updateHeader();
@@ -340,114 +124,108 @@ private void afterListChanged() {
     }
 }
 ```
+- **What it does:** Refreshes header, notifies host, and auto-closes when no claims remain.
+- **Where it's called:** After a successful review in `reviewClaim`.
+- **Why it's written this way:** Empty sheet is useless; dismissing returns focus to Home.
+- **Step by step:**
+  1. Update header.
+  2. `listener.onClaimsChanged` with remaining claims.
+  3. If count is 0, `dismiss()`.
 
-What that function does: I refresh the header, tell Home, and close if nothing is left.
-What the function is responsible for: I am the post-review UI update.
-Where it works: I am called after a successful review.
-Why I chose to write the code of the function the way its written: An empty sheet should close itself.
-More: I use listener.onClaimsChanged.
-
+### `private void revealClaimantContact(String claimId)`
 ```java
 private void revealClaimantContact(@Nullable String claimId) {
-    if (claimId == null || !host.isAdded()) {
-        return;
-    }
-    String authHeader = TokenManager.getAuthHeader(host.requireContext());
-    if (authHeader == null) {
-        return;
-    }
-
-    apiService.getClaimContact(authHeader, claimId)
-            .enqueue(new Callback<ContactResponse>() {
-                @Override
-                public void onResponse(@NonNull Call<ContactResponse> call,
-                                       @NonNull Response<ContactResponse> response) {
-                    if (!host.isAdded()) {
-                        return;
-                    }
-                    if (response.isSuccessful() && response.body() != null) {
-                        ContactInfoDialog.show(host.requireContext(), response.body(),
-                                host.getViewLifecycleOwner(),
-                                callback -> {
-                                    String header = TokenManager.getAuthHeader(
-                                            host.requireContext());
-                                    if (header == null) {
-                                        return;
-                                    }
-                                    apiService.getClaimContact(header, claimId)
-                                            .enqueue(callback);
-                                },
-                                R.string.contact_claimant_title);
-                    } else {
-                        Toast.makeText(host.requireContext(),
-                                R.string.msg_contact_unavailable, Toast.LENGTH_SHORT).show();
-                    }
-                }
-
-                @Override
-                public void onFailure(@NonNull Call<ContactResponse> call,
-                                      @NonNull Throwable t) {
-                    if (!host.isAdded()) {
-                        return;
-                    }
-                    Toast.makeText(host.requireContext(),
-                            R.string.msg_contact_unavailable, Toast.LENGTH_SHORT).show();
-                }
-            });
+    // getClaimContact → ContactInfoDialog.show with reloader and claimant title
 }
 ```
+- **What it does:** Fetches contact for the approved claim and shows `ContactInfoDialog` titled as claimant contact, with an optional reload hook.
+- **Where it's called:** From `reviewClaim`’s success path when `approve` is true.
+- **Why it's written this way:** Approving means the owner should see how to reach the claimant. Reloader re-fetches if `AppDataRefresh` ticks while the dialog is open.
+- **Step by step:**
+  1. Require claim id and host added + auth header.
+  2. Enqueue `getClaimContact`.
+  3. On success: `ContactInfoDialog.show` with reloader that calls `getClaimContact` again.
+  4. On failure: toast contact unavailable.
 
-What that function does: I load claimant contact after approve and show it with a claimant title.
-What the function is responsible for: I am the post-approve contact reveal.
-Where it works: I am called from reviewClaim when approve is true.
-Why I chose to write the code of the function the way its written: contact_claimant_title makes it clear this is the claimant, not the owner.
-More: I use ContactInfoDialog.show with a reloader.
-
+### `private void reviewClaim(PendingClaimResponse claim, boolean approve)`
 ```java
-public void onResponse(@NonNull Call<ContactResponse> call,
-                       @NonNull Response<ContactResponse> response) {
-    if (!host.isAdded()) {
-        return;
-    }
-    if (response.isSuccessful() && response.body() != null) {
-        ContactInfoDialog.show(host.requireContext(), response.body(),
-                host.getViewLifecycleOwner(),
-                callback -> {
-                    String header = TokenManager.getAuthHeader(
-                            host.requireContext());
-                    if (header == null) {
-                        return;
-                    }
-                    apiService.getClaimContact(header, claimId)
-                            .enqueue(callback);
-                },
-                R.string.contact_claimant_title);
-    } else {
-        Toast.makeText(host.requireContext(),
-                R.string.msg_contact_unavailable, Toast.LENGTH_SHORT).show();
-    }
+private void reviewClaim(PendingClaimResponse claim, boolean approve) {
+    // set reviewing + busy; reviewClaim API; on approve removeClaimsForItem + contact;
+    // on reject removeClaim; then afterListChanged
 }
 ```
+- **What it does:** Sends APPROVED or REJECTED, marks the Adapter busy, updates the list locally on success, then notifies the host.
+- **Where it's called:** From approve listener and from confirm-reject positive button.
+- **Why it's written this way:** `setBusyClaimId` disables buttons during the request. Approve removes all claims for that item (siblings); reject removes only that claim. Local removal is snappier than a full reload.
+- **Step by step:**
+  1. Guard host/claim id/auth.
+  2. Set `reviewing = true` and `adapter.setBusyClaimId`.
+  3. Enqueue `reviewClaim` with the status string.
+  4. On failure: clear busy, toast.
+  5. On success approve: reveal contact, `removeClaimsForItem`; on reject: `removeClaim`.
+  6. Clear busy/reviewing; `afterListChanged`.
 
-What that function does: I show the claimant dialog, or I toast that contact is unavailable.
-What the function is responsible for: I am the Retrofit success path for getClaimContact from the sheet.
-Where it works: Retrofit calls me from revealClaimantContact.
-Why I chose to write the code of the function the way its written: host.isAdded stops a dialog after leave.
-More: I use ContactInfoDialog.
-
+### `public void replaceClaims(List<PendingClaimResponse> claims)`
 ```java
-public void onFailure(@NonNull Call<ContactResponse> call,
-                      @NonNull Throwable t) {
-    if (!host.isAdded()) {
+public void replaceClaims(@NonNull List<PendingClaimResponse> claims) {
+    if (reviewing) {
         return;
     }
-    Toast.makeText(host.requireContext(),
-            R.string.msg_contact_unavailable, Toast.LENGTH_SHORT).show();
+    adapter.updateClaims(new ArrayList<>(claims));
+    updateHeader();
 }
 ```
+- **What it does:** Replaces the list from outside (Home sync), unless a review is in progress.
+- **Where it's called:** From static `show` and from `HomeFragment.syncPendingClaimsSheet`.
+- **Why it's written this way:** Ignoring updates while `reviewing` avoids wiping the list mid-request.
+- **Step by step:**
+  1. If reviewing, return.
+  2. Copy claims into Adapter; update header.
 
-What that function does: I toast that contact could not load.
-What the function is responsible for: I am the Retrofit failure path for getClaimContact from the sheet.
-Where it works: Retrofit calls me from revealClaimantContact.
-Why I chose to write the code of the function the way its written: The approve already succeeded, so I only warn about contact.
-More: I use msg_contact_unavailable.
+### `public static PendingClaimsSheet show(Fragment host, List claims, Listener listener)`
+```java
+@NonNull
+public static PendingClaimsSheet show(@NonNull Fragment host,
+                                      @NonNull List<PendingClaimResponse> claims,
+                                      @NonNull Listener listener) {
+    PendingClaimsSheet sheet = new PendingClaimsSheet(host, listener);
+    sheet.replaceClaims(claims);
+    sheet.dialog.show();
+    return sheet;
+}
+```
+- **What it does:** Factory that builds, fills, shows, and returns the sheet instance.
+- **Where it's called:** `HomeFragment.showPendingClaimsSheet`.
+- **Why it's written this way:** Callers keep the returned instance to dismiss/sync later.
+- **Step by step:**
+  1. Construct sheet.
+  2. `replaceClaims`.
+  3. Show dialog; return sheet.
+
+### `public boolean isShowing()` / `public void dismiss()` / `public void dismissQuietly()` / `private void dismiss(boolean notifyHost)`
+```java
+public boolean isShowing() {
+    return dialog.isShowing();
+}
+
+public void dismiss() {
+    dismiss(true);
+}
+
+public void dismissQuietly() {
+    dismiss(false);
+}
+
+private void dismiss(boolean notifyHost) {
+    notifyHostOnDismiss = notifyHost;
+    if (dialog.isShowing()) {
+        dialog.dismiss();
+    }
+}
+```
+- **What it does:** Reports visibility; dismisses with or without calling `onSheetDismissed`.
+- **Where it's called:** `isShowing` / `dismissQuietly` / `dismiss` from `HomeFragment` sync/show logic; `dismiss` also from `afterListChanged` when empty.
+- **Why it's written this way:** Quiet dismiss lets Home replace the sheet without treating it as a user close.
+- **Step by step:**
+  1. Set `notifyHostOnDismiss`.
+  2. If showing, `dialog.dismiss()`.

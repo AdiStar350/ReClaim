@@ -1,40 +1,42 @@
+# MapTouchWrapper.java
+
+## Overview
+This is a custom `FrameLayout` that wraps the map on the report screen. When the user drags on the map, it tells the parent scroll view not to steal that touch, so the map can pan inside a scrolling page.
+
+## Concepts used here
+- **View / ViewGroup** — `FrameLayout` is a ViewGroup that stacks children; this class extends it. See `docs/GLOSSARY.md`.
+- **Touch dispatch** — `dispatchTouchEvent` sees every touch before children; `requestDisallowInterceptTouchEvent` stops the parent from taking the gesture.
+- **AttributeSet** — XML attributes when the view is inflated from a layout file.
+
+## Libraries and imports
+- **Android framework**: `Context`, `AttributeSet`, `MotionEvent`, `FrameLayout` for the custom view.
+- **AndroidX annotations**: `@NonNull` / `@Nullable` on constructors.
+
+## Functions
+
+### `public MapTouchWrapper(Context context)` / `(Context, AttributeSet)` / `(Context, AttributeSet, int)`
 ```java
 public MapTouchWrapper(@NonNull Context context) {
     super(context);
 }
-```
 
-What that function does: I make the wrapper in code with only a context.
-What the function is responsible for: I am the one-arg FrameLayout constructor.
-Where it works: Android may use me if the view is created in Java. The report layout uses the XML constructors.
-Why I chose to write the code of the function the way its written: FrameLayout needs this constructor chain.
-More: I call super(context).
-
-```java
 public MapTouchWrapper(@NonNull Context context, @Nullable AttributeSet attrs) {
     super(context, attrs);
 }
-```
 
-What that function does: I make the wrapper from XML attributes.
-What the function is responsible for: I am the constructor the layout inflater uses.
-Where it works: activity_report.xml inflates me around the map.
-Why I chose to write the code of the function the way its written: Two-arg is the usual XML constructor.
-More: I call super(context, attrs).
-
-```java
 public MapTouchWrapper(@NonNull Context context, @Nullable AttributeSet attrs,
                        int defStyleAttr) {
     super(context, attrs, defStyleAttr);
 }
 ```
+- **What it does:** Standard View constructors so the class can be created in code or inflated from XML.
+- **Where it's called:** Android inflates the two-arg form from `activity_report.xml`, which wraps the map fragment in this class. The other constructors exist for completeness / code creation.
+- **Why it's written this way:** Custom views used in XML must provide the `Context` + `AttributeSet` constructor or inflation fails.
+- **Step by step:**
+  1. Each constructor forwards to the matching `FrameLayout` superclass constructor.
+  2. No extra field setup is needed.
 
-What that function does: I make the wrapper with a style attribute.
-What the function is responsible for: I am the three-arg FrameLayout constructor.
-Where it works: Android uses me if a style is set in XML.
-Why I chose to write the code of the function the way its written: I keep the full constructor chain FrameLayout offers.
-More: I call super(context, attrs, defStyleAttr).
-
+### `public boolean dispatchTouchEvent(MotionEvent ev)`
 ```java
 @Override
 public boolean dispatchTouchEvent(MotionEvent ev) {
@@ -52,9 +54,11 @@ public boolean dispatchTouchEvent(MotionEvent ev) {
     return super.dispatchTouchEvent(ev);
 }
 ```
-
-What that function does: I tell the scrolling parent not to steal the drag while a finger is on the map.
-What the function is responsible for: I let the map pan inside a NestedScrollView.
-Where it works: I wrap the map in activity_report.xml. ReportActivity hosts that layout.
-Why I chose to write the code of the function the way its written: DOWN blocks the parent. UP/CANCEL give the parent back so the page can scroll again.
-More: I use requestDisallowInterceptTouchEvent and super.dispatchTouchEvent.
+- **What it does:** On finger-down, blocks the parent from intercepting touches; on finger-up/cancel, allows the parent again; then passes the event to the normal `FrameLayout` handling.
+- **Where it's called:** By the Android view system whenever a touch hits this wrapper (or is dispatched through it) on the report map.
+- **Why it's written this way:** Without this, a `ScrollView` parent grabs vertical drags and the map cannot pan. Disallowing intercept only while the finger is down keeps page scrolling working elsewhere.
+- **Step by step:**
+  1. Look at `ev.getActionMasked()`.
+  2. On `ACTION_DOWN`, call `getParent().requestDisallowInterceptTouchEvent(true)`.
+  3. On `ACTION_UP` or `ACTION_CANCEL`, call it with `false`.
+  4. Return `super.dispatchTouchEvent(ev)` so children (the map) still receive the event.

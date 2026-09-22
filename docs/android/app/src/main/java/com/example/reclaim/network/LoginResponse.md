@@ -1,46 +1,35 @@
-```java
-public LoginResponse() {
-}
-```
+# LoginResponse.java
 
-What that function does: I make an empty reply so Gson can fill the token later.
-What the function is responsible for: I am the no-arg constructor Gson needs.
-Where it works: Gson uses me when ReClaimApiService.login or verifyRegistrationOtp parse JSON.
-Why I chose to write the code of the function the way its written: Gson needs an empty constructor to create me before setToken.
-More: I leave token null until Gson sets it.
+## Overview
+This file is a **response DTO**: a small class that carries data *back* from an API
+call. Where a request DTO describes what the app sends, a response DTO describes what
+the server returns. See DTO and Gson in `docs/GLOSSARY.md`. `LoginResponse` is the
+reply from `POST api/auth/login` (and the OTP sign-in endpoints); it holds the login
+token the app must save.
 
-```java
-public LoginResponse(String token) {
-    this.token = token;
-}
-```
+## Concepts used here
+- **DTO (response side).** A carrier object for one response body; see
+  `docs/GLOSSARY.md`.
+- **Gson `@SerializedName`.** Maps the JSON key `token` to the Java `token` field when
+  Gson parses the reply; see `docs/GLOSSARY.md`.
+- **No-argument constructor for Gson.** Gson creates the object with an empty
+  constructor and then fills the fields, so response DTOs provide one.
 
-What that function does: I hold a login token in one step.
-What the function is responsible for: I let tests or code build a reply without JSON.
-Where it works: I did not find an app caller of this constructor. Gson uses the empty one.
-Why I chose to write the code of the function the way its written: I kept a one-field constructor in case a caller wants to build me by hand.
-More: I set the token field.
+## Libraries and imports
+- **Gson (`com.google.gson.annotations.SerializedName`).** `@SerializedName("token")`
+  binds the JSON `token` key to the `token` field during parsing.
 
-```java
-public String getToken() {
-    return token;
-}
-```
+## Fields
+- `@SerializedName("token") private String token` — the login token (a JWT) returned by
+  the server; not `final` because Gson fills it after construction, and a setter also
+  exists.
 
-What that function does: I return the token from the login reply.
-What the function is responsible for: I give the token to TokenManager.saveToken.
-Where it works: I am read in LoginActivity and VerifyOtpActivity after a successful login or sign-up verify.
-Why I chose to write the code of the function the way its written: I kept one getter so screens do not touch the field.
-More: I return the token Gson mapped from "token".
+The class provides an empty constructor `LoginResponse()` (used by Gson), a
+convenience constructor `LoginResponse(String token)`, a getter `getToken()`, and a
+setter `setToken(...)`. These are plain accessors with no logic, so they are not
+broken down individually.
 
-```java
-public void setToken(String token) {
-    this.token = token;
-}
-```
-
-What that function does: I set the token field.
-What the function is responsible for: I let Gson write the token after the empty constructor.
-Where it works: Gson may call me while parsing LoginResponse JSON.
-Why I chose to write the code of the function the way its written: I kept a setter because token is not final.
-More: I assign the token field.
+## Where it's used
+Returned by `ReClaimApiService.login`, `verifyRegistrationOtp`, etc. Callers such as
+`LoginActivity` and `VerifyOtpActivity` read `getToken()` and hand it to
+`TokenManager.saveToken`.

@@ -1,170 +1,115 @@
-```xml
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/md_theme_background"
-    android:fitsSystemWindows="true"
-    android:orientation="vertical">
+# activity_edit_profile.xml
+
+## Overview
+This layout is the "edit your profile" screen: a centered toolbar, an avatar you can
+change, a card with name/email/phone fields, a save button, and a spinner. It is
+inflated by `EditProfileActivity` through `ActivityEditProfileBinding`.
+
+Key idea: one **Activity** screen whose fields the Activity pre-fills from the current
+user and reads back on save. See `docs/GLOSSARY.md`.
+
+## Concepts used here
+- **LinearLayout** — vertical stack for the screen and inside the card. See `docs/GLOSSARY.md`.
+- **MaterialToolbar** — the centered title bar with a back arrow. See `docs/GLOSSARY.md`.
+- **NestedScrollView** — scrolls the form. See `docs/GLOSSARY.md`.
+- **FrameLayout + MaterialCardView** — the avatar circle with a camera badge. See `docs/GLOSSARY.md`.
+- **TextInputLayout + TextInputEditText** — the name/email/phone fields. See `docs/GLOSSARY.md`.
+- **Material Button** — the save and change-photo buttons. See `docs/GLOSSARY.md`.
+- **ProgressBar** — spinner during the save. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `ActivityEditProfileBinding`. See `docs/GLOSSARY.md`.
+
+## Screen structure
+A vertical `LinearLayout`:
+
+```
+LinearLayout (root, vertical, light background)
+├── MaterialToolbar (toolbar_edit_profile, centered title)
+└── NestedScrollView
+    └── LinearLayout
+        ├── FrameLayout (avatar circle + camera badge)
+        ├── "Change photo" text button
+        ├── Card: name field + email field + phone field
+        ├── Save button
+        └── ProgressBar (hidden)
 ```
 
-What that function does: I am the edit-profile screen.
-What the function is responsible for: I am the root of activity_edit_profile.
-Where it works: EditProfileActivity inflates me through ActivityEditProfileBinding.
-Why I chose to write the code of the function the way its written: fitsSystemWindows keeps the toolbar under the status bar.
-More: I use a vertical LinearLayout.
+The root is a `LinearLayout` because the toolbar and the scrolling form are just stacked
+in a column.
 
+## Components
+
+### Toolbar
 ```xml
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar_edit_profile"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/md_theme_background"
-        app:navigationIcon="@drawable/ic_arrow_back_24"
-        app:navigationIconTint="@color/text_primary"
-        app:title="@string/edit_profile_title"
-        app:titleCentered="true"
-        app:titleTextAppearance="@style/TextAppearance.ReClaim.SettingsScreenTitle"
-        app:titleTextColor="@color/text_primary" />
+<com.google.android.material.appbar.MaterialToolbar
+    android:id="@+id/toolbar_edit_profile"
+    app:navigationIcon="@drawable/ic_arrow_back_24"
+    app:title="@string/edit_profile_title"
+    app:titleCentered="true" />
 ```
+- **What it shows:** a light bar with a back arrow and a centered "Edit profile" title.
+- **Why it's set up this way:** `titleCentered="true"` matches the app's settings-style
+  screens; the light background matches the form.
+- **How the code uses it:** `binding.toolbarEditProfile.setNavigationOnClickListener(...)`
+  triggers the back navigation.
 
-What that function does: I am a light centered title with a back arrow.
-What the function is responsible for: I am the edit-profile toolbar.
-Where it works: EditProfileActivity uses toolbar_edit_profile for up navigation.
-Why I chose to write the code of the function the way its written: Centered title matches other settings screens, not the dark auth hero.
-More: I use titleCentered.
-
+### Avatar picker (circle + camera badge)
 ```xml
-            <FrameLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="@dimen/space_16">
+<FrameLayout android:layout_gravity="center_horizontal">
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_avatar"
+        android:clickable="true"
+        app:cardCornerRadius="@dimen/space_52">
+        <ImageView android:id="@+id/image_profile_avatar" android:src="@drawable/ic_settings_person" ... />
+    </com.google.android.material.card.MaterialCardView>
+    <com.google.android.material.card.MaterialCardView app:cardBackgroundColor="@color/brand_accent">
+        <ImageView android:src="@android:drawable/ic_menu_camera" />
+    </com.google.android.material.card.MaterialCardView>
+</FrameLayout>
 
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_avatar"
-                    android:layout_width="@dimen/space_104"
-                    android:layout_height="@dimen/space_104"
-                    android:clickable="true"
-                    android:focusable="true"
-                    app:cardBackgroundColor="@color/md_theme_primaryContainer"
-                    app:cardCornerRadius="@dimen/space_52"
-                    app:cardElevation="0dp"
-                    app:strokeWidth="0dp">
-
-                    <ImageView
-                        android:id="@+id/image_profile_avatar"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:contentDescription="@string/cd_profile_avatar"
-                        android:padding="@dimen/space_28"
-                        android:scaleType="centerCrop"
-                        android:src="@drawable/ic_settings_person"
-                        app:tint="@color/brand_dark" />
-                </com.google.android.material.card.MaterialCardView>
+<com.google.android.material.button.MaterialButton android:id="@+id/btn_change_photo" ... />
 ```
+- **What it shows:** a round avatar with a small accent camera badge, plus a
+  "Change photo" button.
+- **Why it's set up this way:** the same pattern as register — a `FrameLayout` overlays
+  the badge on a `MaterialCardView` circle (corner radius = half the size makes it round).
+- **How the code uses it:** `binding.cardAvatar` and `binding.btnChangePhoto` open the
+  photo picker; a chosen photo is loaded into `binding.imageProfileAvatar` (Glide, with
+  padding/tint cleared so it fills the circle).
 
-What that function does: I am the avatar picker with a camera badge and change-photo button.
-What the function is responsible for: I take a new profile picture.
-Where it works: EditProfileActivity wires card_avatar and btn_change_photo.
-Why I chose to write the code of the function the way its written: Same pattern as register so the two screens feel related.
-More: I use a round MaterialCardView.
-
+### Name / Email / Phone card
 ```xml
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/input_layout_name"
-                        style="@style/Widget.ReClaim.TextInput"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="@string/hint_profile_name"
-                        app:startIconDrawable="@drawable/ic_settings_person">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/edit_name"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="textPersonName|textCapWords"
-                            android:textColor="@color/text_primary" />
-                    </com.google.android.material.textfield.TextInputLayout>
+<com.google.android.material.card.MaterialCardView style="@style/Widget.ReClaim.SettingsCard">
+    <LinearLayout android:orientation="vertical" android:padding="@dimen/space_16">
+        <com.google.android.material.textfield.TextInputLayout android:id="@+id/input_layout_name" ...>
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/edit_name" android:inputType="textPersonName|textCapWords" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <!-- email: input_layout_email / edit_email, inputType textEmailAddress -->
+        <!-- phone: input_layout_phone / edit_phone, inputType phone -->
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
 ```
+- **What it shows:** a settings-style card holding the three editable fields with leading
+  icons and hints.
+- **Why it's set up this way:** grouping the fields in one card matches the profile
+  settings look; each field is a `TextInputLayout` so hints float and errors show. The
+  `inputType`s pick the right keyboard per field.
+- **How the code uses it:** on load, the code fills `binding.editName`,
+  `binding.editEmail`, and `binding.editPhone` from the current user. On save it reads
+  them back; if the name is empty it shows an error on `binding.inputLayoutName`. (The
+  email and phone layouts don't get validation errors in the current code.)
 
-What that function does: I am the name field.
-What the function is responsible for: I take the new display name.
-Where it works: EditProfileActivity reads edit_name.
-Why I chose to write the code of the function the way its written: Cap words fits a person's name.
-More: I use ic_settings_person.
-
+### Save button and spinner
 ```xml
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/input_layout_email"
-                        style="@style/Widget.ReClaim.TextInput"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/space_12"
-                        android:hint="@string/hint_email"
-                        app:startIconDrawable="@android:drawable/ic_dialog_email">
+<com.google.android.material.button.MaterialButton
+    android:id="@+id/btn_save_profile"
+    style="@style/Widget.ReClaim.Button.Primary"
+    android:text="@string/btn_save_profile" />
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/edit_email"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="textEmailAddress"
-                            android:textColor="@color/text_primary" />
-                    </com.google.android.material.textfield.TextInputLayout>
+<ProgressBar android:id="@+id/progress" android:visibility="gone" />
 ```
-
-What that function does: I am the email field.
-What the function is responsible for: I take the new email.
-Where it works: EditProfileActivity reads edit_email.
-Why I chose to write the code of the function the way its written: Email keyboard matches signup.
-More: I use Widget.ReClaim.TextInput.
-
-```xml
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/input_layout_phone"
-                        style="@style/Widget.ReClaim.TextInput"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/space_12"
-                        android:hint="@string/hint_profile_phone"
-                        app:startIconDrawable="@android:drawable/ic_menu_call">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/edit_phone"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="phone"
-                            android:textColor="@color/text_primary" />
-                    </com.google.android.material.textfield.TextInputLayout>
-```
-
-What that function does: I am the phone field.
-What the function is responsible for: I take the new phone.
-Where it works: EditProfileActivity reads edit_phone.
-Why I chose to write the code of the function the way its written: inputType phone brings the number pad.
-More: I use ic_menu_call.
-
-```xml
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_save_profile"
-                style="@style/Widget.ReClaim.Button.Primary"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/button_height"
-                android:layout_marginTop="@dimen/space_20"
-                android:text="@string/btn_save_profile" />
-
-            <ProgressBar
-                android:id="@+id/progress"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="@dimen/space_16"
-                android:indeterminateTint="@color/brand_accent"
-                android:visibility="gone" />
-```
-
-What that function does: I am save and a spinner while the update runs.
-What the function is responsible for: I submit profile changes.
-Where it works: EditProfileActivity wires btn_save_profile and shows progress.
-Why I chose to write the code of the function the way its written: Spinner starts gone.
-More: I use Widget.ReClaim.Button.Primary.
+- **What it shows:** the full-width save button, with a hidden spinner below it.
+- **Why it's set up this way:** the spinner is `gone` until saving starts, so it doesn't
+  reserve space; the primary button is the main action.
+- **How the code uses it:** `binding.btnSaveProfile` runs `saveProfile()`. While saving,
+  the code shows `binding.progress` and disables the save button, change-photo button,
+  and avatar.

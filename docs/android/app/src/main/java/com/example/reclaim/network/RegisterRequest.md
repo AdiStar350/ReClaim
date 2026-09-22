@@ -1,63 +1,34 @@
-```java
-public RegisterRequest(String email, String password,
-                       String name, String phoneNumber) {
-    this.email = email;
-    this.password = password;
-    this.name = name;
-    this.phoneNumber = phoneNumber;
-}
-```
+# RegisterRequest.java
 
-What that function does: I store email, password, name, and phone for direct sign-up.
-What the function is responsible for: I am the JSON body for POST /api/auth/register.
-Where it works: ReClaimApiService.register takes me. I did not find a screen that builds me; sign-up uses SendOtpRequest instead.
-Why I chose to write the code of the function the way its written: I kept the four fields the old register route needs.
-More: I use Gson @SerializedName on each field.
+## Overview
+This file is a **DTO (Data Transfer Object)** that carries sign-up fields into the API.
+A DTO's only job is to hold the data for one request and control its JSON shape; see
+DTO and Gson in `docs/GLOSSARY.md`. `RegisterRequest` is the body for
+`POST api/auth/register`.
 
-```java
-public String getEmail() {
-    return email;
-}
-```
+## Concepts used here
+- **DTO.** A carrier object for one request body; see `docs/GLOSSARY.md`.
+- **Gson `@SerializedName`.** Maps each Java field to the JSON key the backend expects;
+  see `docs/GLOSSARY.md`.
+- **Immutable fields (`final`).** All fields are set once in the constructor.
 
-What that function does: I return the email I was built with.
-What the function is responsible for: I let callers read the email.
-Where it works: I did not find an app caller of this getter. Gson reads the field.
-Why I chose to write the code of the function the way its written: I kept a simple getter next to the field.
-More: I return the final email field.
+## Libraries and imports
+- **Gson (`com.google.gson.annotations.SerializedName`).** The `@SerializedName`
+  annotations set the JSON keys `email`, `password`, `name`, and `phoneNumber`.
 
-```java
-public String getPassword() {
-    return password;
-}
-```
+## Fields
+- `@SerializedName("email") private final String email` — sign-up email.
+- `@SerializedName("password") private final String password` — chosen password.
+- `@SerializedName("name") private final String name` — display name.
+- `@SerializedName("phoneNumber") private final String phoneNumber` — phone number,
+  sent as JSON key `phoneNumber`.
 
-What that function does: I return the password I was built with.
-What the function is responsible for: I let callers read the password.
-Where it works: I did not find an app caller of this getter. Gson reads the field.
-Why I chose to write the code of the function the way its written: I kept a simple getter next to the field.
-More: I return the final password field.
+All four are `final`, set by the constructor
+`RegisterRequest(String email, String password, String name, String phoneNumber)`.
+Plain getters return each field and carry no logic.
 
-```java
-public String getName() {
-    return name;
-}
-```
-
-What that function does: I return the name I was built with.
-What the function is responsible for: I let callers read the name.
-Where it works: I did not find an app caller of this getter. Gson reads the field.
-Why I chose to write the code of the function the way its written: I kept a simple getter next to the field.
-More: I return the final name field.
-
-```java
-public String getPhoneNumber() {
-    return phoneNumber;
-}
-```
-
-What that function does: I return the phone I was built with.
-What the function is responsible for: I let callers read the phone.
-Where it works: I did not find an app caller of this getter. Gson reads the field.
-Why I chose to write the code of the function the way its written: I kept a simple getter next to the field.
-More: I return the final phoneNumber field.
+## Where it's used
+This DTO matches the `register` endpoint. Note that the Android client currently signs
+users up through the OTP flow (`SendOtpRequest` → `verifyRegistrationOtp`), so
+`RegisterRequest` is not constructed by app code today; it documents the direct
+`POST api/auth/register` contract.

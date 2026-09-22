@@ -1,3 +1,27 @@
+# ItemServiceTest.java
+
+## Overview
+This is a **unit test** class for `ItemService` using Mockito (see `docs/GLOSSARY.md`). It stubs repositories (and unused collaborators) to check two production areas: the `hasUserAlreadyInteracted` flag on `getVisibleItem`, and match listing rules in `findMatchesForLostItem` (closed lost reports return nothing; open founds in the same category on/after the lost date are kept).
+
+## Concepts used here
+- **Service** — `ItemService` under test; see `docs/GLOSSARY.md`.
+- **Model / repository** — `Item` / `Claim` fixtures and mocked repos; see `docs/GLOSSARY.md`.
+- **Visibility / interaction flag** — whether the viewer already claimed or filed a targeted found.
+- **Unit test / Mockito** — `@InjectMocks` service with mocked dependencies.
+
+## Libraries and imports
+- **JUnit 5** (`@Test`, assertions): test methods and expectations.
+- **Mockito** (`@ExtendWith`, `@Mock`, `@InjectMocks`, `when`): fake repos and helper services.
+- **Java time** (`Instant`): lost/found report timestamps for match filtering.
+- **Project**: `ItemService`, models, repositories, `PushNotificationService`, `FirebaseStorageService`, `MongoTemplate`.
+
+## Fields
+- `itemRepository` / `mongoTemplate` / `userRepository` / `pushNotificationService` / `firebaseStorageService` / `claimRepository` — mocks required to construct `ItemService`.
+- `itemService` (`ItemService`) — real service under test.
+
+## Functions
+
+### `@Test void getVisibleItem_marksFoundWhenUserHasPendingClaim()`
 ```java
 @Test
 void getVisibleItem_marksFoundWhenUserHasPendingClaim() {
@@ -17,13 +41,15 @@ void getVisibleItem_marksFoundWhenUserHasPendingClaim() {
     assertTrue(Boolean.TRUE.equals(result.get().getHasUserAlreadyInteracted()));
 }
 ```
+- **What it does:** checks production detail enrichment: for a FOUND item, if the viewer already has a PENDING claim, `hasUserAlreadyInteracted` is true.
+- **Where it's called:** by the JUnit test runner.
+- **Why it's written this way:** stubs the claim lookup the service uses in `hasUserAlreadyInteracted`.
+- **Step by step:**
+  1. Stub found item and a pending claim for the viewer.
+  2. Call `getVisibleItem`.
+  3. Assert the interaction flag is true.
 
-What that function does: I check that a found item is marked interacted when the viewer already has a pending claim.
-What the function is responsible for: I test ItemService.getVisibleItem and hasUserAlreadyInteracted for found reports.
-Where it works: I call ItemService.getVisibleItem.
-Why I chose to write the code of the function the way its written: I return a pending claim list so the flag should be true without a real database.
-More: I use Mockito when, Claim.builder, Optional.of, and assertTrue.
-
+### `@Test void getVisibleItem_marksLostWhenUserFiledLinkedFound()`
 ```java
 @Test
 void getVisibleItem_marksLostWhenUserFiledLinkedFound() {
@@ -46,13 +72,15 @@ void getVisibleItem_marksLostWhenUserFiledLinkedFound() {
     assertTrue(Boolean.TRUE.equals(result.get().getHasUserAlreadyInteracted()));
 }
 ```
+- **What it does:** checks production detail enrichment: for a LOST item, if the viewer already filed a found report targeting it, `hasUserAlreadyInteracted` is true.
+- **Where it's called:** by the JUnit test runner.
+- **Why it's written this way:** stubs `findByOwnerIdAndTargetLostReportId` for the viewer.
+- **Step by step:**
+  1. Stub lost item and a linked found owned by the viewer.
+  2. Call `getVisibleItem`.
+  3. Assert the interaction flag is true.
 
-What that function does: I check that a lost item is marked interacted when the viewer already filed a linked found report.
-What the function is responsible for: I test ItemService.getVisibleItem for the lost-item interaction path.
-Where it works: I call ItemService.getVisibleItem.
-Why I chose to write the code of the function the way its written: I mock findByOwnerIdAndTargetLostReportId with a linked found so the flag should be true.
-More: I use Mockito when and List.of.
-
+### `@Test void getVisibleItem_leavesFlagFalseWhenViewerHasNotActed()`
 ```java
 @Test
 void getVisibleItem_leavesFlagFalseWhenViewerHasNotActed() {
@@ -72,13 +100,15 @@ void getVisibleItem_leavesFlagFalseWhenViewerHasNotActed() {
     assertFalse(Boolean.TRUE.equals(result.get().getHasUserAlreadyInteracted()));
 }
 ```
+- **What it does:** checks the negative case: no pending claim means the interaction flag stays false.
+- **Where it's called:** by the JUnit test runner.
+- **Why it's written this way:** empty claim list proves the flag is not stuck true.
+- **Step by step:**
+  1. Stub found item with no pending claims for the viewer.
+  2. Call `getVisibleItem`.
+  3. Assert the flag is not true.
 
-What that function does: I check that the interaction flag stays false when the viewer has no pending claim.
-What the function is responsible for: I test ItemService.getVisibleItem's no-action path.
-Where it works: I call ItemService.getVisibleItem.
-Why I chose to write the code of the function the way its written: I wrote it this way because an empty claim list is the case a first-time viewer should see.
-More: I use List.of() and assertFalse.
-
+### `@Test void findMatchesForLostItem_ignoresClosedLostReports()`
 ```java
 @Test
 void findMatchesForLostItem_ignoresClosedLostReports() {
@@ -94,13 +124,15 @@ void findMatchesForLostItem_ignoresClosedLostReports() {
     assertTrue(itemService.findMatchesForLostItem("lost-1", "owner-1").isEmpty());
 }
 ```
+- **What it does:** checks production matching: a closed lost report returns an empty match list (no candidate query needed).
+- **Where it's called:** by the JUnit test runner.
+- **Why it's written this way:** only stubs the lost item; if status is CLOSED, the service returns early.
+- **Step by step:**
+  1. Stub a CLOSED lost item owned by the caller.
+  2. Call `findMatchesForLostItem`.
+  3. Assert the list is empty.
 
-What that function does: I check that a closed lost report returns no matches.
-What the function is responsible for: I test ItemService.findMatchesForLostItem when status is CLOSED.
-Where it works: I call ItemService.findMatchesForLostItem.
-Why I chose to write the code of the function the way its written: I do not stub the found-item query because the method should return before it.
-More: I use Mockito when and assertTrue isEmpty.
-
+### `@Test void findMatchesForLostItem_keepsOpenFoundInSameCategoryOnOrAfterLostDate()`
 ```java
 @Test
 void findMatchesForLostItem_keepsOpenFoundInSameCategoryOnOrAfterLostDate() {
@@ -133,9 +165,10 @@ void findMatchesForLostItem_keepsOpenFoundInSameCategoryOnOrAfterLostDate() {
     assertEquals("found-1", matches.get(0).getId());
 }
 ```
-
-What that function does: I check that an open found item in the same category on or after the lost date is kept.
-What the function is responsible for: I test ItemService.findMatchesForLostItem's happy path with a date floor.
-Where it works: I call ItemService.findMatchesForLostItem.
-Why I chose to write the code of the function the way its written: I stub the GreaterThanEqual query with one found item the lost owner did not report.
-More: I use Instant.parse, Mockito when, and assertEquals.
+- **What it does:** checks production matching: for an open lost item with a report date, open found items in the same category reported on/after that date are returned.
+- **Where it's called:** by the JUnit test runner.
+- **Why it's written this way:** stubs the dated repository query the service uses when `reportedAt` is set.
+- **Step by step:**
+  1. Stub an OPEN lost item with category and `reportedAt`.
+  2. Stub the repository to return one OPEN found candidate after that date.
+  3. Assert exactly that found id is returned.

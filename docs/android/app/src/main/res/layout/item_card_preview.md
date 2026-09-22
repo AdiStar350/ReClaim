@@ -1,113 +1,86 @@
+# item_card_preview.xml
+
+## Overview
+This layout is a compact horizontal preview card for the home screen: a fixed-width
+card with a photo, a Lost/Found chip over a scrim, then title and location. It is
+inflated once per item by `PreviewItemAdapter` through `ItemCardPreviewBinding` and
+shown in `HomeFragment`'s nearby-items RecyclerView. Hidden `text_item_category` and
+`chip_status` keep the same ids as `item_card.xml` for adapter compatibility, but stay
+`gone`.
+
+Key idea: an **Adapter** inflates this layout once per list item and a **ViewHolder**
+holds its views. See `docs/GLOSSARY.md`.
+
+## Concepts used here
+- **MaterialCardView** — the tappable preview card root.
+- **FrameLayout** — overlays scrim and chip on the photo. See `docs/GLOSSARY.md`.
+- **Chip** — the Lost/Found badge.
+- **Glide** — loads the preview photo. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `ItemCardPreviewBinding`. See `docs/GLOSSARY.md`.
+
+## Screen structure
+
+```
+MaterialCardView card_item (fixed width)
+└── LinearLayout (vertical)
+    ├── FrameLayout (image area)
+    │   ├── ImageView image_item
+    │   ├── View (scrim — no id)
+    │   └── Chip chip_type
+    └── LinearLayout (text)
+        ├── text_item_title
+        ├── text_item_location
+        ├── text_item_category (gone)
+        └── chip_status (gone)
+```
+
+The root is a fixed-width `MaterialCardView` so several cards can sit in a horizontal
+preview row.
+
+## Components
+
+### Root card
 ```xml
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<com.google.android.material.card.MaterialCardView
     android:id="@+id/card_item"
     android:layout_width="@dimen/space_200"
-    android:layout_height="wrap_content"
     android:clickable="true"
     android:focusable="true"
-    app:cardBackgroundColor="@color/md_theme_surfaceContainerLowest"
-    app:cardCornerRadius="@dimen/item_card_radius"
-    app:cardElevation="@dimen/space_2"
-    app:rippleColor="@color/brand_accent"
-    app:strokeColor="@color/md_theme_outlineVariant"
-    app:strokeWidth="@dimen/space_0_5">
+    app:rippleColor="@color/brand_accent">
 ```
+- **What it shows:** the whole tappable preview card.
+- **Why it's set up this way:** a fixed width fits a horizontal list; `clickable` /
+  `focusable` plus ripple make the whole card the tap target.
+- **How the code uses it:** `PreviewItemAdapter` sets a click listener on
+  `binding.getRoot()` to open the item details.
 
-What that function does: I am the small tappable card for the home preview row.
-What the function is responsible for: I am the root of item_card_preview.
-Where it works: PreviewItemAdapter inflates me. HomeFragment hosts that adapter.
-Why I chose to write the code of the function the way its written: A fixed 200dp width fits a horizontal list. Clickable so the ripple shows.
-More: I use MaterialCardView and item_card_radius.
-
+### Image with type chip
 ```xml
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/space_112">
-
-            <ImageView
-                android:id="@+id/image_item"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@color/md_theme_surfaceContainer"
-                android:contentDescription="@string/item_details_title"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_item_placeholder" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@drawable/bg_item_image_scrim" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_type"
-                style="@style/Widget.ReClaim.Chip.Badge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom|start"
-                android:layout_margin="@dimen/space_10"
-                android:textColor="@color/brand_white"
-                android:textSize="@dimen/text_size_10"
-                tools:chipBackgroundColor="@color/type_lost"
-                tools:text="Lost" />
-        </FrameLayout>
+<FrameLayout android:layout_height="@dimen/space_112">
+    <ImageView android:id="@+id/image_item" android:scaleType="centerCrop" ... />
+    <View android:background="@drawable/bg_item_image_scrim" />
+    <com.google.android.material.chip.Chip
+        android:id="@+id/chip_type"
+        style="@style/Widget.ReClaim.Chip.Badge"
+        android:layout_gravity="bottom|start" ... />
+</FrameLayout>
 ```
+- **What it shows:** the item photo, darkened by a bottom scrim, with a Lost/Found
+  chip in the corner.
+- **Why it's set up this way:** a `FrameLayout` stacks scrim and chip over the image;
+  the scrim keeps white chip text readable on bright photos. The image height is
+  shorter than full `item_card` so the home row stays compact.
+- **How the code uses it:** the adapter loads Glide into `binding.imageItem` and styles
+  `binding.chipType` for Lost vs Found.
 
-What that function does: I show the photo, a dark scrim, and the Lost/Found chip.
-What the function is responsible for: I am the image block of the preview card.
-Where it works: PreviewItemAdapter.bind loads image_item with Glide and sets chip_type.
-Why I chose to write the code of the function the way its written: The scrim makes white chip text readable. 112dp keeps the row short.
-More: I use bg_item_image_scrim and Widget.ReClaim.Chip.Badge.
-
+### Title and location
 ```xml
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingStart="@dimen/space_12"
-            android:paddingTop="@dimen/space_10"
-            android:paddingEnd="@dimen/space_12"
-            android:paddingBottom="@dimen/space_12">
-
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/text_item_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textAppearance="?attr/textAppearanceLabelLarge"
-                android:textColor="@color/text_primary"
-                tools:text="Black Leather Wallet" />
-
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/text_item_location"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_3"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textAppearance="?attr/textAppearanceBodySmall"
-                android:textColor="@color/text_secondary"
-                tools:text="Central Station" />
-
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/text_item_category"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:visibility="gone"
-                tools:text="Wallets" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_status"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:visibility="gone" />
-        </LinearLayout>
+<MaterialTextView android:id="@+id/text_item_title" android:maxLines="1" android:ellipsize="end" ... />
+<MaterialTextView android:id="@+id/text_item_location" android:maxLines="1" android:ellipsize="end" ... />
 ```
-
-What that function does: I show title and place. Category and status stay hidden.
-What the function is responsible for: I am the text block of the preview card.
-Where it works: PreviewItemAdapter.bind sets title and location. The gone views keep ids aligned with item_card.xml.
-Why I chose to write the code of the function the way its written: Hidden ids let a shared binding shape exist without showing extra chips on a small card.
-More: I use text_item_title and text_item_location.
+- **What it shows:** a one-line title and a quieter one-line location under the photo.
+- **Why it's set up this way:** single-line ellipsis keeps every preview card the same
+  height in the horizontal list.
+- **How the code uses it:** the adapter sets `binding.textItemTitle` and
+  `binding.textItemLocation` from the `Item`. Category and status views stay unused
+  (left `gone` in XML).

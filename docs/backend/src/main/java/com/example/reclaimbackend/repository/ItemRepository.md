@@ -1,92 +1,104 @@
+# ItemRepository.java
+
+## Overview
+This file is a **Repository**: an interface that reads and writes one type of data in the database — here, `Item` (lost/found report) records (see `docs/GLOSSARY.md`). You declare method names following Spring Data's rules and Spring writes the queries. It also inherits standard methods (`save`, `findById`, `findAll`, `deleteById`, ...) from `MongoRepository`.
+
+## Concepts used here
+- **Repository** — an interface Spring turns into database code for one model; see `docs/GLOSSARY.md`.
+- **Spring Data derived query** — queries are generated from method names.
+- **`IgnoreCase` keyword** — part of a method name that makes a text match case-insensitive.
+- **`In` keyword** — matches when a field equals any value in a supplied list.
+- **`GreaterThanEqual` keyword** — matches when a field is at or after a given value (used for dates).
+
+## Libraries and imports
+- **Spring Data MongoDB** (`MongoRepository`): extending `MongoRepository<Item, String>` provides `save`, `findById`, `findAll`, `deleteById`, etc. `ItemService` uses `findAll`, `findById`, `save`, and `deleteById` from here in addition to the methods below.
+- **Spring** (`@Repository`): marks this as a managed data-access bean.
+- **Project class** (`com.example.reclaimbackend.model.Item`): the model stored.
+- **Java standard** (`java.time.Instant`, `java.util.List`): `Instant` for date filtering; `List` for multi-result returns.
+
+## Functions
+> Declarations only; Spring Data generates each query from the method name.
+
+### `List<Item> findByOwnerId(String ownerId)`
 ```java
 List<Item> findByOwnerId(String ownerId);
 ```
+- **What it does:** returns all items one user reported.
+- **Where it's called:** `ItemService.getItemsByOwner` (the "my items" list), `ClaimService.findActiveMatchingLostReport` (scanning a claimant's reports), and `UserService.deleteAccount` (to clean up a deleted user's items).
+- **Why it's written this way:** a simple name-to-query mapping on `ownerId`.
+- **Step by step:** Spring matches documents where `ownerId` equals the argument and returns them as a list.
 
-What that function does: I return items reported by one user.
-What the function is responsible for: I load that user's reports from the items collection.
-Where it works: I am called by ItemService.getItemsByOwner, UserService.deleteAccount, ClaimService.getPendingClaimsForOwner, and ClaimService.findActiveMatchingLostReport.
-Why I chose to write the code of the function the way its written: I used the field name ownerId so Spring Data can build the query from the method name.
-More: I return List from MongoRepository. Spring Data implements this at runtime.
-
+### `List<Item> findByCategory(String category)`
 ```java
 List<Item> findByCategory(String category);
 ```
+- **What it does:** returns all items in one category.
+- **Where it's called:** `ItemService.getItemsByCategory` and `ItemService.notifyOwnersOfPotentialMatches` (to find candidates in the same category to notify).
+- **Why it's written this way:** direct match on the indexed `category` field.
+- **Step by step:** Spring matches on `category` and returns all matches.
 
-What that function does: I return items in one category.
-What the function is responsible for: I load items filtered by category.
-Where it works: I am called by ItemService.getItemsByCategory and ItemService.notifyOwnersOfPotentialMatches.
-Why I chose to write the code of the function the way its written: I wrote it this way because category is indexed, so a simple find-by-field is enough.
-More: I rely on Spring Data, which maps findByCategory to a Mongo query on category.
-
+### `List<Item> findByType(String type)`
 ```java
 List<Item> findByType(String type);
 ```
+- **What it does:** returns all items of one type (`"Lost"` or `"Found"`).
+- **Where it's called:** **not currently called** anywhere in the backend. It is declared for completeness/possible future use; the active flows use the more specific `findByTypeIgnoreCase...` methods below.
+- **Why it's written this way:** kept as a simple, obvious query so it's available if a plain by-type list is ever needed.
+- **Step by step:** Spring would match on `type` and return all matches.
 
-What that function does: I return items of one type, Lost or Found.
-What the function is responsible for: I am a type filter on items.
-Where it works: I did not find callers in this backend.
-Why I chose to write the code of the function the way its written: I kept the same naming as the other finders in case a later call needs all lost or all found items.
-More: I rely on Spring Data, which would run this from the method name. ItemService currently uses more specific queries instead.
-
+### `List<Item> findByStatus(String status)`
 ```java
 List<Item> findByStatus(String status);
 ```
+- **What it does:** returns all items with one status (`"OPEN"` or `"CLOSED"`).
+- **Where it's called:** **not currently called** anywhere in the backend. Like `findByType`, it is declared but the live queries use the combined `...IgnoreCase...` variants.
+- **Why it's written this way:** a straightforward status query kept for completeness.
+- **Step by step:** Spring would match on `status` and return all matches.
 
-What that function does: I return items with one status, OPEN or CLOSED.
-What the function is responsible for: I am a status filter on items.
-Where it works: I did not find callers in this backend.
-Why I chose to write the code of the function the way its written: I added it next to the other simple finders even though search uses MongoTemplate instead.
-More: I rely on Spring Data, which would run this from the method name.
-
+### `List<Item> findByTargetLostReportIdIn(List<String> targetLostReportIds)`
 ```java
 List<Item> findByTargetLostReportIdIn(List<String> targetLostReportIds);
 ```
+- **What it does:** returns found reports that target any of the given lost-report ids.
+- **Where it's called:** `ItemService.getTargetedFoundReportsForLostOwner`, to gather the private found reports aimed at a user's open lost reports.
+- **Why it's written this way:** the `In` keyword lets one query cover many lost reports at once instead of looping.
+- **Step by step:** Spring matches documents whose `targetLostReportId` is in the list and returns them.
 
-What that function does: I return found reports written for any of these lost-report ids.
-What the function is responsible for: I load private targeted found reports for a list of lost items.
-Where it works: I am called by ItemService.getTargetedFoundReportsForLostOwner.
-Why I chose to write the code of the function the way its written: I wrote it this way because in lets me fetch all targeted reports for a user's open lost items in one query.
-More: I rely on Spring Data, which maps the In suffix to a Mongo $in on targetLostReportId.
-
+### `List<Item> findByOwnerIdAndTargetLostReportId(String ownerId, String targetLostReportId)`
 ```java
 List<Item> findByOwnerIdAndTargetLostReportId(String ownerId, String targetLostReportId);
 ```
+- **What it does:** returns found reports a specific user filed against a specific lost report.
+- **Where it's called:** `ItemService.hasUserAlreadyInteracted`, to check whether the viewer already filed a "found" against this lost item.
+- **Why it's written this way:** answers a precise "did this user already respond?" question in one query.
+- **Step by step:** Spring matches both `ownerId` and `targetLostReportId`; the caller checks whether the result is empty.
 
-What that function does: I return found reports one user filed for a specific lost report.
-What the function is responsible for: I check if this viewer already filed a linked found report.
-Where it works: I am called by ItemService.hasUserAlreadyInteracted. ItemServiceTest mocks me.
-Why I chose to write the code of the function the way its written: I wrote it this way because both fields together answer "did this user already act on this lost item".
-More: I rely on Spring Data, which ands ownerId and targetLostReportId.
-
+### `List<Item> findByOwnerIdAndTypeIgnoreCaseAndStatusIgnoreCase(String ownerId, String type, String status)`
 ```java
 List<Item> findByOwnerIdAndTypeIgnoreCaseAndStatusIgnoreCase(
         String ownerId, String type, String status);
 ```
+- **What it does:** returns one user's reports of a given type and status, ignoring letter case on type and status.
+- **Where it's called:** `ItemService.getOpenLostItemsByOwner` (owner's open "Lost" reports, used for matching).
+- **Why it's written this way:** `IgnoreCase` guards against stored values differing in case (e.g. `"Lost"` vs `"LOST"`, `"OPEN"` vs `"open"`).
+- **Step by step:** Spring matches `ownerId` exactly and `type`/`status` case-insensitively, returning the matches.
 
-What that function does: I return one user's reports of a given type and status, ignoring case.
-What the function is responsible for: I load that user's open lost items for matching and targeted found lists.
-Where it works: I am called by ItemService.getOpenLostItemsByOwner.
-Why I chose to write the code of the function the way its written: I wrote it this way because ignoreCase covers "Lost" vs "LOST" so stored casing does not hide rows.
-More: I rely on Spring Data, which builds an and-query with case-insensitive type and status.
-
+### `List<Item> findByTypeIgnoreCaseAndStatusIgnoreCaseAndCategoryAndReportedAtGreaterThanEqual(String type, String status, String category, Instant reportedAt)`
 ```java
 List<Item> findByTypeIgnoreCaseAndStatusIgnoreCaseAndCategoryAndReportedAtGreaterThanEqual(
         String type, String status, String category, Instant reportedAt);
 ```
+- **What it does:** returns open found reports in a category that were reported at or after a given time.
+- **Where it's called:** `ItemService.findMatchesForLostItem`, when the lost report has a known date (only later found reports can match it).
+- **Why it's written this way:** it filters by type, status, category, and date in one query so matching stays fast and precise.
+- **Step by step:** Spring matches `type`/`status` case-insensitively, `category` exactly, and `reportedAt >= argument`, then returns the matches.
 
-What that function does: I return open found reports in one category, reported at or after a lost date.
-What the function is responsible for: I load match candidates that appeared on or after the lost report.
-Where it works: I am called by ItemService.findMatchesForLostItem when reportedAt is set. ItemServiceTest mocks me.
-Why I chose to write the code of the function the way its written: I wrote it this way because greaterThanEqual keeps older found items out of the match list.
-More: I take Instant for reportedAt. Spring Data maps GreaterThanEqual to $gte.
-
+### `List<Item> findByTypeIgnoreCaseAndStatusIgnoreCaseAndCategory(String type, String status, String category)`
 ```java
 List<Item> findByTypeIgnoreCaseAndStatusIgnoreCaseAndCategory(
         String type, String status, String category);
 ```
-
-What that function does: I return open found reports in one category when the lost date is missing.
-What the function is responsible for: I am the fallback match query without a date floor.
-Where it works: I am called by ItemService.findMatchesForLostItem when reportedAt is null.
-Why I chose to write the code of the function the way its written: I still filter type, status, and category so a missing date does not return everything.
-More: I rely on Spring Data, which ands the three fields. IgnoreCase is for type and status.
+- **What it does:** same as the previous method but without the date filter.
+- **Where it's called:** `ItemService.findMatchesForLostItem`, when the lost report has no `reportedAt` date.
+- **Why it's written this way:** provides a fallback when there is no date to filter on.
+- **Step by step:** Spring matches `type`/`status` case-insensitively and `category` exactly, returning the matches.

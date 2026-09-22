@@ -1,3 +1,28 @@
+# ClaimServiceTest.java
+
+## Overview
+This is a **unit test** class for `ClaimService` with Mockito mocks for repositories and `UserService` (see `docs/GLOSSARY.md`). It verifies three production behaviors: non-owners cannot review claims (`403`), approving a claim linked to a lost report closes both as “owner found,” and the item owner can read the claimant's contact after approval.
+
+## Concepts used here
+- **Service** — `ClaimService` under test; see `docs/GLOSSARY.md`.
+- **Authorization** — only the item owner may review; see `docs/GLOSSARY.md`.
+- **Model** — `Claim` / `Item` / `User` fixtures; see `docs/GLOSSARY.md`.
+- **DTO** — `ContactResponse` for the contact test; see `docs/GLOSSARY.md`.
+- **Unit test / Mockito** — stubs repos and verifies saves.
+
+## Libraries and imports
+- **JUnit 5** (`@Test`, assertions): test methods and expectations.
+- **Mockito** (`@ExtendWith`, `@Mock`, `@InjectMocks`, `when`, `verify`, `any`): fake repositories and `UserService`.
+- **Spring** (`HttpStatus`, `ResponseStatusException`): forbidden path.
+- **Project**: `ClaimService`, models, `ContactResponse`, repositories.
+
+## Fields
+- `claimRepository` / `itemRepository` / `userService` — mocks.
+- `claimService` (`ClaimService`) — real service under test (`PushNotificationService` is left null; production code null-checks before pushing).
+
+## Functions
+
+### `@Test void reviewClaim_rejectsNonOwner()`
 ```java
 @Test
 void reviewClaim_rejectsNonOwner() {
@@ -23,13 +48,15 @@ void reviewClaim_rejectsNonOwner() {
     assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
 }
 ```
+- **What it does:** checks production review rules: a user who is not the item owner gets `403 Forbidden` when calling `reviewClaim`.
+- **Where it's called:** by the JUnit test runner.
+- **Why it's written this way:** stubs claim + item with a different owner than the reviewer id `"other-user"`.
+- **Step by step:**
+  1. Stub PENDING claim and OPEN item owned by `owner-1`.
+  2. Call `reviewClaim` as `other-user`.
+  3. Assert `FORBIDDEN`.
 
-What that function does: I check that a user who does not own the item cannot review the claim.
-What the function is responsible for: I test ClaimService.reviewClaim's 403 path.
-Where it works: I call ClaimService.reviewClaim with reviewer other-user.
-Why I chose to write the code of the function the way its written: I wrote it this way because owner-1 vs other-user is enough to hit FORBIDDEN without saving anything.
-More: I use Mockito when, Claim.builder, assertThrows, and HttpStatus.FORBIDDEN.
-
+### `@Test void reviewClaim_closesLinkedLostAndFoundAsOwnerFound()`
 ```java
 @Test
 void reviewClaim_closesLinkedLostAndFoundAsOwnerFound() {
@@ -73,13 +100,15 @@ void reviewClaim_closesLinkedLostAndFoundAsOwnerFound() {
     verify(itemRepository).save(found);
 }
 ```
+- **What it does:** checks production approve path when the found report links to the claimant's lost report: both items close with closure reason `"owner found"`, and both are saved.
+- **Where it's called:** by the JUnit test runner.
+- **Why it's written this way:** sets `targetLostReportId` so `findLinkedOrMatchingLostReport` takes the explicit link branch.
+- **Step by step:**
+  1. Stub PENDING claim by lost owner on finder's targeted found item.
+  2. Approve as the finder (item owner).
+  3. Assert claim APPROVED, both items CLOSED with `"owner found"`, and `save` called for both.
 
-What that function does: I check that approving a claim on a linked found report closes both items as owner found.
-What the function is responsible for: I test ClaimService.reviewClaim plus findLinkedOrMatchingLostReport.
-Where it works: I call ClaimService.reviewClaim with APPROVED and the found-item owner.
-Why I chose to write the code of the function the way its written: I wrote it this way because targetLostReportId plus claimant owning the lost item is the linked path. save answers return the same object so I can assert fields.
-More: I use Mockito any, thenAnswer, verify, and ClosureReasons words "owner found".
-
+### `@Test void getContactForApprovedClaim_returnsClaimantToOwner()`
 ```java
 @Test
 void getContactForApprovedClaim_returnsClaimantToOwner() {
@@ -112,9 +141,10 @@ void getContactForApprovedClaim_returnsClaimantToOwner() {
     assertEquals("123", contact.getPhoneNumber());
 }
 ```
-
-What that function does: I check that the owner of an approved claim gets the claimant's contact.
-What the function is responsible for: I test ClaimService.getContactForApprovedClaim.
-Where it works: I call ClaimService.getContactForApprovedClaim as owner-1.
-Why I chose to write the code of the function the way its written: I wrote it this way because aPPROVED plus owner requester should load the claimant through getUserEntity.
-More: I use ContactResponse, User.builder, and assertEquals.
+- **What it does:** checks production contact sharing: after approval, the item owner requesting contact receives the claimant's name, email, and phone.
+- **Where it's called:** by the JUnit test runner.
+- **Why it's written this way:** stubs an APPROVED claim and the claimant user; requester is the owner.
+- **Step by step:**
+  1. Stub APPROVED claim, item, and claimant entity.
+  2. Call `getContactForApprovedClaim` as the owner.
+  3. Assert the contact fields match the claimant.

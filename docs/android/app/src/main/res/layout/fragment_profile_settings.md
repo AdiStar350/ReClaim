@@ -1,179 +1,141 @@
-```xml
-<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/md_theme_background"
-    android:clipToPadding="false"
-    android:fillViewport="true"
-    android:overScrollMode="never">
+# fragment_profile_settings.xml
+
+## Overview
+This layout is the Profile / Settings tab: a header, a profile card, and grouped setting
+rows (report history, notifications, password, logout, delete account), plus an app
+version line and a spinner. It is inflated by `ProfileSettingsFragment` through
+`FragmentProfileSettingsBinding` (hosted by `ProfileActivity` via `activity_fragment_host.xml`).
+
+Key idea: a settings screen built from tappable rows grouped into **MaterialCardViews**.
+See `docs/GLOSSARY.md`.
+
+## Concepts used here
+- **NestedScrollView** — the scrolling root for this long settings page. See `docs/GLOSSARY.md`.
+- **LinearLayout** — vertical stacks and each horizontal setting row. See `docs/GLOSSARY.md`.
+- **FrameLayout** — the colored header block. See `docs/GLOSSARY.md`.
+- **MaterialCardView** — groups rows into cards; also the round avatar. See `docs/GLOSSARY.md`.
+- **MaterialDivider** — the line between logout and delete rows. See `docs/GLOSSARY.md`.
+- **ProgressBar** — the loading spinner. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `FragmentProfileSettingsBinding`. See `docs/GLOSSARY.md`.
+
+## Screen structure
+
+```
+NestedScrollView (root)
+└── LinearLayout (vertical)
+    ├── FrameLayout (header: "Settings" title, text_greeting)
+    └── LinearLayout (padded)
+        ├── Card card_profile (avatar + name/email + chevron)
+        ├── "Account" section title
+        ├── Card: row_report_history
+        ├── "Preferences" section title
+        ├── Card: row_notifications
+        ├── Card: row_password_update
+        ├── "Other" section title
+        ├── Card: row_logout + divider + row_delete_account
+        ├── text_app_version
+        └── ProgressBar progress
 ```
 
-What that function does: I am the profile settings tab.
-What the function is responsible for: I am the root of fragment_profile_settings.
-Where it works: ProfileSettingsFragment inflates me. DashboardActivity and ProfileActivity host the fragment.
-Why I chose to write the code of the function the way its written: NestedScrollView matches home's header plus list of rows.
-More: I use overScrollMode never.
+The root is a `NestedScrollView` because the page is a single long, scrolling list of
+settings with no collapsing app bar.
 
+## Components
+
+### Header
 ```xml
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_dashboard_header"
-            android:clipChildren="false"
-            android:clipToPadding="false"
-            android:paddingTop="@dimen/screen_padding_top"
-            android:paddingBottom="@dimen/screen_padding_bottom"
-            android:paddingEnd="@dimen/screen_padding_horizontal"
-            android:paddingStart="@dimen/screen_padding_horizontal">
+<FrameLayout android:background="@drawable/bg_dashboard_header">
+    <LinearLayout android:orientation="vertical">
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/text_greeting"
+            android:text="@string/profile_settings_title" ... />
+    </LinearLayout>
+</FrameLayout>
 ```
+- **What it shows:** the colored header with the screen title.
+- **Why it's set up this way:** it reuses the shared dashboard header background for
+  consistency with the other tabs.
+- **How the code uses it:** the id `text_greeting` exists but the current code does not
+  change it here (it stays the static "Settings" title).
 
-What that function does: I am the dark settings title bar.
-What the function is responsible for: I show Profile.
-Where it works: text_greeting in this layout holds profile_settings_title. ProfileSettingsFragment does not replace it with a name.
-Why I chose to write the code of the function the way its written: Same header drawable as home so the tabs match.
-More: I use bg_dashboard_header.
-
+### Profile card
 ```xml
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_profile"
-                style="@style/Widget.ReClaim.SettingsCard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground">
+<com.google.android.material.card.MaterialCardView
+    android:id="@+id/card_profile"
+    android:clickable="true"
+    android:foreground="?attr/selectableItemBackground">
+    <LinearLayout android:orientation="horizontal">
+        <com.google.android.material.card.MaterialCardView> <!-- round avatar -->
+            <ImageView android:id="@+id/image_settings_avatar" ... />
+        </com.google.android.material.card.MaterialCardView>
+        <LinearLayout android:layout_weight="1" android:orientation="vertical">
+            <com.google.android.material.textview.MaterialTextView android:id="@+id/text_user_display_name" ... />
+            <com.google.android.material.textview.MaterialTextView android:id="@+id/text_user_display_email" ... />
+        </LinearLayout>
+        <ImageView android:src="@drawable/ic_chevron_right" ... />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
 ```
+- **What it shows:** a tappable card with the user's round avatar, name, email, and a
+  right chevron — it opens the edit-profile screen.
+- **Why it's set up this way:** the whole card is `clickable` with a ripple `foreground`
+  so it behaves like a button; the text block uses `layout_weight="1"` so the name/email
+  fill the middle and the chevron stays on the right. Name/email use `ellipsize`/`maxLines`
+  so long values don't wrap.
+- **How the code uses it:** `binding.cardProfile` opens edit profile; the code fills
+  `binding.textUserDisplayName`, `binding.textUserDisplayEmail`, and loads the photo into
+  `binding.imageSettingsAvatar`.
 
-What that function does: I show avatar, name, and email, and I open edit profile.
-What the function is responsible for: I am the profile row.
-Where it works: ProfileSettingsFragment loads image_settings_avatar, text_user_display_name, and text_user_display_email. Click starts EditProfileActivity.
-Why I chose to write the code of the function the way its written: Name and email sit beside the photo so this card is both a summary and a button.
-More: I use Widget.ReClaim.SettingsCard.
-
+### Setting rows (report history / notifications / password)
 ```xml
-                    <LinearLayout
-                        android:id="@+id/row_report_history"
-                        android:layout_width="match_parent"
-                        android:layout_height="@dimen/space_56"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="@dimen/space_16"
-                        android:paddingEnd="@dimen/space_12">
+<com.google.android.material.card.MaterialCardView style="@style/Widget.ReClaim.SettingsCard">
+    <LinearLayout
+        android:id="@+id/row_report_history"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:orientation="horizontal">
+        <ImageView android:src="@drawable/ic_settings_history" ... />
+        <com.google.android.material.textview.MaterialTextView android:layout_weight="1" android:text="@string/settings_report_history" ... />
+        <ImageView android:src="@drawable/ic_chevron_right" ... />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
+<!-- same shape for row_notifications and row_password_update -->
 ```
+- **What it shows:** rows that each have a leading icon, a label, and a right chevron:
+  Report history, Notifications, and Password update.
+- **Why it's set up this way:** every row is one horizontal `LinearLayout` with the label
+  taking `layout_weight="1"` so the icon and chevron pin to the edges. Making the row
+  itself the clickable element (with a ripple background) is a common, lightweight
+  settings pattern.
+- **How the code uses it:** `binding.rowReportHistory`, `binding.rowNotifications`, and
+  `binding.rowPasswordUpdate` each get a click listener that opens the matching screen or
+  action.
 
-What that function does: I am the report-history row.
-What the function is responsible for: I open closed-report history.
-Where it works: ProfileSettingsFragment starts ReportHistoryActivity from row_report_history.
-Why I chose to write the code of the function the way its written: A 56dp row matches the other settings lines.
-More: I use ic_settings_history.
-
+### Logout and Delete account rows
 ```xml
-                <LinearLayout
-                    android:id="@+id/row_notifications"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/space_56"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="@dimen/space_16"
-                    android:paddingEnd="@dimen/space_12">
+<com.google.android.material.card.MaterialCardView style="@style/Widget.ReClaim.SettingsCard">
+    <LinearLayout android:orientation="vertical">
+        <LinearLayout android:id="@+id/row_logout" ...> ... </LinearLayout>
+        <com.google.android.material.divider.MaterialDivider ... />
+        <LinearLayout android:id="@+id/row_delete_account" ...> ... </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
 ```
+- **What it shows:** two rows in one card — "Log out" and, below a divider, "Delete
+  account" (drawn in a warning/red color).
+- **Why it's set up this way:** grouping them in one card with a `MaterialDivider` keeps
+  related "danger zone" actions together; the delete row uses the `type_lost` (red) tint
+  to signal it is destructive.
+- **How the code uses it:** `binding.rowLogout` logs out; `binding.rowDeleteAccount`
+  opens the delete-account dialog (see `dialog_delete_account.xml`).
 
-What that function does: I am the notifications row.
-What the function is responsible for: I open system notification settings.
-Where it works: ProfileSettingsFragment wires row_notifications.
-Why I chose to write the code of the function the way its written: The app does not host its own toggle screen. The system page is enough.
-More: I use ic_settings_notifications.
-
+### App version and spinner
 ```xml
-                <LinearLayout
-                    android:id="@+id/row_password_update"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/space_56"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="@dimen/space_16"
-                    android:paddingEnd="@dimen/space_12">
+<com.google.android.material.textview.MaterialTextView android:id="@+id/text_app_version" ... />
+<ProgressBar android:id="@+id/progress" android:visibility="gone" />
 ```
-
-What that function does: I am the change-password row.
-What the function is responsible for: I start a reset email for the signed-in user.
-Where it works: ProfileSettingsFragment wires row_password_update.
-Why I chose to write the code of the function the way its written: Reusing forgot-password avoids a second password form.
-More: I use ic_settings_password.
-
-```xml
-                    <LinearLayout
-                        android:id="@+id/row_logout"
-                        android:layout_width="match_parent"
-                        android:layout_height="@dimen/space_56"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="@dimen/space_16"
-                        android:paddingEnd="@dimen/space_12">
-```
-
-What that function does: I am the log-out row.
-What the function is responsible for: I sign the user out.
-Where it works: ProfileSettingsFragment wires row_logout.
-Why I chose to write the code of the function the way its written: Logout stays in the Other card above delete.
-More: I use ic_settings_logout.
-
-```xml
-                    <LinearLayout
-                        android:id="@+id/row_delete_account"
-                        android:layout_width="match_parent"
-                        android:layout_height="@dimen/space_56"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="@dimen/space_16"
-                        android:paddingEnd="@dimen/space_12">
-```
-
-What that function does: I am the delete-account row in warning color.
-What the function is responsible for: I open dialog_delete_account.xml.
-Where it works: ProfileSettingsFragment.showDeleteAccountDialog inflates that dialog.
-Why I chose to write the code of the function the way its written: type_lost red marks this as destructive.
-More: I use ic_settings_delete.
-
-```xml
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/text_app_version"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_28"
-                android:gravity="center"
-                android:textAppearance="?attr/textAppearanceBodySmall"
-                android:textColor="@color/text_hint" />
-
-            <ProgressBar
-                android:id="@+id/progress"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="@dimen/space_12"
-                android:indeterminateTint="@color/brand_accent"
-                android:visibility="gone" />
-```
-
-What that function does: I show the app version and a spinner for profile loads.
-What the function is responsible for: Version text and loading.
-Where it works: ProfileSettingsFragment sets text_app_version and shows progress.
-Why I chose to write the code of the function the way its written: Version is a quiet footer. Spinner starts gone.
-More: I use text_hint.
+- **What it shows:** a centered app version line and a hidden loading spinner.
+- **Why it's set up this way:** the version sits at the bottom as a quiet footer; the
+  spinner is `gone` until an action (like delete) runs.
+- **How the code uses it:** the code sets `binding.textAppVersion` (e.g. "Version 1.0")
+  and toggles `binding.progress` during network actions.

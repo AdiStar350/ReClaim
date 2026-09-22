@@ -1,457 +1,48 @@
-```java
-@Override
-protected void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
+# ItemDetailsActivity.java
 
-    binding = ActivityItemDetailsBinding.inflate(getLayoutInflater());
-    setContentView(binding.getRoot());
+## Overview
+This is the item-details **Activity** (see `docs/GLOSSARY.md`). It shows one lost or found report (photo, description, location, date, reporter, status) and a bottom action: claim a found item (with a verification question) or, for a lost item, open a locked “I found this” report form. Owners see no claim button.
 
-    apiService = RetrofitClient.getApiService();
+## Concepts used here
+- **Activity** — full details screen. See `docs/GLOSSARY.md`.
+- **Intent extras** — item fields passed from `ItemNavigationHelper` or notifications.
+- **Retrofit Call / Callback** — refresh item, submit claim, (unused helper for owner contact). See `docs/GLOSSARY.md`.
+- **JWT (TokenManager)** — auth for API calls. See `docs/GLOSSARY.md`.
+- **Glide** — item photo and reporter avatar. See `docs/GLOSSARY.md`.
+- **Activity Result API** — waits for `ReportActivity` RESULT_OK after a found report for a lost item.
 
-    setupToolbar();
-    populateFromIntent();
-    setupBottomAction();
-    AppStateEvents.observeNew(this, this::refreshFromServer);
-}
-```
+## Libraries and imports
+- **AndroidX / AppCompat**: AppCompatActivity, AlertDialog, Activity Result contracts.
+- **Material**: MaterialAlertDialogBuilder, TextInputLayout/EditText for the claim dialog.
+- **Glide**: images.
+- **Retrofit**: Call, Callback, Response.
+- **Project**: `Item`, `Claim`, `ClaimRequest`, `ContactResponse`, `ContactInfoDialog`, `ReportActivity`, `AppStateEvents`, `TokenManager`, `ConnectionToasts`.
 
-What that function does: I show the details screen from extras, then I watch for later reloads.
-What the function is responsible for: I am the details start.
-Where it works: ItemNavigationHelper and AppNotifications start me. I inflate activity_item_details.xml.
-Why I chose to write the code of the function the way its written: Extras paint the screen at once. The server refresh can correct them.
-More: I use ActivityItemDetailsBinding and AppStateEvents.observeNew.
+## Fields
+- Public `EXTRA_*` constants — Intent keys for id, title, description, location, status, category, image, type, verification question, owner id/name/avatar, reported-at, already-interacted flag.
+- `binding`, `apiService` — views and API.
+- `itemId`, `verificationQuestion`, `ownerId`, `itemType` — core item state for actions.
+- `claimSubmitting` — true while a claim request is in flight.
+- `hasUserAlreadyInteracted` — claim/found-report already done (from Intent, server, or `AppStateEvents`).
+- `foundReportLauncher` — starts `ReportActivity` for “I found this” and marks interacted on RESULT_OK.
 
-```java
-@Override
-protected void onResume() {
-    super.onResume();
-    refreshFromServer();
-}
-```
+## Functions
 
-What that function does: I reload the item when I come back.
-What the function is responsible for: I keep status and the claim button current.
-Where it works: Android calls me. AppStateEvents also calls refreshFromServer.
-Why I chose to write the code of the function the way its written: Returning from a found-report form should flip the button.
-More: I call refreshFromServer.
-
-```java
-private void setupToolbar() {
-    setSupportActionBar(binding.toolbarItemDetails);
-    if (getSupportActionBar() != null) {
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setDisplayShowHomeEnabled(true);
-    }
-    // Title sits below the photo, not on it.
-    binding.collapsingToolbar.setTitleEnabled(false);
-}
-```
-
-What that function does: I add a back arrow and I turn off the collapsing title.
-What the function is responsible for: I am the details toolbar.
-Where it works: I am called from onCreate. Back goes through onSupportNavigateUp.
-Why I chose to write the code of the function the way its written: The title under the photo is large enough. A toolbar title would cover the image.
-More: I use setSupportActionBar.
-
-```java
-private void populateFromIntent() {
-    itemId = getIntent().getStringExtra(EXTRA_ITEM_ID);
-    verificationQuestion = getIntent().getStringExtra(EXTRA_ITEM_VERIFICATION_QUESTION);
-    ownerId = getIntent().getStringExtra(EXTRA_ITEM_OWNER_ID);
-    itemType = getIntent().getStringExtra(EXTRA_ITEM_TYPE);
-    hasUserAlreadyInteracted = getIntent().getBooleanExtra(
-            EXTRA_HAS_USER_ALREADY_INTERACTED, false)
-            || AppStateEvents.wasItemInteracted(itemId);
-
-    bindFields(
-            getIntent().getStringExtra(EXTRA_ITEM_TITLE),
-            getIntent().getStringExtra(EXTRA_ITEM_DESCRIPTION),
-            getIntent().getStringExtra(EXTRA_ITEM_LOCATION),
-            getIntent().getStringExtra(EXTRA_ITEM_STATUS),
-            getIntent().getStringExtra(EXTRA_ITEM_CATEGORY),
-            getIntent().getStringExtra(EXTRA_ITEM_IMAGE_URL),
-            getIntent().getStringExtra(EXTRA_ITEM_REPORTED_AT),
-            getIntent().getStringExtra(EXTRA_ITEM_OWNER_NAME),
-            getIntent().getStringExtra(EXTRA_ITEM_OWNER_PROFILE_URL));
-}
-```
-
-What that function does: I copy extras into fields and paint the screen.
-What the function is responsible for: I am the first paint from the Intent.
-Where it works: I am called from onCreate.
-Why I chose to write the code of the function the way its written: Local interacted state covers a claim that just happened before the server list updates.
-More: I use AppStateEvents.wasItemInteracted.
-
-```java
-private void refreshFromServer() {
-    if (TextUtils.isEmpty(itemId)) {
-        return;
-    }
-    String authHeader = TokenManager.getAuthHeader(this);
-    if (authHeader == null) {
-        return;
-    }
-    apiService.getItemById(authHeader, itemId).enqueue(new Callback<Item>() {
-        @Override
-        public void onResponse(@NonNull Call<Item> call, @NonNull Response<Item> response) {
-            if (isFinishing()) {
-                return;
-            }
-            if (response.isSuccessful() && response.body() != null) {
-                applyItem(response.body());
-            }
-        }
-
-        @Override
-        public void onFailure(@NonNull Call<Item> call, @NonNull Throwable t) {
-            // Keep what was already shown.
-        }
-    });
-}
-```
-
-What that function does: I fetch the item by id and refresh the screen.
-What the function is responsible for: I am the live details reload.
-Where it works: I am called from onResume and AppStateEvents.
-Why I chose to write the code of the function the way its written: A failed call keeps the extras already shown.
-More: I use getItemById.
-
-```java
-public void onResponse(@NonNull Call<Item> call, @NonNull Response<Item> response) {
-    if (isFinishing()) {
-        return;
-    }
-    if (response.isSuccessful() && response.body() != null) {
-        applyItem(response.body());
-    }
-}
-```
-
-What that function does: I apply the server item if the screen is still open.
-What the function is responsible for: I am the success path for getItemById.
-Where it works: Retrofit calls me from refreshFromServer.
-Why I chose to write the code of the function the way its written: isFinishing stops a late bind after back.
-More: I call applyItem.
-
-```java
-public void onFailure(@NonNull Call<Item> call, @NonNull Throwable t) {
-    // Keep what was already shown.
-}
-```
-
-What that function does: I keep the extras if the fetch fails.
-What the function is responsible for: I am the failure path for getItemById.
-Where it works: Retrofit calls me from refreshFromServer.
-Why I chose to write the code of the function the way its written: Details from the Intent are enough to read.
-More: I leave the body empty.
-
-```java
-private void applyItem(@NonNull Item item) {
-    if (!TextUtils.isEmpty(item.getId())) {
-        itemId = item.getId();
-    }
-    verificationQuestion = item.getVerificationQuestion();
-    ownerId = item.getOwnerId();
-    itemType = item.getType();
-    hasUserAlreadyInteracted = item.hasUserAlreadyInteracted()
-            || AppStateEvents.wasItemInteracted(itemId);
-    bindFields(
-            item.getTitle(),
-            item.getDescription(),
-            item.getLocation(),
-            item.getStatus(),
-            item.getCategory(),
-            item.getImageUrl(),
-            item.getReportedAt(),
-            item.getOwnerName(),
-            item.getOwnerProfilePictureUrl());
-    setupBottomAction();
-}
-```
-
-What that function does: I copy the server item into fields and redraw.
-What the function is responsible for: I am the bind from a live Item.
-Where it works: I am called from refreshFromServer's onResponse.
-Why I chose to write the code of the function the way its written: I also re-run setupBottomAction so the claim button matches the new status.
-More: I OR local interacted with the server flag.
-
-```java
-private void bindFields(@Nullable String title,
-                        @Nullable String description,
-                        @Nullable String location,
-                        @Nullable String status,
-                        @Nullable String category,
-                        @Nullable String imageUrl,
-                        @Nullable String reportedAt,
-                        @Nullable String ownerName,
-                        @Nullable String ownerProfileUrl) {
-    // Title under the photo
-    binding.textItemTitle.setText(
-            title != null ? title : getString(R.string.item_details_title));
-
-    // What it is
-    binding.textDescription.setText(
-            description != null ? description : getString(R.string.placeholder_no_description));
-
-    // Where it was
-    binding.textLocation.setText(
-            location != null ? location : getString(R.string.placeholder_location_unspecified));
-
-    // When
-    binding.textDateFound.setText(formatReportedDate(reportedAt));
-
-    // Who reported it
-    binding.textReportedBy.setText(
-            !TextUtils.isEmpty(ownerName) ? ownerName : getString(R.string.placeholder_unknown_reporter));
-    Glide.with(this)
-            .load(!TextUtils.isEmpty(ownerProfileUrl) ? ownerProfileUrl : null)
-            .centerCrop()
-            .placeholder(R.drawable.ic_settings_person)
-            .error(R.drawable.ic_settings_person)
-            .into(binding.imageReporterAvatar);
-
-    // Status and category
-    if ("CLOSED".equalsIgnoreCase(status)) {
-        binding.chipStatus.setText(R.string.status_closed);
-    } else if ("OPEN".equalsIgnoreCase(status)) {
-        binding.chipStatus.setText(R.string.status_open);
-    } else {
-        binding.chipStatus.setText(status != null ? status : getString(R.string.placeholder_unknown));
-    }
-    binding.chipCategory.setText(
-            category != null ? category : getString(R.string.placeholder_general_category));
-
-    // Photo
-    if (imageUrl != null && !imageUrl.isEmpty()) {
-        Glide.with(this)
-                .load(imageUrl)
-                .centerCrop()
-                .placeholder(R.drawable.ic_item_placeholder)
-                .error(R.drawable.ic_item_placeholder)
-                .into(binding.imageItem);
-    } else {
-        Glide.with(this)
-                .load(R.drawable.ic_item_placeholder)
-                .centerCrop()
-                .into(binding.imageItem);
-    }
-}
-```
-
-What that function does: I fill title, chips, description, place, date, reporter, and photo.
-What the function is responsible for: I am the details bind.
-Where it works: I am called from populateFromIntent and applyItem.
-Why I chose to write the code of the function the way its written: Placeholders keep empty extras readable. Status uses known strings when I can.
-More: I use Glide for the item photo and reporter avatar.
-
+### `private String formatReportedDate(String isoTimestamp)`
 ```java
 private String formatReportedDate(String isoTimestamp) {
-    if (TextUtils.isEmpty(isoTimestamp)) {
-        return getString(R.string.placeholder_date_unavailable);
-    }
-    try {
-        String trimmed = isoTimestamp.length() >= 19
-                ? isoTimestamp.substring(0, 19) : isoTimestamp;
-        SimpleDateFormat parser =
-                new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
-        parser.setTimeZone(TimeZone.getTimeZone("UTC"));
-        Date parsed = parser.parse(trimmed);
-        if (parsed != null) {
-            SimpleDateFormat formatter =
-                    new SimpleDateFormat("MMM d, yyyy", Locale.getDefault());
-            return formatter.format(parsed);
-        }
-    } catch (Exception ignored) {
-        // Use the raw date below.
-    }
-    return isoTimestamp.length() >= 10 ? isoTimestamp.substring(0, 10) : isoTimestamp;
+    // parse yyyy-MM-dd'T'HH:mm:ss UTC → "MMM d, yyyy"; fallbacks for empty/bad input
 }
 ```
+- **What it does:** Formats an ISO-ish timestamp into a short local date string.
+- **Where it's called:** From `bindFields` for the date TextView.
+- **Why it's written this way:** Truncates to 19 chars before parse; on failure shows first 10 chars or the raw string; empty → placeholder.
+- **Step by step:**
+  1. Empty → placeholder.
+  2. Try parse UTC; format with default locale.
+  3. On exception, return date prefix or raw text.
 
-What that function does: I turn an ISO timestamp into a short date.
-What the function is responsible for: I am the reported-at text.
-Where it works: bindFields calls me.
-Why I chose to write the code of the function the way its written: I trim fractions so SimpleDateFormat can parse. If parse fails I show the first ten characters.
-More: I parse in UTC and format with Locale.getDefault.
-
-```java
-private void setupBottomAction() {
-    if (claimSubmitting) {
-        return;
-    }
-    if (isCurrentUserOwner()) {
-        binding.bottomClaimContainer.setVisibility(View.GONE);
-        return;
-    }
-    binding.bottomClaimContainer.setVisibility(View.VISIBLE);
-    if (hasUserAlreadyInteracted) {
-        showInteractedButton();
-        return;
-    }
-    binding.btnClaim.setEnabled(true);
-    binding.btnClaim.setAlpha(1f);
-    if ("LOST".equalsIgnoreCase(itemType)) {
-        binding.btnClaim.setText(R.string.btn_i_found_this);
-        binding.btnClaim.setOnClickListener(v -> openFoundReportForLostItem());
-        return;
-    }
-    binding.btnClaim.setText(R.string.btn_claim);
-    binding.btnClaim.setOnClickListener(v -> showClaimDialog());
-}
-```
-
-What that function does: I hide the bar for my own report, or I set claim / I found this.
-What the function is responsible for: I am the bottom button.
-Where it works: I am called from onCreate, applyItem, markInteractedLocally, and setClaimButtonLoading.
-Why I chose to write the code of the function the way its written: Lost items open a found report. Found items ask the check question. I skip a redraw while a claim is sending.
-More: I use isCurrentUserOwner.
-
-```java
-private void showInteractedButton() {
-    boolean lost = "LOST".equalsIgnoreCase(itemType);
-    binding.btnClaim.setText(lost
-            ? R.string.btn_report_submitted
-            : R.string.btn_claim_pending);
-    binding.btnClaim.setEnabled(false);
-    binding.btnClaim.setAlpha(0.5f);
-    binding.btnClaim.setOnClickListener(null);
-}
-```
-
-What that function does: I keep the button visible but not tappable after a claim or found report.
-What the function is responsible for: I show that this item was already acted on.
-Where it works: setupBottomAction calls me.
-Why I chose to write the code of the function the way its written: Hiding the bar would look like the item vanished. Dimmed text is clearer.
-More: I set OnClickListener to null.
-
-```java
-private void markInteractedLocally() {
-    hasUserAlreadyInteracted = true;
-    if (!TextUtils.isEmpty(itemId)) {
-        AppStateEvents.markItemInteracted(itemId);
-    }
-    setupBottomAction();
-}
-```
-
-What that function does: I mark this item acted on, then I redraw the button.
-What the function is responsible for: I flip the button without waiting for a reload.
-Where it works: I am called after a successful claim and from foundReportLauncher when ReportActivity returns RESULT_OK.
-Why I chose to write the code of the function the way its written: AppStateEvents keeps the flag if the user opens details again before the server list updates.
-More: I use AppStateEvents.markItemInteracted.
-
-```java
-private void openFoundReportForLostItem() {
-    if (TextUtils.isEmpty(itemId)) {
-        Toast.makeText(this, R.string.msg_item_id_missing, Toast.LENGTH_SHORT).show();
-        return;
-    }
-    Intent intent = new Intent(this, ReportActivity.class);
-    intent.putExtra(ReportActivity.EXTRA_LOCK_FOUND_TYPE, true);
-    intent.putExtra(ReportActivity.EXTRA_TARGET_LOST_REPORT_ID, itemId);
-    foundReportLauncher.launch(intent);
-}
-```
-
-What that function does: I open a found-report form locked to this lost item.
-What the function is responsible for: I am the I-found-this path.
-Where it works: setupBottomAction sets this click. ReportActivity inflates activity_report.xml.
-Why I chose to write the code of the function the way its written: The launcher waits for RESULT_OK so I can dim the button if they submitted.
-More: I use EXTRA_LOCK_FOUND_TYPE and EXTRA_TARGET_LOST_REPORT_ID.
-
-```java
-private void loadReporterContact() {
-    String authHeader = TokenManager.getAuthHeader(this);
-    if (authHeader == null || TextUtils.isEmpty(itemId)) {
-        Toast.makeText(this, R.string.msg_contact_load_failed, Toast.LENGTH_SHORT).show();
-        return;
-    }
-    binding.btnClaim.setEnabled(false);
-    apiService.getLostItemOwnerContact(authHeader, itemId)
-            .enqueue(new Callback<ContactResponse>() {
-                @Override
-                public void onResponse(@NonNull Call<ContactResponse> call,
-                                       @NonNull Response<ContactResponse> response) {
-                    binding.btnClaim.setEnabled(true);
-                    if (response.isSuccessful() && response.body() != null) {
-                        ContactInfoDialog.show(ItemDetailsActivity.this, response.body(),
-                                ItemDetailsActivity.this,
-                                callback -> {
-                                    String header = TokenManager.getAuthHeader(
-                                            ItemDetailsActivity.this);
-                                    if (header == null || TextUtils.isEmpty(itemId)) {
-                                        return;
-                                    }
-                                    apiService.getLostItemOwnerContact(header, itemId)
-                                            .enqueue(callback);
-                                });
-                    } else {
-                        ConnectionToasts.showIfOnline(ItemDetailsActivity.this,
-                                R.string.msg_contact_load_failed, Toast.LENGTH_SHORT);
-                    }
-                }
-
-                @Override
-                public void onFailure(@NonNull Call<ContactResponse> call,
-                                      @NonNull Throwable t) {
-                    binding.btnClaim.setEnabled(true);
-                    ConnectionToasts.showIfOnline(ItemDetailsActivity.this,
-                            R.string.msg_contact_load_failed, Toast.LENGTH_SHORT);
-                }
-            });
-}
-```
-
-What that function does: I load the lost-item owner's contact.
-What the function is responsible for: I would show ContactInfoDialog for a lost report.
-Where it works: I found no caller. The method sits in this class unused.
-Why I chose to write the code of the function the way its written: I disable the bottom button while the call runs so a double tap does not start two loads.
-More: I use getLostItemOwnerContact.
-
-```java
-public void onResponse(@NonNull Call<ContactResponse> call,
-                       @NonNull Response<ContactResponse> response) {
-    binding.btnClaim.setEnabled(true);
-    if (response.isSuccessful() && response.body() != null) {
-        ContactInfoDialog.show(ItemDetailsActivity.this, response.body(),
-                ItemDetailsActivity.this,
-                callback -> {
-                    String header = TokenManager.getAuthHeader(
-                            ItemDetailsActivity.this);
-                    if (header == null || TextUtils.isEmpty(itemId)) {
-                        return;
-                    }
-                    apiService.getLostItemOwnerContact(header, itemId)
-                            .enqueue(callback);
-                });
-    } else {
-        ConnectionToasts.showIfOnline(ItemDetailsActivity.this,
-                R.string.msg_contact_load_failed, Toast.LENGTH_SHORT);
-    }
-}
-```
-
-What that function does: I open contact or toast, and I re-enable the button.
-What the function is responsible for: I am the success path for getLostItemOwnerContact.
-Where it works: Retrofit would call me from loadReporterContact.
-Why I chose to write the code of the function the way its written: The refetch callback lets the dialog retry.
-More: I use ContactInfoDialog.show.
-
-```java
-public void onFailure(@NonNull Call<ContactResponse> call,
-                      @NonNull Throwable t) {
-    binding.btnClaim.setEnabled(true);
-    ConnectionToasts.showIfOnline(ItemDetailsActivity.this,
-            R.string.msg_contact_load_failed, Toast.LENGTH_SHORT);
-}
-```
-
-What that function does: I re-enable the button and toast if contact fails.
-What the function is responsible for: I am the failure path for getLostItemOwnerContact.
-Where it works: Retrofit would call me from loadReporterContact.
-Why I chose to write the code of the function the way its written: The button must come back even on failure.
-More: I use ConnectionToasts.showIfOnline.
-
+### `private boolean isCurrentUserOwner()`
 ```java
 private boolean isCurrentUserOwner() {
     if (TextUtils.isEmpty(ownerId)) {
@@ -461,219 +52,166 @@ private boolean isCurrentUserOwner() {
     return !TextUtils.isEmpty(currentUserId) && ownerId.equals(currentUserId);
 }
 ```
+- **What it does:** True if the report’s owner id matches the signed-in user id.
+- **Where it's called:** From `setupBottomAction` to hide the claim container for owners.
+- **Why it's written this way:** Owners should not claim their own items.
+- **Step by step:**
+  1. False if owner id empty.
+  2. Compare to `TokenManager.getUserId`.
 
-What that function does: I check if this report belongs to the signed-in user.
-What the function is responsible for: I hide claim actions on my own item.
-Where it works: setupBottomAction calls me.
-Why I chose to write the code of the function the way its written: Missing ownerId is treated as not mine so a guest extras path still shows a button.
-More: I use TokenManager.getUserId.
-
+### `private void bindFields(...)`
 ```java
-private void showClaimDialog() {
-    // Custom view for the answer field
-    View dialogView = LayoutInflater.from(this)
-            .inflate(R.layout.dialog_claim_verification, null);
-
-    TextInputLayout inputLayout = dialogView.findViewById(R.id.input_layout_claim_answer);
-    TextInputEditText editAnswer = dialogView.findViewById(R.id.edit_claim_answer);
-
-    String questionText = !TextUtils.isEmpty(verificationQuestion)
-            ? verificationQuestion
-            : getString(R.string.claim_default_question);
-
-    AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.claim_dialog_title)
-            .setMessage(getString(R.string.claim_dialog_message, questionText))
-            .setView(dialogView)
-            .setPositiveButton(R.string.btn_submit, null)  // we handle the click ourselves
-            .setNegativeButton(R.string.btn_cancel, null)
-            .create();
-
-    // Stay open if the answer is empty
-    dialog.setOnShowListener(dialogInterface -> {
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            String answer = editAnswer.getText() != null
-                    ? editAnswer.getText().toString().trim() : "";
-
-            if (TextUtils.isEmpty(answer)) {
-                inputLayout.setError(getString(R.string.msg_claim_answer_required));
-                editAnswer.requestFocus();
-                return;
-            }
-
-            // Close the dialog
-            inputLayout.setError(null);
-            dialog.dismiss();
-
-            // Send the claim
-            submitClaimToBackend(answer);
-        });
-    });
-
-    dialog.show();
+private void bindFields(@Nullable String title, ... ownerProfileUrl) {
+    // set texts, chips, Glide for avatar + item image with placeholders
 }
 ```
+- **What it does:** Fills every detail field from string values (Intent or server Item).
+- **Where it's called:** From `populateFromIntent` and `applyItem`.
+- **Why it's written this way:** Shared binding so Intent paint and server refresh look the same. Missing values use string placeholders.
+- **Step by step:**
+  1. Set title, description, location, formatted date, reporter name.
+  2. Load reporter avatar and item image with Glide.
+  3. Set status chip (OPEN/CLOSED/raw) and category chip.
 
-What that function does: I ask the check question and take an answer before sending a claim.
-What the function is responsible for: I am the claim dialog.
-Where it works: The found-item claim button calls me. I inflate dialog_claim_verification.xml.
-Why I chose to write the code of the function the way its written: Positive is set to null first so an empty answer does not close the box.
-More: I use MaterialAlertDialogBuilder and a default question if extras have none.
-
+### `private void showInteractedButton()` / `private void markInteractedLocally()`
 ```java
+private void showInteractedButton() {
+    // disabled button: "report submitted" or "claim pending"
+}
+
+private void markInteractedLocally() {
+    hasUserAlreadyInteracted = true;
+    if (!TextUtils.isEmpty(itemId)) {
+        AppStateEvents.markItemInteracted(itemId);
+    }
+    setupBottomAction();
+}
+```
+- **What it does:** Shows a non-tappable bottom button after the user already claimed or filed a found report; persists that fact in `AppStateEvents`.
+- **Where it's called:** `showInteractedButton` from `setupBottomAction`; `markInteractedLocally` after successful claim, after found-report RESULT_OK, and paths that need instant UI update.
+- **Why it's written this way:** Immediate UI feedback without waiting for another fetch; `AppStateEvents` survives leaving the screen.
+- **Step by step:**
+  1. Set interacted flag and mark in AppStateEvents.
+  2. `setupBottomAction` → disabled label based on LOST vs found.
+
+### `private void setupBottomAction()`
+```java
+private void setupBottomAction() {
+    if (claimSubmitting) return;
+    if (isCurrentUserOwner()) { hide container; return; }
+    // if interacted → showInteractedButton
+    // LOST → "I found this" → openFoundReportForLostItem
+    // else → Claim → showClaimDialog
+}
+```
+- **What it does:** Configures the bottom button by ownership, prior interaction, and lost vs found type.
+- **Where it's called:** From `onCreate` (via setup after populate), `applyItem`, `markInteractedLocally`, and when ending claim loading.
+- **Why it's written this way:** Lost items need a found report linked to the lost id; found items use the claim dialog. Skips rewiring while `claimSubmitting`.
+- **Step by step:**
+  1. Abort if submitting; hide if owner.
+  2. If already interacted, show disabled button.
+  3. LOST → found-report launcher path; otherwise claim dialog.
+
+### `private void openFoundReportForLostItem()`
+```java
+private void openFoundReportForLostItem() {
+    Intent intent = new Intent(this, ReportActivity.class);
+    intent.putExtra(ReportActivity.EXTRA_LOCK_FOUND_TYPE, true);
+    intent.putExtra(ReportActivity.EXTRA_TARGET_LOST_REPORT_ID, itemId);
+    foundReportLauncher.launch(intent);
+}
+```
+- **What it does:** Opens ReportActivity locked to Found type and targeting this lost report id.
+- **Where it's called:** Bottom button click when `itemType` is LOST.
+- **Why it's written this way:** Launcher marks interacted only if the found report finishes with RESULT_OK.
+- **Step by step:**
+  1. Require item id.
+  2. Put lock-found + target-lost extras; launch for result.
+
+### `private void loadReporterContact()`
+```java
+private void loadReporterContact() {
+    // getLostItemOwnerContact → ContactInfoDialog.show with reloader
+}
+```
+- **What it does:** Would fetch the lost-item owner’s contact and show `ContactInfoDialog`.
+- **Where it's called:** No callers found in the project — the method is defined but unused.
+- **Why it's written this way:** Same dialog/reloader pattern as history/pending claims; likely kept for a contact affordance that is not wired yet.
+- **Step by step:**
+  1. Require auth + item id; disable claim button while loading.
+  2. Enqueue `getLostItemOwnerContact`; show dialog or toast; re-enable button.
+
+### `private void showClaimDialog()` / `private void submitClaimToBackend(String validationAnswer)` / `handleClaimError` / `setClaimButtonLoading`
+```java
+private void showClaimDialog() { /* verification answer dialog; submitClaimToBackend */ }
+
 private void submitClaimToBackend(String validationAnswer) {
-    // Need an item id
-    if (TextUtils.isEmpty(itemId)) {
-        Toast.makeText(this,
-                R.string.msg_item_id_missing,
-                Toast.LENGTH_SHORT).show();
-        return;
-    }
-
-    // Need to be signed in
-    String authHeader = TokenManager.getAuthHeader(this);
-    if (authHeader == null) {
-        Toast.makeText(this,
-                R.string.msg_login_to_claim,
-                Toast.LENGTH_SHORT).show();
-        return;
-    }
-
-    // Avoid a second tap
-    setClaimButtonLoading(true);
-
-    // Send the request
-    ClaimRequest request = new ClaimRequest(itemId, validationAnswer);
-
-    apiService.submitClaim(authHeader, request).enqueue(new Callback<Claim>() {
-        @Override
-        public void onResponse(Call<Claim> call, Response<Claim> response) {
-            if (response.isSuccessful() && response.body() != null) {
-                Toast.makeText(ItemDetailsActivity.this,
-                        R.string.msg_claim_submitted,
-                        Toast.LENGTH_LONG).show();
-                claimSubmitting = false;
-                markInteractedLocally();
-            } else {
-                setClaimButtonLoading(false);
-                handleClaimError(response.code());
-            }
-        }
-
-        @Override
-        public void onFailure(Call<Claim> call, Throwable t) {
-            setClaimButtonLoading(false);
-            ConnectionToasts.showIfOnline(ItemDetailsActivity.this,
-                    getString(R.string.msg_network_error, t.getLocalizedMessage()),
-                    Toast.LENGTH_LONG);
-        }
-    });
+    // ClaimRequest → submitClaim; success → markInteractedLocally
 }
-```
 
-What that function does: I send the claim with the answer and lock the button while waiting.
-What the function is responsible for: I am the claim POST.
-Where it works: showClaimDialog calls me after a non-empty answer.
-Why I chose to write the code of the function the way its written: I check id and token first so I do not disable the button for a local miss.
-More: I use ClaimRequest and submitClaim.
+private void handleClaimError(int statusCode) { /* 400/401/404/5xx toasts */ }
 
-```java
-public void onResponse(Call<Claim> call, Response<Claim> response) {
-    if (response.isSuccessful() && response.body() != null) {
-        Toast.makeText(ItemDetailsActivity.this,
-                R.string.msg_claim_submitted,
-                Toast.LENGTH_LONG).show();
-        claimSubmitting = false;
-        markInteractedLocally();
-    } else {
-        setClaimButtonLoading(false);
-        handleClaimError(response.code());
-    }
-}
-```
-
-What that function does: I toast success and dim the button, or I show a status error.
-What the function is responsible for: I am the success path for submitClaim.
-Where it works: Retrofit calls me from submitClaimToBackend.
-Why I chose to write the code of the function the way its written: markInteractedLocally redraws the pending text. claimSubmitting false lets that redraw run.
-More: I call handleClaimError on a bad status.
-
-```java
-public void onFailure(Call<Claim> call, Throwable t) {
-    setClaimButtonLoading(false);
-    ConnectionToasts.showIfOnline(ItemDetailsActivity.this,
-            getString(R.string.msg_network_error, t.getLocalizedMessage()),
-            Toast.LENGTH_LONG);
-}
-```
-
-What that function does: I unlock the button and toast a network miss.
-What the function is responsible for: I am the failure path for submitClaim.
-Where it works: Retrofit calls me from submitClaimToBackend.
-Why I chose to write the code of the function the way its written: ConnectionToasts hides the toast when the device is already offline.
-More: I use ConnectionToasts.showIfOnline.
-
-```java
-private void handleClaimError(int statusCode) {
-    String errorMsg;
-
-    switch (statusCode) {
-        case 400:
-            errorMsg = getString(R.string.msg_claim_already_claimed);
-            break;
-        case 401:
-            errorMsg = getString(R.string.msg_session_expired);
-            break;
-        case 404:
-            errorMsg = getString(R.string.msg_item_not_found);
-            break;
-        default:
-            if (statusCode >= 500) {
-                errorMsg = getString(R.string.msg_server_error);
-            } else {
-                errorMsg = getString(R.string.msg_claim_submit_failed, statusCode);
-            }
-            break;
-    }
-
-    Toast.makeText(this, errorMsg, Toast.LENGTH_LONG).show();
-}
-```
-
-What that function does: I map a claim status code to a short toast.
-What the function is responsible for: I am claim error text.
-Where it works: submitClaim's onResponse calls me.
-Why I chose to write the code of the function the way its written: 400 is treated as already claimed, which matches the backend rule I saw.
-More: I use a switch on the status.
-
-```java
 private void setClaimButtonLoading(boolean isLoading) {
     claimSubmitting = isLoading;
-    binding.btnClaim.setEnabled(!isLoading);
-    if (isLoading) {
-        binding.btnClaim.setText(R.string.btn_submitting);
-    } else {
-        setupBottomAction();
-    }
+    // submitting label or setupBottomAction()
 }
 ```
+- **What it does:** Asks for the verification answer, posts the claim, maps HTTP errors to toasts, and toggles button loading state.
+- **Where it's called:** Claim button → dialog → submit; callbacks call error/loading helpers.
+- **Why it's written this way:** Positive button click is set in `OnShowListener` so an empty answer can keep the dialog open. Loading disables double-submit.
+- **Step by step:**
+  1. Dialog shows question; empty answer sets field error.
+  2. Submit builds `ClaimRequest(itemId, answer)` and enqueues.
+  3. Success: toast, clear submitting, `markInteractedLocally`.
+  4. Errors: `handleClaimError` by status; failure uses `ConnectionToasts`.
 
-What that function does: I show Submitting, or I restore the real button.
-What the function is responsible for: I stop a second claim tap.
-Where it works: submitClaimToBackend calls me.
-Why I chose to write the code of the function the way its written: Restoring through setupBottomAction puts the right label back after an error.
-More: I set claimSubmitting so setupBottomAction does not fight a send in progress.
-
+### `private void populateFromIntent()` / `private void refreshFromServer()` / `private void applyItem(Item item)`
 ```java
+private void populateFromIntent() { /* read EXTRA_* into fields + bindFields */ }
+
+private void refreshFromServer() {
+    apiService.getItemById(...).enqueue(/* applyItem on success */);
+}
+
+private void applyItem(@NonNull Item item) {
+    // update fields from Item, bindFields, setupBottomAction
+}
+```
+- **What it does:** First paint from Intent extras; then optionally refresh from `getItemById` and rebind.
+- **Where it's called:** `populateFromIntent` from `onCreate`; `refreshFromServer` from `onResume` and `AppStateEvents.observeNew`; `applyItem` from refresh success.
+- **Why it's written this way:** Intent extras make the screen usable immediately (e.g. from notifications); server refresh corrects stale data. Failure keeps what was shown.
+- **Step by step:**
+  1. Read extras including interacted flag OR `AppStateEvents.wasItemInteracted`.
+  2. Refresh requires item id + auth; on success `applyItem`.
+
+### `private void setupToolbar()` / `onCreate` / `onResume` / `onSupportNavigateUp`
+```java
+private void setupToolbar() {
+    setSupportActionBar(...);
+    binding.collapsingToolbar.setTitleEnabled(false);
+}
+
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+    // inflate, setupToolbar, populateFromIntent, setupBottomAction, observe AppStateEvents
+}
+
+@Override
+protected void onResume() {
+    super.onResume();
+    refreshFromServer();
+}
+
 @Override
 public boolean onSupportNavigateUp() {
     getOnBackPressedDispatcher().onBackPressed();
     return true;
 }
 ```
-
-What that function does: I treat the toolbar back arrow as system back.
-What the function is responsible for: I leave details.
-Where it works: The toolbar up button calls me.
-Why I chose to write the code of the function the way its written: OnBackPressedDispatcher keeps the same path as the system back key.
-More: I return true so the event is consumed.
+- **What it does:** Standard screen setup; refreshes on resume; up navigation uses the back dispatcher.
+- **Where it's called:** Lifecycle / system up affordance. Opened via `ItemNavigationHelper.createDetailsIntent` (Home, Search, etc.) and notification intents in `AppNotifications`.
+- **Why it's written this way:** Collapsing toolbar title disabled so the title under the photo is the main title.
+- **Step by step:**
+  1. Inflate; get API; toolbar with home-as-up.
+  2. Populate from Intent; wire bottom action; observe AppStateEvents for refresh.
+  3. Resume refreshes; up triggers back.

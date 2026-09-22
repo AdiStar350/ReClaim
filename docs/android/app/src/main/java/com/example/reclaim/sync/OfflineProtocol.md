@@ -1,14 +1,72 @@
+# OfflineProtocol.java
+
+## Overview
+This file is a **static helper** that shows one non-cancelable offline dialog when the
+phone has no network or the backend API cannot be reached. The user can leave the app
+or open the report screen to write a report that will send later. It tracks the
+foreground **Activity** (one full screen; see `docs/GLOSSARY.md`) through lifecycle
+callbacks so the dialog has a host without every screen registering itself.
+
+## Concepts used here
+- **Activity / Application.** The dialog needs a live Activity; `Application`
+  lifecycle callbacks track which screen is in front; see `docs/GLOSSARY.md`.
+- **HTTP / API.** "Backend unreachable" means a request could not reach the server;
+  see `docs/GLOSSARY.md`.
+- **Intent.** Used to open `ReportActivity` when the user taps Continue; see
+  `docs/GLOSSARY.md`.
+- **Static utility class.** Everything is static; the constructor is private.
+- **AtomicBoolean.** Ensures only one dialog is shown at a time even if several
+  callers race.
+
+## Libraries and imports
+- **Android (`Activity`, `Application`, `Intent`, `Bundle`, `Handler`, `Looper`).**
+  Lifecycle registration, main-thread posting, and starting the report screen.
+- **AndroidX annotations (`NonNull`, `Nullable`).** Mark required vs optional
+  arguments.
+- **Material (`MaterialAlertDialogBuilder`).** Builds the offline alert dialog.
+- **Project classes.** `MainActivity` / `ReportActivity` — skipped or auto-acked so
+  the splash and report flows are not interrupted; `R.string.*` — dialog copy;
+  `BackendAvailability` / `NetworkMonitor` — decide if the API or device is down
+  (used inside `showIfNeeded`).
+
+## Fields
+- `private static final Handler MAIN` — posts dialog work onto the main (UI) thread.
+- `private static final AtomicBoolean dialogVisible` — `true` while a dialog is up;
+  prevents stacking duplicates.
+- `private static volatile Application application` — app object for online checks.
+- `private static volatile Activity currentActivity` — the screen that can host the
+  dialog.
+- `private static volatile boolean outageAcknowledged` — once the user picks Exit or
+  Continue (or is already on Report), the dialog stays hidden for this outage.
+
+## Functions
+
+### `private OfflineProtocol()`
 ```java
 private OfflineProtocol() {
 }
 ```
+- **What it does:** empty private constructor blocking `new OfflineProtocol()`.
+- **Where it's called:** nothing calls it; it only stops instances from being made.
+- **Why it's written this way:** the class is a static-only helper, so instances are
+  not needed.
+- **Step by step:** 1) private access; 2) empty body; 3) instances cannot be created
+  from outside.
 
-What that function does: I stop anyone from making an instance of this helper.
-What the function is responsible for: I keep the offline dialog as static methods.
-Where it works: I am not called. Java uses me when someone tries `new OfflineProtocol()`.
-Why I chose to write the code of the function the way its written: I made the constructor private so ReclaimApp calls attach.
-More: I use a private constructor. The class is final.
+### `static void resetOutageAck()`
+```java
+static void resetOutageAck() {
+    outageAcknowledged = false;
+}
+```
+- **What it does:** clears the "user already dealt with this outage" flag.
+- **Where it's called:** `BackendAvailability` when the backend is marked reachable
+  again, so a later outage can show the dialog once more.
+- **Why it's written this way:** package-private keeps the ack flag owned by the sync
+  package; only availability code should reset it.
+- **Step by step:** 1) set `outageAcknowledged` to `false`.
 
+### `public static void attach(@NonNull Application app)`
 ```java
 public static void attach(@NonNull Application app) {
     application = app;
@@ -44,128 +102,50 @@ public static void attach(@NonNull Application app) {
     });
 }
 ```
+- **What it does:** stores the `Application` and registers lifecycle callbacks that
+  keep `currentActivity` pointing at the foreground screen.
+- **Where it's called:** `ReclaimApp.onCreate` once at app start.
+- **Why it's written this way:** one app-wide registration means screens do not each
+  wire the offline dialog; start/resume update the host, pause clears it so a paused
+  screen is never used.
+- **Step by step:**
+  1. Save `application`.
+  2. Register `ActivityLifecycleCallbacks`.
+  3. On started/resumed, set `currentActivity`.
+  4. On paused, clear it only if it is still that same instance.
+  5. Leave the other lifecycle methods empty.
 
-What that function does: I remember the Application and watch which activity is in front.
-What the function is responsible for: I am app-wide setup so the offline dialog has a host activity.
-Where it works: I am called by ReclaimApp.onCreate.
-Why I chose to write the code of the function the way its written: Lifecycle callbacks give me the current screen without each activity registering.
-More: I use Application.registerActivityLifecycleCallbacks.
-
-```java
-public void onActivityResumed(@NonNull Activity activity) {
-    currentActivity = activity;
-}
-```
-
-What that function does: I store the activity that just came to the front.
-What the function is responsible for: I keep currentActivity up to date when a screen resumes.
-Where it works: Android calls me from the callbacks registered in attach.
-Why I chose to write the code of the function the way its written: Resume is the safest time to show a dialog.
-More: I assign currentActivity.
-
-```java
-public void onActivityPaused(@NonNull Activity activity) {
-    if (currentActivity == activity) {
-        currentActivity = null;
-    }
-}
-```
-
-What that function does: I clear currentActivity if that same screen paused.
-What the function is responsible for: I avoid showing a dialog on a paused activity.
-Where it works: Android calls me from the callbacks registered in attach.
-Why I chose to write the code of the function the way its written: I only clear if it is still the same instance, so a new screen can already be stored.
-More: I compare with == on the Activity instance.
-
-```java
-public void onActivityCreated(@NonNull Activity a, @Nullable Bundle s) { }
-```
-
-What that function does: I do nothing on create.
-What the function is responsible for: I fill the callback interface.
-Where it works: Android calls me from the callbacks registered in attach.
-Why I chose to write the code of the function the way its written: I only need started and resumed for a host activity.
-More: I leave the body empty.
-
-```java
-public void onActivityStarted(@NonNull Activity activity) {
-    currentActivity = activity;
-}
-```
-
-What that function does: I store the activity that just started.
-What the function is responsible for: I catch a host a bit earlier than resume.
-Where it works: Android calls me from the callbacks registered in attach.
-Why I chose to write the code of the function the way its written: Start can happen before resume, and a request may fail in between.
-More: I assign currentActivity.
-
-```java
-public void onActivityStopped(@NonNull Activity a) { }
-```
-
-What that function does: I do nothing on stop.
-What the function is responsible for: I fill the callback interface.
-Where it works: Android calls me from the callbacks registered in attach.
-Why I chose to write the code of the function the way its written: Pause already clears the host.
-More: I leave the body empty.
-
-```java
-public void onActivitySaveInstanceState(@NonNull Activity a, @NonNull Bundle o) { }
-```
-
-What that function does: I do nothing when state is saved.
-What the function is responsible for: I fill the callback interface.
-Where it works: Android calls me from the callbacks registered in attach.
-Why I chose to write the code of the function the way its written: The dialog does not need saved state.
-More: I leave the body empty.
-
-```java
-public void onActivityDestroyed(@NonNull Activity a) { }
-```
-
-What that function does: I do nothing on destroy.
-What the function is responsible for: I fill the callback interface.
-Where it works: Android calls me from the callbacks registered in attach.
-Why I chose to write the code of the function the way its written: Pause already clears the host.
-More: I leave the body empty.
-
-```java
-static void resetOutageAck() {
-    outageAcknowledged = false;
-}
-```
-
-What that function does: I clear the flag that the user already picked Exit or Continue.
-What the function is responsible for: I let a later outage show the dialog again.
-Where it works: I am called by BackendAvailability.markReachable.
-Why I chose to write the code of the function the way its written: Package-private is enough because only BackendAvailability needs me.
-More: I set outageAcknowledged to false.
-
+### `public static void onBackendUnreachable()`
 ```java
 public static void onBackendUnreachable() {
     MAIN.post(OfflineProtocol::showIfNeeded);
 }
 ```
+- **What it does:** schedules `showIfNeeded()` on the main thread when a request
+  cannot reach the API.
+- **Where it's called:** `RetrofitClient`'s OkHttp interceptor when the backend looks
+  down.
+- **Why it's written this way:** network callbacks may run off the UI thread; posting
+  to `MAIN` is required before showing a dialog.
+- **Step by step:** 1) post a runnable that calls `showIfNeeded()` onto the main
+  looper.
 
-What that function does: I ask the main thread to show the offline dialog if needed.
-What the function is responsible for: I am the hook from the HTTP interceptor.
-Where it works: I am called by RetrofitClient.interceptBackendAvailability.
-Why I chose to write the code of the function the way its written: OkHttp is not on the main thread, so I post to Looper.getMainLooper.
-More: I use Handler MAIN and showIfNeeded.
-
+### `public static void showIfNeeded(@NonNull Activity activity)`
 ```java
 public static void showIfNeeded(@NonNull Activity activity) {
     currentActivity = activity;
     showIfNeeded();
 }
 ```
+- **What it does:** pins the given Activity as the current host, then runs the usual
+  show logic.
+- **Where it's called:** `DashboardActivity` when the dashboard comes up, so an
+  ongoing outage is checked against that screen.
+- **Why it's written this way:** an Activity that knows it is visible can force the
+  host before the no-arg check runs.
+- **Step by step:** 1) assign `currentActivity`; 2) call `showIfNeeded()`.
 
-What that function does: I set the host activity, then I try to show the dialog.
-What the function is responsible for: I let a screen request the dialog with itself as host.
-Where it works: I am called by DashboardActivity.
-Why I chose to write the code of the function the way its written: Passing the activity covers the case where lifecycle has not stored it yet.
-More: I assign currentActivity and call showIfNeeded().
-
+### `public static void showIfNeeded()`
 ```java
 public static void showIfNeeded() {
     Activity activity = currentActivity;
@@ -207,9 +187,19 @@ public static void showIfNeeded() {
             .show();
 }
 ```
-
-What that function does: I show one offline dialog: continue to report, or exit the app.
-What the function is responsible for: I am the outage UI. One dialog per outage.
-Where it works: I am called from onBackendUnreachable on the main thread, and from the Activity overload.
-Why I chose to write the code of the function the way its written: I skip MainActivity because it immediately forwards. I skip ReportActivity because the user is already writing. compareAndSet stops a second dialog.
-More: I use MaterialAlertDialogBuilder, BackendAvailability.isReachable, NetworkMonitor.isOnline, and AtomicBoolean dialogVisible.
+- **What it does:** shows the offline dialog once if the API or device is down and the
+  user has not already acknowledged the outage.
+- **Where it's called:** from `onBackendUnreachable` (via the main handler), from
+  `showIfNeeded(Activity)`, and indirectly whenever those paths run.
+- **Why it's written this way:** many early returns avoid dialogs on splash, dying
+  screens, or after the user already chose; on `ReportActivity` it only marks ack so
+  report writing is not interrupted; `compareAndSet` stops duplicate dialogs.
+- **Step by step:**
+  1. Read `currentActivity`; bail if missing, finishing, or destroyed.
+  2. Skip `MainActivity`; skip if already acknowledged.
+  3. Check backend reachability and device online status; bail if both are fine.
+  4. If already on `ReportActivity`, set ack and return without a dialog.
+  5. Claim the dialog with `dialogVisible` (`false` → `true`); bail if another won.
+  6. Build a non-cancelable Material dialog: Continue opens `ReportActivity` and
+     clears the visible flag; Exit finishes the task affinity and clears the flag.
+  7. Show the dialog.

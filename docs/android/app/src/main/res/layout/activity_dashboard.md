@@ -1,75 +1,86 @@
+# activity_dashboard.xml
+
+## Overview
+This layout is the main app shell after login: a full-screen area that swaps in
+fragments (Home, Search, My Items, Profile), a bottom navigation bar, and a floating
+"+" button that sits in the middle notch of that bar. It is inflated by
+`DashboardActivity` through `ActivityDashboardBinding`.
+
+Key idea: this is the container screen; the actual pages are **Fragments** shown inside
+`fragment_container`, chosen by the bottom nav. See `docs/GLOSSARY.md`.
+
+## Concepts used here
+- **CoordinatorLayout** — a container that lets children overlap and coordinate (here,
+  the FAB floats above the bottom bar). See `docs/GLOSSARY.md`.
+- **FrameLayout** — a simple container that holds the current fragment. See `docs/GLOSSARY.md`.
+- **BottomNavigationView** — the Material bottom tab bar. See `docs/GLOSSARY.md`.
+- **FloatingActionButton (FAB)** — the round "+" action button. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `ActivityDashboardBinding`. See `docs/GLOSSARY.md`.
+
+## Screen structure
+The root is a `CoordinatorLayout` so its three children can stack on top of each other:
+
+```
+CoordinatorLayout (root)
+├── FrameLayout  (@id/fragment_container — fills the screen, holds the active fragment)
+├── BottomNavigationView  (@id/bottom_navigation — pinned to the bottom)
+└── FloatingActionButton  (@id/fab_add_report — centered, floating over the bar)
+```
+
+A `CoordinatorLayout` is used (instead of a plain `LinearLayout`) because the FAB has to
+float over the bottom bar in the same space, not sit above or below it in a column.
+
+## Components
+
+### Fragment container
 ```xml
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<FrameLayout
+    android:id="@+id/fragment_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/brand_dark"
-    android:fitsSystemWindows="false">
+    android:layout_marginBottom="@dimen/bottom_nav_height" />
 ```
+- **What it shows:** the region where the current page (Home/Search/My Items/Profile)
+  is displayed. It starts empty in XML and is filled with a fragment at runtime.
+- **Why it's set up this way:** a `FrameLayout` is the standard "put one fragment here"
+  container. The bottom margin equal to the nav height keeps page content from hiding
+  behind the bottom bar.
+- **How the code uses it:** `DashboardActivity` swaps fragments into
+  `binding.fragmentContainer`, and adjusts its top padding/margins to fit under the
+  status bar using window insets.
 
-What that function does: I am the signed-in shell: a fragment slot, a bottom bar, and a report FAB.
-What the function is responsible for: I am the root of activity_dashboard.
-Where it works: DashboardActivity inflates me through ActivityDashboardBinding.
-Why I chose to write the code of the function the way its written: CoordinatorLayout lets the FAB sit over the bar. fitsSystemWindows false lets the fragments paint their own headers.
-More: I use CoordinatorLayout.
-
+### Bottom navigation bar
 ```xml
-    <FrameLayout
-        android:id="@+id/fragment_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginBottom="@dimen/bottom_nav_height" />
+<com.google.android.material.bottomnavigation.BottomNavigationView
+    android:id="@+id/bottom_navigation"
+    style="@style/Widget.ReClaim.BottomNavigation"
+    android:layout_gravity="bottom"
+    android:background="@drawable/bg_bottom_nav"
+    app:labelVisibilityMode="labeled"
+    app:menu="@menu/bottom_nav_menu" />
 ```
+- **What it shows:** the tab bar at the bottom with icons and labels for the main
+  sections.
+- **Why it's set up this way:** `layout_gravity="bottom"` pins it to the bottom of the
+  `CoordinatorLayout`. Its tabs come from a menu resource (`bottom_nav_menu`) rather than
+  being hand-written here, which keeps the layout short and the tabs reusable.
+- **How the code uses it:** `binding.bottomNavigation.setOnItemSelectedListener(...)`
+  switches fragments when a tab is tapped, and `setSelectedItemId(...)` selects a tab in
+  code (for example, defaulting to Home). It also gets bottom padding from window insets.
 
-What that function does: I host Home, Search, My Items, and Profile fragments.
-What the function is responsible for: I am the tab content slot.
-Where it works: DashboardActivity.showFragment puts fragments in me.
-Why I chose to write the code of the function the way its written: Bottom margin keeps content above the bar.
-More: I use fragment_container.
-
+### Floating "+" button
 ```xml
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottom_navigation"
-        style="@style/Widget.ReClaim.BottomNavigation"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:background="@drawable/bg_bottom_nav"
-        app:itemActiveIndicatorStyle="@style/Widget.ReClaim.BottomNav.ActiveIndicator"
-        app:itemIconTint="@color/bottom_nav_item_color"
-        app:itemTextColor="@color/bottom_nav_item_color"
-        app:elevation="@dimen/space_12"
-        app:labelVisibilityMode="labeled"
-        app:menu="@menu/bottom_nav_menu"
-        app:paddingBottomSystemWindowInsets="false"
-        app:paddingTopSystemWindowInsets="false" />
+<com.google.android.material.floatingactionbutton.FloatingActionButton
+    android:id="@+id/fab_add_report"
+    android:layout_gravity="bottom|center_horizontal"
+    android:layout_marginBottom="@dimen/space_40"
+    app:backgroundTint="@color/brand_accent"
+    app:srcCompat="@drawable/ic_add_24" />
 ```
-
-What that function does: I am the four-tab bar. The middle item is a gap for the FAB.
-What the function is responsible for: I switch tabs.
-Where it works: DashboardActivity.setOnItemSelectedListener reads me. nav_report_placeholder is ignored.
-Why I chose to write the code of the function the way its written: labeled keeps names visible. Insets are off so DashboardActivity can pad the bar itself.
-More: I use bottom_nav_menu.
-
-```xml
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_add_report"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="@dimen/space_40"
-        android:contentDescription="@string/cd_create_report"
-        app:backgroundTint="@color/brand_accent"
-        app:borderWidth="0dp"
-        app:elevation="@dimen/space_16"
-        app:fabCustomSize="@dimen/space_64"
-        app:maxImageSize="@dimen/space_28"
-        app:srcCompat="@drawable/ic_add_24"
-        app:tint="@color/text_on_accent" />
-```
-
-What that function does: I am the add-report button sitting in the middle of the bar.
-What the function is responsible for: I open a new report.
-Where it works: DashboardActivity starts ReportActivity from fab_add_report.
-Why I chose to write the code of the function the way its written: A custom 64dp size sits in the empty middle slot. Accent color matches the brand.
-More: I use FloatingActionButton.
+- **What it shows:** a round accent-colored "+" button centered over the bottom bar,
+  used to create a new report.
+- **Why it's set up this way:** `layout_gravity="bottom|center_horizontal"` plus a bottom
+  margin lifts it into the empty middle slot of the bottom nav, a common Material pattern.
+  Its elevation is higher than the bar so it appears to float above it.
+- **How the code uses it:** `binding.fabAddReport.setOnClickListener(...)` opens the
+  report screen (`ReportActivity`). The FAB's margins are also nudged with window insets.

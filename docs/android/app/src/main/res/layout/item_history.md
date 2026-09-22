@@ -1,105 +1,80 @@
-```xml
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginBottom="@dimen/space_14"
-    app:cardBackgroundColor="@color/md_theme_surfaceContainerLowest"
-    app:cardCornerRadius="@dimen/space_18"
-    app:cardElevation="@dimen/space_2"
-    app:strokeColor="@color/md_theme_outlineVariant"
-    app:strokeWidth="@dimen/space_0_5">
+# item_history.xml
+
+## Overview
+This layout is one report-history row: a thumbnail, a role label ("You reported" /
+claim wording), the item title, an optional "View contact" button, and a status badge.
+It is inflated once per entry by `HistoryAdapter` through `ItemHistoryBinding` and
+shown in `ReportHistoryActivity`'s RecyclerView.
+
+Key idea: an **Adapter** inflates this layout once per list item and a **ViewHolder**
+holds its views. See `docs/GLOSSARY.md`.
+
+## Concepts used here
+- **MaterialCardView** — the rounded card that is the row's root.
+- **LinearLayout** — horizontal row of thumbnail, text, and status. See `docs/GLOSSARY.md`.
+- **Glide** — loads the history photo. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `ItemHistoryBinding`. See `docs/GLOSSARY.md`.
+
+## Screen structure
+
+```
+MaterialCardView (root)
+└── LinearLayout (horizontal, padded)
+    ├── MaterialCardView → ImageView image_history
+    ├── LinearLayout (weight 1, vertical)
+    │   ├── text_history_role
+    │   ├── text_history_title
+    │   └── btn_history_contact (gone by default)
+    └── text_history_status (badge)
 ```
 
-What that function does: I am one history row card.
-What the function is responsible for: I am the root of item_history.
-Where it works: HistoryAdapter inflates me. ReportHistoryActivity hosts that adapter.
-Why I chose to write the code of the function the way its written: Bottom margin spaces the list. A light stroke keeps the card on the page.
-More: I use MaterialCardView.
+The root is a `MaterialCardView` because each history entry is a compact card.
 
+## Components
+
+### Thumbnail and text
 ```xml
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="@dimen/space_56"
-            android:layout_height="@dimen/space_56"
-            app:cardBackgroundColor="@color/md_theme_surfaceContainerHigh"
-            app:cardCornerRadius="@dimen/space_12"
-            app:cardElevation="0dp"
-            app:strokeWidth="0dp">
-
-            <ImageView
-                android:id="@+id/image_history"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:contentDescription="@null"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_item_placeholder" />
-        </com.google.android.material.card.MaterialCardView>
+<ImageView android:id="@+id/image_history" android:scaleType="centerCrop" ... />
+<MaterialTextView android:id="@+id/text_history_role" ... />
+<MaterialTextView
+    android:id="@+id/text_history_title"
+    android:maxLines="2"
+    android:ellipsize="end" ... />
 ```
+- **What it shows:** a small photo, a role line (reporter vs claimant), and the item
+  title (up to two lines).
+- **Why it's set up this way:** the nested card rounds the thumbnail; role in secondary
+  color sits above the stronger title.
+- **How the code uses it:** the adapter loads Glide into `binding.imageHistory`, sets
+  `binding.textHistoryRole` from a string resource on the entry, and sets
+  `binding.textHistoryTitle` (or a placeholder if empty).
 
-What that function does: I show a small rounded thumbnail.
-What the function is responsible for: I am the photo on the history row.
-Where it works: HistoryAdapter.bind loads image_history with Glide.
-Why I chose to write the code of the function the way its written: 56dp fits a dense list. Nested card clips the image.
-More: I use ic_item_placeholder until Glide loads.
-
+### Contact button
 ```xml
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/text_history_role"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceLabelMedium"
-                android:textColor="@color/text_secondary"
-                tools:text="You reported" />
-
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/text_history_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_2"
-                android:ellipsize="end"
-                android:maxLines="2"
-                android:textAppearance="?attr/textAppearanceTitleMedium"
-                android:textColor="@color/brand_dark"
-                tools:text="Black Leather Wallet" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_history_contact"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minHeight="0dp"
-                android:paddingStart="@dimen/space_4"
-                android:paddingEnd="@dimen/space_4"
-                android:text="@string/btn_view_contact_info"
-                android:visibility="gone"
-                tools:visibility="visible" />
+<com.google.android.material.button.MaterialButton
+    android:id="@+id/btn_history_contact"
+    style="@style/Widget.Material3.Button.TextButton"
+    android:text="@string/btn_view_contact_info"
+    android:visibility="gone" />
 ```
+- **What it shows:** a "View contact info" text button when the user is allowed to see
+  the other party's contact (e.g. an approved claim).
+- **Why it's set up this way:** default `gone` keeps most rows compact; only approved
+  claim rows need the extra action.
+- **How the code uses it:** the adapter shows `binding.btnHistoryContact` when
+  `entry.showContact` is true and a claim id exists, and calls
+  `ContactClickListener.onViewContact(claimId)` (which leads to `ContactInfoDialog` in
+  `ReportHistoryActivity`).
 
-What that function does: I show role, title, and an optional contact button.
-What the function is responsible for: I am the middle text block of the history row.
-Where it works: HistoryAdapter.bind sets the texts and shows btn_history_contact for approved claims.
-Why I chose to write the code of the function the way its written: The button starts gone so report rows stay quiet.
-More: I use btn_view_contact_info.
-
+### Status badge
 ```xml
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/text_history_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/space_10"
-            android:background="@drawable/bg_status_badge"
-            android:paddingStart="@dimen/space_12"
-            android:paddingTop="@dimen/space_5"
-            android:paddingEnd="@dimen/space_12"
-            android:paddingBottom="@dimen/space_5"
-            android:textAppearance="?attr/textAppearanceLabelMedium"
-            android:textStyle="bold"
-            tools:text="Pending" />
+<com.google.android.material.textview.MaterialTextView
+    android:id="@+id/text_history_status"
+    android:background="@drawable/bg_status_badge"
+    android:textStyle="bold" />
 ```
-
-What that function does: I show Pending, Approved, or Declined as a small badge.
-What the function is responsible for: I am the status chip on the history row.
-Where it works: HistoryAdapter.bind sets text and tint from HistoryAdapter.Status.
-Why I chose to write the code of the function the way its written: Background tint in Java reuses one drawable for three colors.
-More: I use bg_status_badge.
+- **What it shows:** Pending / Approved / Declined on the right side of the row.
+- **Why it's set up this way:** a tinted badge background keeps status readable without
+  a full Chip widget.
+- **How the code uses it:** the adapter sets label and tint colors from
+  `HistoryAdapter.Status` on `binding.textHistoryStatus`.

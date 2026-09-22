@@ -1,3 +1,48 @@
+# FirebaseAdminConfig.java
+
+## Overview
+This is a **Spring configuration** class that starts the **Firebase Admin** SDK once at boot (see `docs/GLOSSARY.md`). Admin credentials let the backend send **FCM** push notifications and delete files in **Firebase Storage**. If credentials are missing, the app still starts; push and storage-admin features simply stay off until `FIREBASE_SERVICE_ACCOUNT` (or application-default credentials) is available.
+
+## Concepts used here
+- **Bean / configuration** — Spring creates this class and runs `@PostConstruct`; see `docs/GLOSSARY.md`.
+- **Firebase** — Storage and FCM both need Admin initialization; see `docs/GLOSSARY.md`.
+- **Service account** — a JSON key file that proves this server is allowed to use Firebase Admin APIs.
+- **Graceful degradation** — if init fails, the server keeps running instead of crashing.
+
+## Libraries and imports
+- **Firebase Admin** (`FirebaseApp`, `FirebaseOptions`): initializes the shared Admin app and sets the storage bucket.
+- **Google Auth** (`GoogleCredentials`): loads the service-account (or application-default) credentials.
+- **Spring** (`@Configuration`): marks this as a startup config class.
+- **Jakarta** (`@PostConstruct`): runs `initialize` after the bean is created.
+- **SLF4J** (`Logger`, `LoggerFactory`): logs success or a warning when Firebase is skipped.
+- **Java I/O** (`FileInputStream`, `IOException`): reads the service-account JSON from disk.
+
+## Fields
+- `log` (`Logger`) — static logger for init success/failure messages.
+
+## Functions
+
+### `private GoogleCredentials loadCredentials() throws IOException`
+```java
+private GoogleCredentials loadCredentials() throws IOException {
+    String path = System.getenv("FIREBASE_SERVICE_ACCOUNT");
+    if (path != null && !path.isBlank()) {
+        try (FileInputStream stream = new FileInputStream(path)) {
+            return GoogleCredentials.fromStream(stream);
+        }
+    }
+    return GoogleCredentials.getApplicationDefault();
+}
+```
+- **What it does:** loads Google credentials from `FIREBASE_SERVICE_ACCOUNT` if set, otherwise tries application-default credentials (e.g. from the environment).
+- **Where it's called:** only by `initialize` in this class.
+- **Why it's written this way:** a local path is the usual student/dev setup; application-default credentials cover cloud-hosted runs without changing code.
+- **Step by step:**
+  1. Read the `FIREBASE_SERVICE_ACCOUNT` env var.
+  2. If it is a non-blank path, open the file and build credentials from the stream.
+  3. Otherwise return `GoogleCredentials.getApplicationDefault()`.
+
+### `public void initialize()`
 ```java
 @PostConstruct
 public void initialize() {
@@ -19,27 +64,12 @@ public void initialize() {
     }
 }
 ```
-
-What that function does: I start Firebase Admin for pushes and storage deletes, or leave it off if credentials are missing.
-What the function is responsible for: I initialize FirebaseApp once at startup.
-Where it works: I run after Spring builds the bean. PushNotificationService and FirebaseStorageService later check FirebaseApp.getApps().
-Why I chose to write the code of the function the way its written: I skip if an app already exists. I log a warning instead of crashing so the API still starts without Firebase.
-More: I use GoogleCredentials, FirebaseOptions, FirebaseApp, and slf4j LoggerFactory.
-
-```java
-private GoogleCredentials loadCredentials() throws IOException {
-    String path = System.getenv("FIREBASE_SERVICE_ACCOUNT");
-    if (path != null && !path.isBlank()) {
-        try (FileInputStream stream = new FileInputStream(path)) {
-            return GoogleCredentials.fromStream(stream);
-        }
-    }
-    return GoogleCredentials.getApplicationDefault();
-}
-```
-
-What that function does: I load credentials from FIREBASE_SERVICE_ACCOUNT or from application default credentials.
-What the function is responsible for: I am the credential source for initialize.
-Where it works: I am called by initialize. I am unused except internally.
-Why I chose to write the code of the function the way its written: I wrote it this way because a file path is easy for local runs. Default credentials cover hosted environments.
-More: I use System.getenv, FileInputStream, GoogleCredentials.fromStream, and getApplicationDefault.
+- **What it does:** initializes `FirebaseApp` once with credentials and the project storage bucket, or logs a warning and leaves Firebase unused if credentials cannot be loaded.
+- **Where it's called:** by Spring once after this bean is constructed (`@PostConstruct`). Later, `PushNotificationService` and `FirebaseStorageService` check `FirebaseApp.getApps()` before using Admin APIs.
+- **Why it's written this way:** the empty-apps check avoids double-init; catching `IOException` lets the API server boot without Firebase (auth/items still work).
+- **Step by step:**
+  1. If a Firebase app already exists, return immediately.
+  2. Load credentials via `loadCredentials`.
+  3. Build `FirebaseOptions` with those credentials and the fixed storage bucket name.
+  4. Call `FirebaseApp.initializeApp(options)` and log success.
+  5. On `IOException`, log a warning that pushes are disabled.

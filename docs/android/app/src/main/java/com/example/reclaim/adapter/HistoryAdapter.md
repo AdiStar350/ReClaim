@@ -1,41 +1,65 @@
-```java
-void onViewContact(@NonNull String claimId);
-```
+# HistoryAdapter.java
 
-What that function does: I am the contact-button callback the host must implement.
-What the function is responsible for: I tell the screen which approved claim to load contact for.
-Where it works: HistoryViewHolder.bind calls me. ReportHistoryActivity implements me as showOwnerContact.
-Why I chose to write the code of the function the way its written: The adapter only has claimId, not the full contact.
-More: I take a non-null claimId.
+## Overview
+This is a **RecyclerView Adapter** for report/claim history rows (see `docs/GLOSSARY.md`). Each row shows a role label (e.g. report vs claim), title, thumbnail, a status badge (Pending / Approved / Declined), and optionally a “view contact” button when an approved claim has a claim id.
 
+## Concepts used here
+- **RecyclerView / Adapter / ViewHolder** — history list. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `ItemHistoryBinding`. See `docs/GLOSSARY.md`.
+- **Glide** — loads history thumbnails. See `docs/GLOSSARY.md`.
+- **Enum** — `Status` bundles label and badge colors for each state.
+- **Nested static class** — `Entry` is the Adapter’s own row model (not a network DTO).
+
+## Libraries and imports
+- **AndroidX**: RecyclerView, ContextCompat, ColorStateList, View, annotations (`@StringRes`, `@ColorRes`).
+- **Glide**: image loading.
+- **Project**: `ItemHistoryBinding`, history status strings/colors.
+
+## Fields
+- `private final List<Entry> entries` — rows currently shown.
+- `private final ContactClickListener contactClickListener` — called when “view contact” is tapped.
+
+## Functions
+
+### `public interface ContactClickListener` — `void onViewContact(String claimId)`
 ```java
-Status(@StringRes int labelRes, @ColorRes int bgColorRes, @ColorRes int textColorRes) {
-    this.labelRes = labelRes;
-    this.bgColorRes = bgColorRes;
-    this.textColorRes = textColorRes;
+public interface ContactClickListener {
+    void onViewContact(@NonNull String claimId);
 }
 ```
+- **What it does:** Declares the callback for opening contact info for a claim.
+- **Where it's called:** `ReportHistoryActivity` passes `this::showOwnerContact`; invoked from the contact button in `HistoryViewHolder.bind`.
+- **Why it's written this way:** Contact fetch/dialog stays in the Activity.
+- **Step by step:**
+  1. Host implements `onViewContact`.
+  2. Button calls it with `entry.claimId`.
 
-What that function does: I store label and colors for a history badge.
-What the function is responsible for: I am the enum constructor for PENDING, APPROVED, and DECLINED.
-Where it works: Java uses me when the enum constants are created. bind reads the fields.
-Why I chose to write the code of the function the way its written: Resources keep colors in one place instead of hex in Java.
-More: I use @StringRes and @ColorRes.
+### `public enum Status`
+```java
+public enum Status {
+    PENDING(R.string.history_status_pending,
+            R.color.status_pending_bg, R.color.status_pending_text),
+    APPROVED(R.string.history_status_approved,
+            R.color.status_open_bg, R.color.status_open_text),
+    DECLINED(R.string.history_status_declined,
+            R.color.status_closed_bg, R.color.status_closed_text);
+    // fields + constructor assign labelRes, bgColorRes, textColorRes
+}
+```
+- **What it does:** Maps each history status to a string resource and badge background/text colors.
+- **Where it's called:** `ReportHistoryActivity` picks a `Status` when building `Entry` objects; `bind` reads the enum fields to style the badge.
+- **Why it's written this way:** Keeps colors/labels next to the status name so Activity code stays short.
+- **Step by step:**
+  1. Each constant stores label + bg + text color resource ids.
+  2. Constructor assigns those three fields.
 
+### `public static class Entry` constructors
 ```java
 public Entry(String title, String imageUrl,
              @StringRes int roleLabelRes, Status status) {
     this(title, imageUrl, roleLabelRes, status, null, false);
 }
-```
 
-What that function does: I build a row with no contact button.
-What the function is responsible for: I am the short constructor for report rows.
-Where it works: I am used in ReportHistoryActivity for the user's own reports.
-Why I chose to write the code of the function the way its written: I forward to the full constructor with showContact false.
-More: I pass null claimId.
-
-```java
 public Entry(String title, String imageUrl,
              @StringRes int roleLabelRes, Status status,
              String claimId, boolean showContact) {
@@ -47,25 +71,26 @@ public Entry(String title, String imageUrl,
     this.showContact = showContact;
 }
 ```
+- **What it does:** Builds one history row; the short constructor hides contact (no claim id).
+- **Where it's called:** `ReportHistoryActivity` when turning reports and claims into list entries.
+- **Why it's written this way:** Report rows need no contact button; approved claims pass `claimId` and `showContact = true`.
+- **Step by step:**
+  1. Short form delegates to the long form with `null` claim id and `showContact = false`.
+  2. Long form stores all six fields.
 
-What that function does: I store one history row, including optional contact.
-What the function is responsible for: I am the full row model.
-Where it works: I am used in ReportHistoryActivity for claims, and by the short constructor.
-Why I chose to write the code of the function the way its written: Contact stays optional so report rows do not show a button.
-More: I keep title, imageUrl, roleLabelRes, status, claimId, and showContact.
-
+### `public HistoryAdapter(ContactClickListener contactClickListener)`
 ```java
 public HistoryAdapter(ContactClickListener contactClickListener) {
     this.contactClickListener = contactClickListener;
 }
 ```
+- **What it does:** Stores the contact-click listener.
+- **Where it's called:** `ReportHistoryActivity` in `onCreate`.
+- **Why it's written this way:** Listener is optional at bind time (null-checked) but usually provided.
+- **Step by step:**
+  1. Assign the field.
 
-What that function does: I store the contact listener.
-What the function is responsible for: I am the adapter constructor.
-Where it works: I am constructed in ReportHistoryActivity.
-Why I chose to write the code of the function the way its written: I start with an empty list and fill it with submit.
-More: I keep entries as an ArrayList.
-
+### `public void submit(List<Entry> newEntries)`
 ```java
 public void submit(List<Entry> newEntries) {
     entries.clear();
@@ -75,13 +100,13 @@ public void submit(List<Entry> newEntries) {
     notifyDataSetChanged();
 }
 ```
+- **What it does:** Replaces the list and redraws.
+- **Where it's called:** From `ReportHistoryActivity` after combining report and claim entries.
+- **Why it's written this way:** Null-safe full refresh.
+- **Step by step:**
+  1. Clear, optionally addAll, notify.
 
-What that function does: I replace the list and redraw every row.
-What the function is responsible for: I am the bulk refresh after history loads.
-Where it works: I am called by ReportHistoryActivity.
-Why I chose to write the code of the function the way its written: A null list becomes empty.
-More: I use notifyDataSetChanged.
-
+### `onCreateViewHolder` / `onBindViewHolder` / `getItemCount`
 ```java
 @NonNull
 @Override
@@ -90,55 +115,26 @@ public HistoryViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewT
             LayoutInflater.from(parent.getContext()), parent, false);
     return new HistoryViewHolder(binding, contactClickListener);
 }
-```
 
-What that function does: I inflate item_history for a new row.
-What the function is responsible for: I am RecyclerView's create path.
-Where it works: RecyclerView calls me. The layout is item_history.xml.
-Why I chose to write the code of the function the way its written: I pass the listener into the holder so bind can use it.
-More: I use ItemHistoryBinding.inflate.
-
-```java
 @Override
 public void onBindViewHolder(@NonNull HistoryViewHolder holder, int position) {
     holder.bind(entries.get(position));
 }
-```
 
-What that function does: I bind one entry to a row.
-What the function is responsible for: I am RecyclerView's bind path.
-Where it works: RecyclerView calls me for each visible row.
-Why I chose to write the code of the function the way its written: The holder owns the field mapping.
-More: I call HistoryViewHolder.bind.
-
-```java
 @Override
 public int getItemCount() {
     return entries.size();
 }
 ```
+- **What it does:** Creates holders (passing the contact listener), binds entries, reports count.
+- **Where it's called:** By RecyclerView.
+- **Why it's written this way:** Listener is passed into the ViewHolder so `bind` can wire the button.
+- **Step by step:**
+  1. Inflate binding, construct `HistoryViewHolder`.
+  2. Bind `entries.get(position)`.
+  3. Return size.
 
-What that function does: I return how many history rows I hold.
-What the function is responsible for: I tell RecyclerView the list size.
-Where it works: RecyclerView calls me.
-Why I chose to write the code of the function the way its written: Size matches the in-memory list.
-More: I return entries.size().
-
-```java
-HistoryViewHolder(@NonNull ItemHistoryBinding binding,
-                  ContactClickListener listener) {
-    super(binding.getRoot());
-    this.binding = binding;
-    this.listener = listener;
-}
-```
-
-What that function does: I store the row binding and the contact listener.
-What the function is responsible for: I am the row constructor.
-Where it works: I am created in onCreateViewHolder.
-Why I chose to write the code of the function the way its written: super(binding.getRoot()) is what RecyclerView needs.
-More: I keep ItemHistoryBinding and ContactClickListener.
-
+### `HistoryViewHolder.bind(Entry entry)`
 ```java
 void bind(Entry entry) {
     Context context = binding.getRoot().getContext();
@@ -171,9 +167,11 @@ void bind(Entry entry) {
     }
 }
 ```
-
-What that function does: I fill role, title, photo, status badge, and the optional contact button.
-What the function is responsible for: I am one history row.
-Where it works: I am called from onBindViewHolder. Contact taps go to ReportHistoryActivity.
-Why I chose to write the code of the function the way its written: I hide the button unless showContact and claimId are set. Status colors come from the enum.
-More: I use Glide, ColorStateList, ContextCompat.getColor, and TextUtils.
+- **What it does:** Fills role, title, image, status badge colors, and shows/hides the contact button.
+- **Where it's called:** From `onBindViewHolder`.
+- **Why it's written this way:** Contact only appears when both `showContact` and a non-empty `claimId` are set; otherwise the listener is cleared so recycled rows do not keep a stale click.
+- **Step by step:**
+  1. Set role and title (placeholder if blank).
+  2. Load image with Glide.
+  3. Apply status label and tint/text colors from the enum.
+  4. Show contact button only when allowed; wire or clear the click listener.

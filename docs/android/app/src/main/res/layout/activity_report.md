@@ -1,311 +1,196 @@
-```xml
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/md_theme_background"
-    android:fillViewport="true">
+# activity_report.xml
+
+## Overview
+This layout is the "create/edit a report" screen: choose lost vs found, add a photo,
+fill in title/description/category, pick a location (text field + "use current" +
+a map), optionally add a verification question, and submit. It is inflated by
+`ReportActivity` through `ActivityReportBinding`.
+
+Key idea: this is a long scrolling form; the whole screen is wrapped in a `ScrollView`
+so it fits on any phone. See `docs/GLOSSARY.md`.
+
+## Concepts used here
+- **ScrollView** — the single scrolling wrapper for the whole form. See `docs/GLOSSARY.md`.
+- **LinearLayout** — vertical stacks for the form and inside each card. See `docs/GLOSSARY.md`.
+- **MaterialToolbar** — the top bar with a back arrow and title. See `docs/GLOSSARY.md`.
+- **MaterialCardView** — groups related fields into rounded cards. See `docs/GLOSSARY.md`.
+- **ChipGroup + Chip** — the single-choice Lost/Found selector. See `docs/GLOSSARY.md`.
+- **FrameLayout** — stacks the photo preview over its placeholder. See `docs/GLOSSARY.md`.
+- **TextInputLayout + TextInputEditText / AutoCompleteTextView** — the text fields and
+  the category/location dropdowns. See `docs/GLOSSARY.md`.
+- **FragmentContainerView** — hosts the Google Map fragment. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `ActivityReportBinding`. See `docs/GLOSSARY.md`.
+
+## Screen structure
+The root is a `ScrollView` (which can only have one child), so a `LinearLayout` inside
+it holds everything:
+
+```
+ScrollView (root)
+└── LinearLayout (vertical)
+    ├── MaterialToolbar (toolbar_report)
+    └── LinearLayout (padded form)
+        ├── subtitle
+        ├── Card: report type (ChipGroup: chip_type_found / chip_type_lost)
+        ├── Card: photo capture (image_preview over layout_photo_placeholder)
+        ├── "Choose photo" text button
+        ├── Card: title + description + category dropdown
+        ├── Card: location field + "use current" + map picker
+        ├── Card: verification question (shown for Found items)
+        └── Submit button
 ```
 
-What that function does: I am the lost/found report form.
-What the function is responsible for: I am the root of activity_report.
-Where it works: ReportActivity inflates me through ActivityReportBinding.
-Why I chose to write the code of the function the way its written: One ScrollView holds type, photo, details, map, and submit. MapTouchWrapper stops the scroll from eating map drags.
-More: I use fillViewport true.
+The root is a `ScrollView` (not a `NestedScrollView`) because this screen is a simple
+top-level scroller with no collapsing app bar to coordinate with.
 
+## Components
+
+### Toolbar
 ```xml
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar_report"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/brand_dark"
-            app:navigationIcon="@drawable/ic_arrow_back_24"
-            app:navigationIconTint="@color/brand_cream"
-            app:title="@string/report_title"
-            app:titleTextColor="@color/brand_cream"
-            android:paddingTop="@dimen/space_60" />
+<com.google.android.material.appbar.MaterialToolbar
+    android:id="@+id/toolbar_report"
+    android:background="@color/brand_dark"
+    app:navigationIcon="@drawable/ic_arrow_back_24"
+    app:title="@string/report_title"
+    android:paddingTop="@dimen/space_60" />
 ```
+- **What it shows:** a dark bar with a back arrow and the "Report" title.
+- **Why it's set up this way:** the top padding pushes the title below the status bar
+  (this screen doesn't use `fitsSystemWindows`). It uses the brand dark color for
+  contrast with the light form.
+- **How the code uses it:** `ReportActivity` calls
+  `setSupportActionBar(binding.toolbarReport)` so it acts as the screen's app bar.
 
-What that function does: I am the report toolbar with extra top padding for the status bar.
-What the function is responsible for: I show New report, Edit, or Found for lost.
-Where it works: ReportActivity.setupToolbar uses me. Edit and found-lock change the title in Java.
-Why I chose to write the code of the function the way its written: paddingTop 60 covers the status bar because this screen does not use fitsSystemWindows on the root.
-More: I use brand_dark.
-
+### Report type selector (Lost / Found)
 ```xml
-                    <com.google.android.material.chip.ChipGroup
-                        android:id="@+id/chip_group_report_type"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/space_10"
-                        app:checkedChip="@+id/chip_type_found"
-                        app:selectionRequired="true"
-                        app:singleSelection="true">
-
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_type_found"
-                            style="@style/Widget.ReClaim.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:checked="true"
-                            android:text="@string/type_found" />
-
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_type_lost"
-                            style="@style/Widget.ReClaim.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/type_lost" />
-
-                    </com.google.android.material.chip.ChipGroup>
+<com.google.android.material.chip.ChipGroup
+    android:id="@+id/chip_group_report_type"
+    app:checkedChip="@+id/chip_type_found"
+    app:selectionRequired="true"
+    app:singleSelection="true">
+    <com.google.android.material.chip.Chip android:id="@+id/chip_type_found" android:checked="true" ... />
+    <com.google.android.material.chip.Chip android:id="@+id/chip_type_lost" ... />
+</com.google.android.material.chip.ChipGroup>
 ```
+- **What it shows:** two selectable chips, "Found" and "Lost", inside a card, with
+  "Found" checked by default.
+- **Why it's set up this way:** `singleSelection="true"` and `selectionRequired="true"`
+  make it behave like radio buttons — exactly one is always chosen. This is the key field
+  because it changes the rest of the form (only found items ask a verification question).
+- **How the code uses it:** the code reads `binding.chipTypeLost.isChecked()` to decide
+  the type, listens on `binding.chipGroupReportType` to show/hide the verification card,
+  and can lock the selection to "Found" (e.g. when responding to someone's lost item).
 
-What that function does: I am lost or found. Found starts checked.
-What the function is responsible for: I set the report type.
-Where it works: ReportActivity.setupReportTypeChips listens to me. I-found-this disables chip_type_lost.
-Why I chose to write the code of the function the way its written: singleSelection keeps one type. Found default matches a finder filling the form.
-More: I use Widget.ReClaim.Chip.Filter.
-
+### Photo capture card
 ```xml
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_image_capture"
-                style="@style/Widget.ReClaim.Card"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/space_220"
-                android:layout_marginTop="@dimen/space_16"
-                android:clickable="true"
-                android:focusable="true"
-                app:cardBackgroundColor="@color/md_theme_surfaceContainerLow">
+<com.google.android.material.card.MaterialCardView android:id="@+id/card_image_capture" ...>
+    <FrameLayout>
+        <ImageView android:id="@+id/image_preview" android:visibility="gone" ... />
+        <LinearLayout android:id="@+id/layout_photo_placeholder" android:layout_gravity="center">
+            <ImageView android:src="@android:drawable/ic_menu_camera" />
+            <com.google.android.material.textview.MaterialTextView android:text="@string/btn_take_photo" />
+        </LinearLayout>
+    </FrameLayout>
+</com.google.android.material.card.MaterialCardView>
+
+<com.google.android.material.button.MaterialButton android:id="@+id/btn_choose_photo" ... />
 ```
+- **What it shows:** a tappable card that shows a camera icon and "Take photo" until a
+  picture is chosen; then it shows the photo. A separate "Choose photo" button picks from
+  the gallery.
+- **Why it's set up this way:** a `FrameLayout` stacks the preview image on top of the
+  placeholder so the app can just swap which one is visible instead of rebuilding the
+  view. The whole card is clickable to feel like one big shutter button.
+- **How the code uses it:** `binding.cardImageCapture` and `binding.imagePreview` open a
+  camera/gallery chooser; `binding.btnChoosePhoto` opens the gallery. When a photo is
+  set, the code hides `binding.layoutPhotoPlaceholder`, shows `binding.imagePreview`, and
+  loads the image into it with Glide.
 
-What that function does: I am the photo drop zone. Placeholder first, then preview.
-What the function is responsible for: I open camera or gallery.
-Where it works: ReportActivity.setupImageCapture wires card_image_capture, image_preview, and btn_choose_photo.
-Why I chose to write the code of the function the way its written: A tall card is an easy tap target. Preview starts gone.
-More: layout_photo_placeholder sits in the center until a photo loads.
-
+### Title, description, and category
 ```xml
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_choose_photo"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="end"
-                android:layout_marginTop="@dimen/space_8"
-                android:text="@string/btn_choose_photo"
-                android:textColor="@color/brand_accent"
-                app:icon="@android:drawable/ic_menu_gallery" />
+<com.google.android.material.textfield.TextInputLayout android:id="@+id/input_layout_item_title" ...>
+    <com.google.android.material.textfield.TextInputEditText android:id="@+id/edit_item_title" android:inputType="textCapSentences" />
+</com.google.android.material.textfield.TextInputLayout>
+
+<com.google.android.material.textfield.TextInputLayout android:id="@+id/input_layout_description" ...>
+    <com.google.android.material.textfield.TextInputEditText android:id="@+id/edit_description" android:inputType="textMultiLine|textCapSentences" android:minLines="4" />
+</com.google.android.material.textfield.TextInputLayout>
+
+<com.google.android.material.textfield.TextInputLayout android:id="@+id/input_layout_category" app:endIconMode="dropdown_menu">
+    <AutoCompleteTextView android:id="@+id/dropdown_category" android:inputType="none" ... />
+</com.google.android.material.textfield.TextInputLayout>
 ```
+- **What it shows:** a card with the item title (single line), a multi-line description,
+  and a category dropdown.
+- **Why it's set up this way:** each field is a `TextInputLayout` wrapping its input so
+  hints float and errors appear under the box. The description sets `minLines="4"` for a
+  taller box; the category uses an `AutoCompleteTextView` with `inputType="none"` and
+  `endIconMode="dropdown_menu"` so it behaves like a pick-from-list menu, not free text.
+- **How the code uses it:** the code reads `binding.editItemTitle`,
+  `binding.editDescription`, and `binding.dropdownCategory`, showing errors on the
+  matching `inputLayout*` when empty. The category list is attached with
+  `binding.dropdownCategory.setAdapter(...)` (using `item_dropdown_category.xml` rows).
+  When editing an existing report, the code pre-fills all three.
 
-What that function does: I skip the chooser and open the gallery.
-What the function is responsible for: I am choose photo.
-Where it works: ReportActivity.launchGallery.
-Why I chose to write the code of the function the way its written: A text button on the right stays secondary to the big card.
-More: I use ic_menu_gallery.
-
+### Location field, "use current location", and map
 ```xml
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/input_layout_item_title"
-                        style="@style/Widget.ReClaim.TextInput"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="@string/hint_item_title">
+<com.google.android.material.textfield.TextInputLayout android:id="@+id/input_layout_location" app:endIconMode="custom">
+    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+        android:id="@+id/edit_location"
+        android:completionThreshold="3"
+        android:inputType="textPostalAddress|textCapSentences" />
+</com.google.android.material.textfield.TextInputLayout>
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/edit_item_title"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="textCapSentences" />
+<com.google.android.material.button.MaterialButton android:id="@+id/btn_use_current_location" ... />
 
-                    </com.google.android.material.textfield.TextInputLayout>
+<com.google.android.material.card.MaterialCardView android:id="@+id/card_map_container" ...>
+    <com.example.reclaim.ui.report.MapTouchWrapper>
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/map_picker"
+            android:name="com.google.android.gms.maps.SupportMapFragment" />
+    </com.example.reclaim.ui.report.MapTouchWrapper>
+</com.google.android.material.card.MaterialCardView>
 ```
+- **What it shows:** a location text field with address autocomplete, a "Use current
+  location" button, and a Google Map inside a rounded card for picking the spot.
+- **Why it's set up this way:** `MaterialAutoCompleteTextView` with
+  `completionThreshold="3"` shows address suggestions after three characters. The map is
+  a `FragmentContainerView` (the standard way to embed a map fragment) wrapped in a
+  `MapTouchWrapper` so the map's own touch gestures don't fight the page's scroll. The
+  rounded card is just a nice frame around the map.
+- **How the code uses it:** the code attaches the places autocomplete adapter to
+  `binding.editLocation`, handles picking a suggestion, wires
+  `binding.btnUseCurrentLocation` to fill the address from GPS, and reads
+  `binding.editLocation` at submit time (showing errors on `binding.inputLayoutLocation`).
 
-What that function does: I am the item title field.
-What the function is responsible for: I take the report title. Errors go on the layout.
-Where it works: ReportActivity.validateAndSubmit reads edit_item_title.
-Why I chose to write the code of the function the way its written: Cap sentences helps a short name.
-More: I use Widget.ReClaim.TextInput.
-
+### Verification question card
 ```xml
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/input_layout_description"
-                        style="@style/Widget.ReClaim.TextInput"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/space_14"
-                        android:hint="@string/hint_item_description">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/edit_description"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="top"
-                            android:inputType="textMultiLine|textCapSentences"
-                            android:minLines="4" />
-
-                    </com.google.android.material.textfield.TextInputLayout>
+<com.google.android.material.card.MaterialCardView android:id="@+id/card_verification" ...>
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/input_layout_verification"
+        app:helperText="@string/hint_verification_hint"
+        app:helperTextEnabled="true">
+        <com.google.android.material.textfield.TextInputEditText android:id="@+id/edit_verification" ... />
+    </com.google.android.material.textfield.TextInputLayout>
+</com.google.android.material.card.MaterialCardView>
 ```
+- **What it shows:** a card with a "verification question" field and a small helper line
+  under it (a question only the true owner could answer).
+- **Why it's set up this way:** `helperTextEnabled` shows guidance text under the field.
+  This whole card is hidden for lost items and shown for found ones.
+- **How the code uses it:** the code toggles `binding.cardVerification` visibility based
+  on the Lost/Found chip, reads `binding.editVerification` for found items, and shows an
+  error on `binding.inputLayoutVerification` if it's required but empty.
 
-What that function does: I am the description field.
-What the function is responsible for: I take a longer write-up.
-Where it works: ReportActivity.validateAndSubmit reads edit_description.
-Why I chose to write the code of the function the way its written: minLines 4 leaves room without a huge box.
-More: I use textMultiLine.
-
+### Submit button
 ```xml
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/input_layout_category"
-                        style="@style/Widget.ReClaim.TextInput"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/space_14"
-                        android:hint="@string/hint_item_category"
-                        app:endIconMode="dropdown_menu">
-
-                        <AutoCompleteTextView
-                            android:id="@+id/dropdown_category"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="none"
-                            android:paddingStart="@dimen/space_15"
-                            android:popupBackground="@color/md_theme_surfaceContainerLowest"
-                            android:textColor="@color/text_primary" />
-
-                    </com.google.android.material.textfield.TextInputLayout>
+<com.google.android.material.button.MaterialButton
+    android:id="@+id/btn_submit_report"
+    style="@style/Widget.ReClaim.Button.Primary"
+    android:text="@string/btn_submit_report" />
 ```
-
-What that function does: I am the category dropdown.
-What the function is responsible for: I pick a category from the list.
-Where it works: ReportActivity.setupCategoryDropdown uses item_dropdown_category.xml.
-Why I chose to write the code of the function the way its written: inputType none stops typing a free category.
-More: I use endIconMode dropdown_menu.
-
-```xml
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/input_layout_location"
-                        style="@style/Widget.ReClaim.TextInput"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="@string/hint_item_location"
-                        app:endIconDrawable="@android:drawable/ic_dialog_map"
-                        app:endIconMode="custom">
-
-                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                            android:id="@+id/edit_location"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:completionThreshold="3"
-                            android:dropDownSelector="@android:color/transparent"
-                            android:imeOptions="actionDone"
-                            android:inputType="textPostalAddress|textCapSentences"
-                            android:paddingStart="@dimen/space_15"
-                            android:popupBackground="@drawable/bg_popup_menu"
-                            android:popupTheme="@style/ThemeOverlay.ReClaim.PopupMenu"
-                            android:textColor="@color/text_primary" />
-
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_use_current_location"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="@dimen/space_48"
-                        android:layout_marginTop="@dimen/space_12"
-                        android:text="@string/btn_use_current_location"
-                        app:icon="@android:drawable/ic_menu_mylocation" />
-```
-
-What that function does: I am the address field with Places suggestions, plus use-current-location.
-What the function is responsible for: I take a place by typing, pick, or GPS.
-Where it works: ReportActivity.setupPlacesAutocomplete binds edit_location. btn_use_current_location calls fetchCurrentLocation.
-Why I chose to write the code of the function the way its written: Threshold 3 cuts empty suggestions. A map icon is only decoration; the map below is the picker.
-More: I use PlacesAutocompleteAdapter.
-
-```xml
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/card_map_container"
-                        android:layout_width="match_parent"
-                        android:layout_height="@dimen/space_400"
-                        android:layout_marginTop="@dimen/space_10"
-                        app:cardCornerRadius="@dimen/space_18"
-                        app:cardElevation="0dp"
-                        app:strokeColor="@color/md_theme_outlineVariant"
-                        app:strokeWidth="@dimen/space_1">
-
-                        <com.example.reclaim.ui.report.MapTouchWrapper
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent">
-
-                            <androidx.fragment.app.FragmentContainerView
-                                android:id="@+id/map_picker"
-                                android:name="com.google.android.gms.maps.SupportMapFragment"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent" />
-
-                        </com.example.reclaim.ui.report.MapTouchWrapper>
-
-                    </com.google.android.material.card.MaterialCardView>
-```
-
-What that function does: I am the map picker in a rounded card.
-What the function is responsible for: I let the user tap a pin.
-Where it works: ReportActivity.onMapReady uses map_picker. MapTouchWrapper asks the parent ScrollView not to steal the drag.
-Why I chose to write the code of the function the way its written: 400dp is tall enough to pan. The wrapper is the only custom view in this form.
-More: I use SupportMapFragment.
-
-```xml
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_verification"
-                style="@style/Widget.ReClaim.Card"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_16">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="@dimen/space_18">
-
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/input_layout_verification"
-                        style="@style/Widget.ReClaim.TextInput"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="@string/hint_verification_question"
-                        app:helperText="@string/hint_verification_hint"
-                        app:helperTextEnabled="true">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/edit_verification"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="textCapSentences" />
-
-                    </com.google.android.material.textfield.TextInputLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-```
-
-What that function does: I am the check-question field for found reports.
-What the function is responsible for: I take a question a claimant must answer.
-Where it works: ReportActivity.updateVerificationVisibility hides me on lost. validateAndSubmit reads edit_verification.
-Why I chose to write the code of the function the way its written: Helper text explains why the question exists.
-More: I use helperTextEnabled.
-
-```xml
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_submit_report"
-                style="@style/Widget.ReClaim.Button.Primary"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/button_height"
-                android:layout_marginTop="@dimen/space_20"
-                android:text="@string/btn_submit_report" />
-```
-
-What that function does: I am the submit button.
-What the function is responsible for: I start validation.
-Where it works: ReportActivity.setupSubmitButton wires me. setSubmitting changes my text.
-Why I chose to write the code of the function the way its written: Full width primary at the end of the form.
-More: I use Widget.ReClaim.Button.Primary.
+- **What it shows:** the full-width primary button that sends the report.
+- **Why it's set up this way:** full width and primary styling make it the clear final
+  action at the bottom of the form.
+- **How the code uses it:** `binding.btnSubmitReport` runs the validate-and-submit flow;
+  while submitting it is disabled and its text changes to a progress label.

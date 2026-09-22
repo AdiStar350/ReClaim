@@ -1,164 +1,95 @@
-```xml
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/brand_deep"
-    android:fitsSystemWindows="true"
-    android:orientation="vertical">
+# activity_reset_password.xml
+
+## Overview
+This layout is the "set a new password" screen, shown at the end of the forgot-password
+flow (after the emailed code is verified). It has a back-arrow toolbar, a small hero,
+and a form with two password fields and an update button. It is inflated by
+`ResetPasswordActivity` through `ActivityResetPasswordBinding`.
+
+Key idea: this is one **Activity** screen; its **layout XML** holds the fields the
+Activity reads. See `docs/GLOSSARY.md`.
+
+## Concepts used here
+- **LinearLayout** — vertical stack for the whole screen. See `docs/GLOSSARY.md`.
+- **MaterialToolbar** — the top bar that holds the back arrow. See `docs/GLOSSARY.md`.
+- **NestedScrollView** — lets the form scroll on small screens. See `docs/GLOSSARY.md`.
+- **TextInputLayout + TextInputEditText** — the password fields. See `docs/GLOSSARY.md`.
+- **Material Button** — the "Update password" button. See `docs/GLOSSARY.md`.
+- **ProgressBar** — a spinner shown while the request runs. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `ActivityResetPasswordBinding`. See `docs/GLOSSARY.md`.
+
+## Screen structure
+A vertical `LinearLayout`, top to bottom:
+
+```
+LinearLayout (root, vertical, dark background)
+├── MaterialToolbar (back arrow)
+├── LinearLayout (small hero: logo + "Reset password" title)
+└── NestedScrollView
+    └── LinearLayout (form)
+        ├── subtitle text
+        ├── new password field
+        ├── confirm new password field
+        ├── Update password button
+        └── ProgressBar (hidden until loading)
 ```
 
-What that function does: I am the new-password screen after a reset token.
-What the function is responsible for: I am the root of activity_reset_password.
-Where it works: ResetPasswordActivity inflates me through ActivityResetPasswordBinding.
-Why I chose to write the code of the function the way its written: Same auth split as OTP.
-More: I use a vertical LinearLayout.
+The root is a `LinearLayout` because the toolbar, hero, and form are simply stacked in
+a column.
 
+## Components
+
+### Toolbar
 ```xml
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar_reset"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
-        app:navigationIcon="@drawable/ic_arrow_back_24"
-        app:navigationIconTint="@color/brand_white" />
+<com.google.android.material.appbar.MaterialToolbar
+    android:id="@+id/toolbar_reset"
+    android:background="@android:color/transparent"
+    app:navigationIcon="@drawable/ic_arrow_back_24"
+    app:navigationIconTint="@color/brand_white" />
 ```
+- **What it shows:** a transparent bar with a white back arrow over the dark hero.
+- **Why it's set up this way:** it is transparent so the dark hero shows through; the
+  white arrow tint keeps it visible on the dark background.
+- **How the code uses it:** `binding.toolbarReset.setNavigationOnClickListener(...)`
+  closes the screen when the back arrow is tapped.
 
-What that function does: I am a transparent back bar on the dark hero.
-What the function is responsible for: I let the user leave reset.
-Where it works: ResetPasswordActivity uses toolbar_reset for up navigation.
-Why I chose to write the code of the function the way its written: Transparent keeps the dark hero unbroken.
-More: I use ic_arrow_back_24.
-
+### New password and Confirm fields
 ```xml
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/space_150"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:paddingBottom="@dimen/space_12">
+<com.google.android.material.textfield.TextInputLayout
+    android:id="@+id/input_layout_new_password"
+    android:hint="@string/hint_new_password"
+    app:endIconMode="password_toggle">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/edit_new_password"
+        android:inputType="textPassword" />
+</com.google.android.material.textfield.TextInputLayout>
 
-        <ImageView
-            android:layout_width="@dimen/space_56"
-            android:layout_height="@dimen/space_56"
-            android:contentDescription="@string/app_name"
-            android:scaleType="centerInside"
-            android:src="@mipmap/ic_launcher" />
-
-        <com.google.android.material.textview.MaterialTextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_10"
-            android:text="@string/reset_password_title"
-            android:textAppearance="@style/TextAppearance.ReClaim.AuthHero" />
-    </LinearLayout>
+<!-- confirm: id input_layout_confirm_new_password / edit_confirm_new_password -->
 ```
+- **What it shows:** two masked password fields with show/hide eyes.
+- **Why it's set up this way:** each `TextInputLayout` wraps its edit text to float the
+  hint and show errors; two fields let the app confirm the new password matches before
+  sending it.
+- **How the code uses it:** `ResetPasswordActivity.attemptReset()` reads
+  `binding.editNewPassword` and `binding.editConfirmNewPassword`, checks a minimum
+  length and that they match, and shows errors on the matching `inputLayout*`.
 
-What that function does: I show the logo and reset title.
-What the function is responsible for: I am the reset hero.
-Where it works: ResetPasswordActivity shows me under the toolbar.
-Why I chose to write the code of the function the way its written: A short hero leaves room for two password fields.
-More: I use AuthHero.
-
+### Update button and progress spinner
 ```xml
-    <androidx.core.widget.NestedScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="@drawable/bg_auth_form"
-        android:fillViewport="true">
+<com.google.android.material.button.MaterialButton
+    android:id="@+id/btn_update_password"
+    style="@style/Widget.ReClaim.Button.Primary"
+    android:text="@string/btn_update_password" />
+
+<ProgressBar
+    android:id="@+id/progress"
+    android:layout_gravity="center_horizontal"
+    android:visibility="gone" />
 ```
-
-What that function does: I hold the light form sheet.
-What the function is responsible for: I am the reset form container.
-Where it works: The password fields sit in me.
-Why I chose to write the code of the function the way its written: fillViewport keeps the sheet tall.
-More: I use NestedScrollView.
-
-```xml
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/reset_password_subtitle"
-                android:textAppearance="?attr/textAppearanceBodyLarge"
-                android:textColor="@color/brand_slate" />
-```
-
-What that function does: I explain that a new password is needed.
-What the function is responsible for: I am the reset subtitle.
-Where it works: ResetPasswordActivity shows me at the top of the sheet.
-Why I chose to write the code of the function the way its written: Static XML text is enough. The token is not shown.
-More: I use reset_password_subtitle.
-
-```xml
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/input_layout_new_password"
-                style="@style/Widget.ReClaim.TextInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_24"
-                android:hint="@string/hint_new_password"
-                app:endIconMode="password_toggle">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edit_new_password"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textPassword" />
-            </com.google.android.material.textfield.TextInputLayout>
-```
-
-What that function does: I am the new-password field with a show/hide eye.
-What the function is responsible for: I take the new password.
-Where it works: ResetPasswordActivity reads edit_new_password.
-Why I chose to write the code of the function the way its written: password_toggle helps the user check the value.
-More: I use Widget.ReClaim.TextInput.
-
-```xml
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/input_layout_confirm_new_password"
-                style="@style/Widget.ReClaim.TextInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_14"
-                android:hint="@string/hint_confirm_new_password"
-                app:endIconMode="password_toggle">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edit_confirm_new_password"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textPassword" />
-            </com.google.android.material.textfield.TextInputLayout>
-```
-
-What that function does: I am the confirm-new-password field.
-What the function is responsible for: I catch a mismatch before the reset call.
-Where it works: ResetPasswordActivity reads edit_confirm_new_password.
-Why I chose to write the code of the function the way its written: A second field is simpler than a later error from the server.
-More: I use password_toggle.
-
-```xml
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_update_password"
-                style="@style/Widget.ReClaim.Button.Primary"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/button_height"
-                android:layout_marginTop="@dimen/space_20"
-                android:text="@string/btn_update_password" />
-
-            <ProgressBar
-                android:id="@+id/progress"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="@dimen/space_16"
-                android:indeterminateTint="@color/brand_accent"
-                android:visibility="gone" />
-```
-
-What that function does: I am update-password and a spinner while the call runs.
-What the function is responsible for: I submit the new password.
-Where it works: ResetPasswordActivity wires btn_update_password and shows progress.
-Why I chose to write the code of the function the way its written: The spinner starts gone.
-More: I use Widget.ReClaim.Button.Primary.
+- **What it shows:** the full-width primary button, with a spinner that appears
+  underneath while the update is in progress.
+- **Why it's set up this way:** the spinner starts with `visibility="gone"` so it takes
+  no space until it is needed; the code flips it on during the network call.
+- **How the code uses it:** `binding.btnUpdatePassword` runs `attemptReset()`. While
+  loading, the code shows `binding.progress`, disables the button and both fields, and
+  changes the button text to a "please wait" label.

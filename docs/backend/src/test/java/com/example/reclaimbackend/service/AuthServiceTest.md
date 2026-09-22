@@ -1,3 +1,27 @@
+# AuthServiceTest.java
+
+## Overview
+This is a **unit test** class for `AuthService` using Mockito (see `docs/GLOSSARY.md`). It does not start Spring or MongoDB; repositories and helpers are mocked. The tests lock in two production behaviors: wrong password on login yields `401`, and forgot-password for an unknown email yields `404`.
+
+## Concepts used here
+- **Service** — `AuthService` under test; see `docs/GLOSSARY.md`.
+- **Authentication / password hashing** — login must reject bad passwords; see `docs/GLOSSARY.md`.
+- **HTTP status code** — asserted via `ResponseStatusException`; see `docs/GLOSSARY.md`.
+- **Unit test / Mockito** — `@Mock` collaborators, `@InjectMocks` builds the service.
+
+## Libraries and imports
+- **JUnit 5** (`@Test`, assertions): test methods and `assertEquals` / `assertThrows`.
+- **Mockito** (`@ExtendWith(MockitoExtension.class)`, `@Mock`, `@InjectMocks`, `when`): fake `UserRepository`, `PasswordEncoder`, `JwtUtil`.
+- **Spring** (`HttpStatus`, `ResponseStatusException`, `PasswordEncoder`): status codes the service throws.
+- **Project**: `AuthService`, `LoginRequest`, `User`, `JwtUtil`, `UserRepository`.
+
+## Fields
+- `userRepository` / `passwordEncoder` / `jwtUtil` — mocks injected into the service.
+- `authService` (`AuthService`) — real service instance under test with mocks wired in.
+
+## Functions
+
+### `@Test void login_rejectsWrongPassword()`
 ```java
 @Test
 void login_rejectsWrongPassword() {
@@ -18,13 +42,15 @@ void login_rejectsWrongPassword() {
     assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
 }
 ```
+- **What it does:** checks production login behavior: when the email exists but the password does not match, `AuthService.login` throws `401 Unauthorized`.
+- **Where it's called:** by the JUnit test runner.
+- **Why it's written this way:** stubs the repository and encoder so the test only exercises the match/fail branch, not real BCrypt or MongoDB.
+- **Step by step:**
+  1. Stub a user found by email and `matches` returning false.
+  2. Call `login` with the wrong password.
+  3. Assert a `ResponseStatusException` with `UNAUTHORIZED`.
 
-What that function does: I check that login throws 401 when the password does not match.
-What the function is responsible for: I test AuthService.login's wrong-password path.
-Where it works: I call AuthService.login with a LoginRequest.
-Why I chose to write the code of the function the way its written: I mock findByEmail and matches so I do not need a real database. I assert the status code, not the message text.
-More: I use Mockito when, JUnit assertThrows and assertEquals, User.builder, and LoginRequest.
-
+### `@Test void startPasswordReset_rejectsUnknownEmail()`
 ```java
 @Test
 void startPasswordReset_rejectsUnknownEmail() {
@@ -36,9 +62,10 @@ void startPasswordReset_rejectsUnknownEmail() {
     assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
 }
 ```
-
-What that function does: I check that a password reset for an unknown email throws 404.
-What the function is responsible for: I test AuthService.startPasswordReset when findByEmail is empty.
-Where it works: I call AuthService.startPasswordReset.
-Why I chose to write the code of the function the way its written: I wrote it this way because optional.empty is enough to hit the unknown-email branch without building a user.
-More: I use Mockito when, Optional.empty, and assertThrows.
+- **What it does:** checks production forgot-password behavior: an email with no account causes `startPasswordReset` to throw `404 Not Found`.
+- **Where it's called:** by the JUnit test runner.
+- **Why it's written this way:** only the “user missing” path is stubbed; no email is actually sent.
+- **Step by step:**
+  1. Stub `findByEmail` to return empty.
+  2. Call `startPasswordReset`.
+  3. Assert status `NOT_FOUND`.

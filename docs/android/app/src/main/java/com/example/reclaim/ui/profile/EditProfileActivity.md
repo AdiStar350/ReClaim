@@ -1,28 +1,89 @@
+# EditProfileActivity.java
+
+## Overview
+This is the edit-profile **Activity** (see `docs/GLOSSARY.md`). It loads the current user, lets them change name/email/phone and pick a new photo from the gallery, optionally uploads the photo to Firebase Storage, then saves the profile through the backend API.
+
+## Concepts used here
+- **Activity** — full edit screen. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `ActivityEditProfileBinding`. See `docs/GLOSSARY.md`.
+- **Activity Result API** — `ActivityResultLauncher` + `GetContent` opens the gallery.
+- **Retrofit Call / Callback** — get/update current user. See `docs/GLOSSARY.md`.
+- **Firebase Storage (via ImageUploadService)** — uploads profile pictures. See `docs/GLOSSARY.md`.
+- **Glide** — shows the round avatar. See `docs/GLOSSARY.md`.
+- **ExecutorService** — runs the image upload off the UI thread.
+
+## Libraries and imports
+- **AndroidX / AppCompat**: AppCompatActivity, Activity Result contracts.
+- **Glide**: circle-cropped avatar preview.
+- **Material**: TextInputEditText for fields.
+- **Retrofit**: Call, Callback, Response.
+- **Project**: `User`, `UpdateProfileRequest`, `TokenManager`, `RetrofitClient`, `ImageUploadService`, `ConnectionToasts`.
+
+## Fields
+- `private ActivityEditProfileBinding binding` — edit-profile views.
+- `private ReClaimApiService apiService` — API client.
+- `private User currentUser` — last loaded user (needed before save).
+- `private final ExecutorService uploadExecutor` — single background thread for uploads.
+- `private String existingProfilePictureUrl` — URL already saved for this user.
+- `private Uri selectedImageUri` — new gallery photo waiting to upload on save.
+- `private final ActivityResultLauncher<String> galleryLauncher` — picks `image/*` and previews it.
+
+## Functions
+
+### `private static String textOf(TextInputEditText editText)`
 ```java
-@Override
-protected void onCreate(@Nullable Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-    binding = ActivityEditProfileBinding.inflate(getLayoutInflater());
-    setContentView(binding.getRoot());
-
-    apiService = RetrofitClient.getApiService();
-    binding.toolbarEditProfile.setNavigationOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
-    binding.btnSaveProfile.setOnClickListener(v -> saveProfile());
-
-    View.OnClickListener pickPhoto = v -> galleryLauncher.launch("image/*");
-    binding.cardAvatar.setOnClickListener(pickPhoto);
-    binding.btnChangePhoto.setOnClickListener(pickPhoto);
-
-    loadProfile();
+@NonNull
+private static String textOf(@Nullable TextInputEditText editText) {
+    if (editText == null || editText.getText() == null) {
+        return "";
+    }
+    return editText.getText().toString().trim();
 }
 ```
+- **What it does:** Reads trimmed text from a field, or `""` if null.
+- **Where it's called:** From `saveProfile` for name, email, and phone.
+- **Why it's written this way:** Avoids repeating null checks on every field.
+- **Step by step:**
+  1. If edit text or its text is null, return empty string.
+  2. Otherwise return trimmed `toString()`.
 
-What that function does: I show the edit form and load the current profile.
-What the function is responsible for: I am the edit-profile screen start.
-Where it works: ProfileSettingsFragment starts me. I inflate activity_edit_profile.xml.
-Why I chose to write the code of the function the way its written: Avatar and change-photo share one gallery picker. I load after the clicks are wired.
-More: I use ActivityEditProfileBinding and GetContent for image/*.
+### `private void setSaving(boolean saving)`
+```java
+private void setSaving(boolean saving) {
+    binding.progress.setVisibility(saving ? View.VISIBLE : View.GONE);
+    binding.btnSaveProfile.setEnabled(!saving);
+    binding.btnChangePhoto.setEnabled(!saving);
+    binding.cardAvatar.setEnabled(!saving);
+}
+```
+- **What it does:** Shows/hides progress and disables save/photo controls while a network or upload operation runs.
+- **Where it's called:** From `loadProfile`, `saveProfile`, `uploadAvatarThenSave`, and `submitProfile` callbacks.
+- **Why it's written this way:** Blocks double-save and photo changes mid-request.
+- **Step by step:**
+  1. Toggle progress visibility.
+  2. Enable/disable save button, change-photo button, and avatar card.
 
+### `private void showAvatar(Object model)`
+```java
+private void showAvatar(@NonNull Object model) {
+    binding.imageProfileAvatar.setPadding(0, 0, 0, 0);
+    binding.imageProfileAvatar.setImageTintList(null);
+    Glide.with(this)
+            .load(model)
+            .circleCrop()
+            .placeholder(R.drawable.ic_settings_person)
+            .error(R.drawable.ic_settings_person)
+            .into(binding.imageProfileAvatar);
+}
+```
+- **What it does:** Clears default icon padding/tint and loads a round avatar from a URL string or Uri.
+- **Where it's called:** From the gallery launcher callback and from `loadProfile` when an existing picture URL exists.
+- **Why it's written this way:** Accepting `Object` lets Glide load either a remote URL or a local Uri the same way.
+- **Step by step:**
+  1. Zero padding and clear image tint.
+  2. Glide load with circle crop, placeholder, and error icon.
+
+### `private void loadProfile()`
 ```java
 private void loadProfile() {
     String authHeader = TokenManager.getAuthHeader(this);
@@ -32,117 +93,41 @@ private void loadProfile() {
 
     setSaving(true);
     apiService.getCurrentUser(authHeader).enqueue(new Callback<User>() {
-        @Override
-        public void onResponse(@NonNull Call<User> call, @NonNull Response<User> response) {
-            setSaving(false);
-            if (response.isSuccessful() && response.body() != null) {
-                currentUser = response.body();
-                binding.editName.setText(currentUser.getName());
-                binding.editEmail.setText(currentUser.getEmail());
-                binding.editPhone.setText(currentUser.getPhoneNumber());
-                existingProfilePictureUrl = currentUser.getProfilePictureUrl();
-                if (!TextUtils.isEmpty(existingProfilePictureUrl)) {
-                    showAvatar(existingProfilePictureUrl);
-                }
-            } else {
-                Toast.makeText(EditProfileActivity.this,
-                        R.string.msg_profile_load_failed, Toast.LENGTH_SHORT).show();
-            }
-        }
-
-        @Override
-        public void onFailure(@NonNull Call<User> call, @NonNull Throwable t) {
-            setSaving(false);
-            ConnectionToasts.showIfOnline(EditProfileActivity.this,
-                    R.string.msg_profile_load_failed, Toast.LENGTH_SHORT);
-        }
+        // onResponse: fill fields + avatar; onFailure: ConnectionToasts
     });
 }
 ```
+- **What it does:** Loads the signed-in user and fills the form (and avatar if a picture URL exists).
+- **Where it's called:** From `onCreate`.
+- **Why it's written this way:** Uses the same “saving” progress UI while loading so the form is not editable mid-fetch.
+- **Step by step:**
+  1. Require auth header.
+  2. `setSaving(true)` and enqueue `getCurrentUser`.
+  3. On success: store `currentUser`, set name/email/phone, remember picture URL, maybe `showAvatar`.
+  4. On failure: toast via `ConnectionToasts`; always `setSaving(false)` when done.
 
-What that function does: I fetch /users/me and fill the fields.
-What the function is responsible for: I am the profile load.
-Where it works: I am called from onCreate.
-Why I chose to write the code of the function the way its written: I keep existingProfilePictureUrl so save can reuse it when no new photo is picked.
-More: I use apiService.getCurrentUser and User getters.
-
+### `private void submitProfile(String authHeader, String name, String email, String phone, String profilePictureUrl)`
 ```java
-public void onResponse(@NonNull Call<User> call, @NonNull Response<User> response) {
-    setSaving(false);
-    if (response.isSuccessful() && response.body() != null) {
-        currentUser = response.body();
-        binding.editName.setText(currentUser.getName());
-        binding.editEmail.setText(currentUser.getEmail());
-        binding.editPhone.setText(currentUser.getPhoneNumber());
-        existingProfilePictureUrl = currentUser.getProfilePictureUrl();
-        if (!TextUtils.isEmpty(existingProfilePictureUrl)) {
-            showAvatar(existingProfilePictureUrl);
-        }
-    } else {
-        Toast.makeText(EditProfileActivity.this,
-                R.string.msg_profile_load_failed, Toast.LENGTH_SHORT).show();
-    }
+private void submitProfile(@NonNull String authHeader, @NonNull String name,
+                           @NonNull String email, @NonNull String phone,
+                           @Nullable String profilePictureUrl) {
+    UpdateProfileRequest request =
+            new UpdateProfileRequest(name, email, phone, profilePictureUrl);
+    apiService.updateCurrentUser(authHeader, request).enqueue(new Callback<User>() {
+        // success: toast, RESULT_OK, finish; else toast failure
+    });
 }
 ```
+- **What it does:** POSTs the profile update DTO to the backend and closes with `RESULT_OK` on success.
+- **Where it's called:** From `saveProfile` (no new photo) and from `uploadAvatarThenSave` after upload (on the UI thread).
+- **Why it's written this way:** Keeps the HTTP update in one place whether the picture URL is old or freshly uploaded.
+- **Step by step:**
+  1. Build `UpdateProfileRequest`.
+  2. Enqueue `updateCurrentUser`.
+  3. On success: toast, `setResult(RESULT_OK)`, `finish`.
+  4. On error/failure: toast update-failed and `setSaving(false)`.
 
-What that function does: I fill the form from the user reply.
-What the function is responsible for: I am the Retrofit success path for getCurrentUser.
-Where it works: Retrofit calls me from loadProfile.
-Why I chose to write the code of the function the way its written: I only show the avatar if a URL exists.
-More: I use showAvatar with the URL string.
-
-```java
-public void onFailure(@NonNull Call<User> call, @NonNull Throwable t) {
-    setSaving(false);
-    ConnectionToasts.showIfOnline(EditProfileActivity.this,
-            R.string.msg_profile_load_failed, Toast.LENGTH_SHORT);
-}
-```
-
-What that function does: I stop the spinner and toast if the API is up.
-What the function is responsible for: I am the Retrofit failure path for getCurrentUser.
-Where it works: Retrofit calls me from loadProfile.
-Why I chose to write the code of the function the way its written: ConnectionToasts hides the toast during an outage.
-More: I use ConnectionToasts.showIfOnline with a string resource.
-
-```java
-private void saveProfile() {
-    if (currentUser == null) {
-        return;
-    }
-
-    String name = textOf(binding.editName);
-    String email = textOf(binding.editEmail);
-    String phone = textOf(binding.editPhone);
-
-    if (TextUtils.isEmpty(name)) {
-        binding.inputLayoutName.setError(getString(R.string.msg_name_required));
-        return;
-    }
-    binding.inputLayoutName.setError(null);
-
-    String authHeader = TokenManager.getAuthHeader(this);
-    if (authHeader == null) {
-        return;
-    }
-
-    setSaving(true);
-
-    // Upload a new photo first. Otherwise keep the one already saved.
-    if (selectedImageUri != null) {
-        uploadAvatarThenSave(authHeader, name, email, phone, selectedImageUri);
-    } else {
-        submitProfile(authHeader, name, email, phone, existingProfilePictureUrl);
-    }
-}
-```
-
-What that function does: I check the name, then I upload a new photo or save with the old URL.
-What the function is responsible for: I am the save button path.
-Where it works: I am called from btnSaveProfile.
-Why I chose to write the code of the function the way its written: I wait for currentUser so I do not save before load finishes. A new Uri is uploaded before PUT.
-More: I use textOf and TokenManager.getAuthHeader.
-
+### `private void uploadAvatarThenSave(...)`
 ```java
 private void uploadAvatarThenSave(@NonNull String authHeader, @NonNull String name,
                                   @NonNull String email, @NonNull String phone,
@@ -161,133 +146,69 @@ private void uploadAvatarThenSave(@NonNull String authHeader, @NonNull String na
                     getApplicationContext(), imageUri, userId,
                     ImageUploadService.FOLDER_PROFILES);
         } catch (IOException e) {
-            Log.e(TAG, "Profile picture upload failed uri=" + imageUri, e);
-            String detail = e.getMessage() != null
-                    ? e.getMessage()
-                    : getString(R.string.msg_image_upload_failed);
-            runOnUiThread(() -> {
-                setSaving(false);
-                Toast.makeText(EditProfileActivity.this, detail, Toast.LENGTH_LONG).show();
-            });
+            // log, toast detail on UI thread, return
             return;
         }
         runOnUiThread(() -> submitProfile(authHeader, name, email, phone, uploadedUrl));
     });
 }
 ```
+- **What it does:** Uploads the picked image on a background thread, then calls `submitProfile` with the new URL on the UI thread.
+- **Where it's called:** From `saveProfile` when `selectedImageUri` is non-null.
+- **Why it's written this way:** Firebase upload can block; running it on `uploadExecutor` keeps the UI responsive. Failure surfaces the exception message when present.
+- **Step by step:**
+  1. Require user id from TokenManager.
+  2. On the executor, call `ImageUploadService.uploadImage` into `FOLDER_PROFILES`.
+  3. On IOException: log, toast on UI, stop.
+  4. On success: `runOnUiThread` → `submitProfile` with `uploadedUrl`.
 
-What that function does: I upload the new photo, then I PUT the profile with that URL.
-What the function is responsible for: I am the photo-then-save path.
-Where it works: I am called from saveProfile when selectedImageUri is set.
-Why I chose to write the code of the function the way its written: userId goes in the Storage path. I show the IOException message when I have one.
-More: I use ImageUploadService.FOLDER_PROFILES and TokenManager.getUserId.
-
+### `private void saveProfile()`
 ```java
-private void submitProfile(@NonNull String authHeader, @NonNull String name,
-                           @NonNull String email, @NonNull String phone,
-                           @Nullable String profilePictureUrl) {
-    UpdateProfileRequest request =
-            new UpdateProfileRequest(name, email, phone, profilePictureUrl);
-    apiService.updateCurrentUser(authHeader, request).enqueue(new Callback<User>() {
-        @Override
-        public void onResponse(@NonNull Call<User> call, @NonNull Response<User> response) {
-            setSaving(false);
-            if (response.isSuccessful() && response.body() != null) {
-                Toast.makeText(EditProfileActivity.this,
-                        R.string.msg_profile_updated, Toast.LENGTH_SHORT).show();
-                setResult(RESULT_OK);
-                finish();
-            } else {
-                Toast.makeText(EditProfileActivity.this,
-                        R.string.msg_profile_update_failed, Toast.LENGTH_SHORT).show();
-            }
-        }
-
-        @Override
-        public void onFailure(@NonNull Call<User> call, @NonNull Throwable t) {
-            setSaving(false);
-            Toast.makeText(EditProfileActivity.this,
-                    R.string.msg_profile_update_failed, Toast.LENGTH_SHORT).show();
-        }
-    });
-}
-```
-
-What that function does: I PUT name, email, phone, and picture URL, then I close on success.
-What the function is responsible for: I am PUT /api/users/me from this screen.
-Where it works: I am called from saveProfile and uploadAvatarThenSave.
-Why I chose to write the code of the function the way its written: RESULT_OK lets the profile tab know it should reload. I finish so Back does not keep this form.
-More: I use UpdateProfileRequest and apiService.updateCurrentUser.
-
-```java
-public void onResponse(@NonNull Call<User> call, @NonNull Response<User> response) {
-    setSaving(false);
-    if (response.isSuccessful() && response.body() != null) {
-        Toast.makeText(EditProfileActivity.this,
-                R.string.msg_profile_updated, Toast.LENGTH_SHORT).show();
-        setResult(RESULT_OK);
-        finish();
-    } else {
-        Toast.makeText(EditProfileActivity.this,
-                R.string.msg_profile_update_failed, Toast.LENGTH_SHORT).show();
+private void saveProfile() {
+    if (currentUser == null) {
+        return;
     }
+    // read name/email/phone; require name; then upload or submit
 }
 ```
+- **What it does:** Validates name, then either uploads a new photo first or submits with the existing picture URL.
+- **Where it's called:** Save button click in `onCreate`.
+- **Why it's written this way:** Refuses to save before the initial load finished (`currentUser == null`). Photo upload happens only when the user picked a new Uri.
+- **Step by step:**
+  1. Abort if `currentUser` is null.
+  2. Read fields; if name empty, set input error and return.
+  3. Clear name error; require auth header; `setSaving(true)`.
+  4. If `selectedImageUri != null`, `uploadAvatarThenSave`; else `submitProfile` with `existingProfilePictureUrl`.
 
-What that function does: I close after a good save, or I toast a failure.
-What the function is responsible for: I am the Retrofit success path for updateCurrentUser.
-Where it works: Retrofit calls me from submitProfile.
-Why I chose to write the code of the function the way its written: setResult(RESULT_OK) is for any caller that started me for a result.
-More: I use Toast and finish.
-
+### `protected void onCreate(Bundle savedInstanceState)`
 ```java
-public void onFailure(@NonNull Call<User> call, @NonNull Throwable t) {
-    setSaving(false);
-    Toast.makeText(EditProfileActivity.this,
-            R.string.msg_profile_update_failed, Toast.LENGTH_SHORT).show();
+@Override
+protected void onCreate(@Nullable Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    binding = ActivityEditProfileBinding.inflate(getLayoutInflater());
+    setContentView(binding.getRoot());
+
+    apiService = RetrofitClient.getApiService();
+    binding.toolbarEditProfile.setNavigationOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
+    binding.btnSaveProfile.setOnClickListener(v -> saveProfile());
+
+    View.OnClickListener pickPhoto = v -> galleryLauncher.launch("image/*");
+    binding.cardAvatar.setOnClickListener(pickPhoto);
+    binding.btnChangePhoto.setOnClickListener(pickPhoto);
+
+    loadProfile();
 }
 ```
+- **What it does:** Inflates UI, wires back/save/photo pickers, loads profile.
+- **Where it's called:** By Android when opened from `ProfileSettingsFragment` (Intent to this Activity; also listed in the manifest).
+- **Why it's written this way:** Avatar card and “change photo” share one listener. Back uses the OnBackPressedDispatcher.
+- **Step by step:**
+  1. Inflate binding; get API service.
+  2. Wire toolbar back and save.
+  3. Wire photo pickers to `galleryLauncher.launch("image/*")`.
+  4. Call `loadProfile()`.
 
-What that function does: I stop saving and toast a failure.
-What the function is responsible for: I am the Retrofit failure path for updateCurrentUser.
-Where it works: Retrofit calls me from submitProfile.
-Why I chose to write the code of the function the way its written: A simple failed toast is enough here.
-More: I use msg_profile_update_failed.
-
-```java
-private void setSaving(boolean saving) {
-    binding.progress.setVisibility(saving ? View.VISIBLE : View.GONE);
-    binding.btnSaveProfile.setEnabled(!saving);
-    binding.btnChangePhoto.setEnabled(!saving);
-    binding.cardAvatar.setEnabled(!saving);
-}
-```
-
-What that function does: I show a spinner and lock save and photo pick.
-What the function is responsible for: I stop a second save while load or PUT runs.
-Where it works: I am called from loadProfile, saveProfile, and the callbacks.
-Why I chose to write the code of the function the way its written: I also lock the avatar so the Uri cannot change mid-upload.
-More: I toggle progress visibility and enabled flags.
-
-```java
-private void showAvatar(@NonNull Object model) {
-    binding.imageProfileAvatar.setPadding(0, 0, 0, 0);
-    binding.imageProfileAvatar.setImageTintList(null);
-    Glide.with(this)
-            .load(model)
-            .circleCrop()
-            .placeholder(R.drawable.ic_settings_person)
-            .error(R.drawable.ic_settings_person)
-            .into(binding.imageProfileAvatar);
-}
-```
-
-What that function does: I show a URL or a local Uri as a round avatar.
-What the function is responsible for: I preview the photo.
-Where it works: I am called from loadProfile with a URL and from the gallery launcher with a Uri.
-Why I chose to write the code of the function the way its written: Object lets Glide take both String and Uri. I clear padding and tint like register.
-More: I use Glide.circleCrop.
-
+### `protected void onDestroy()`
 ```java
 @Override
 protected void onDestroy() {
@@ -295,25 +216,9 @@ protected void onDestroy() {
     uploadExecutor.shutdownNow();
 }
 ```
-
-What that function does: I stop the upload thread when the screen closes.
-What the function is responsible for: I clean the executor.
-Where it works: Android calls me when this activity is destroyed.
-Why I chose to write the code of the function the way its written: shutdownNow is enough for a single-thread pool.
-More: I use ExecutorService.shutdownNow.
-
-```java
-@NonNull
-private static String textOf(@Nullable TextInputEditText editText) {
-    if (editText == null || editText.getText() == null) {
-        return "";
-    }
-    return editText.getText().toString().trim();
-}
-```
-
-What that function does: I read trimmed text from an edit field, or empty.
-What the function is responsible for: I avoid null checks at each field.
-Where it works: I am called from saveProfile.
-Why I chose to write the code of the function the way its written: A helper keeps saveProfile shorter.
-More: I use TextInputEditText.getText.
+- **What it does:** Stops the upload executor when the screen is destroyed.
+- **Where it's called:** By the Activity lifecycle.
+- **Why it's written this way:** Avoids leaving a background thread after the screen is gone.
+- **Step by step:**
+  1. `super.onDestroy()`.
+  2. `uploadExecutor.shutdownNow()`.

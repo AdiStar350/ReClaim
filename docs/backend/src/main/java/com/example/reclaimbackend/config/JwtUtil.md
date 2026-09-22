@@ -1,3 +1,44 @@
+# JwtUtil.java
+
+## Overview
+This is a **helper component** (a Spring-managed `@Component` bean) that makes and checks **JWTs** — the signed login tokens the app carries to prove who it is (see `docs/GLOSSARY.md`). A "component" here just means a plain worker object Spring creates once and shares. `JwtUtil` is the single place that knows the signing key, so token creation and verification stay consistent.
+
+## Concepts used here
+- **JWT (JSON Web Token)** — a signed string carrying the user id and email; see `docs/GLOSSARY.md`.
+- **Signing key / HMAC** — a secret used to sign tokens so nobody can forge one.
+- **Claims** — the pieces of data inside a token (subject = user id, plus email, issue/expiry times).
+- **Dependency injection with `@Value`** — Spring passes configuration values (the secret and lifetime) into the constructor; see `docs/GLOSSARY.md`.
+
+## Libraries and imports
+- **JJWT library** (`io.jsonwebtoken.Jwts`, `io.jsonwebtoken.Claims`, `io.jsonwebtoken.security.Keys`): the JWT toolkit. `Jwts.builder()` builds and signs a token; `Jwts.parser()...parseSignedClaims(...)` verifies and reads one; `Keys.hmacShaKeyFor(...)` turns the secret text into a signing key; `Claims` is the token's readable body.
+- **Java crypto/standard** (`javax.crypto.SecretKey`, `java.nio.charset.StandardCharsets`, `java.util.Date`): `SecretKey` holds the signing key; `StandardCharsets.UTF_8` turns the secret string into bytes; `Date` sets issue and expiry times.
+- **Spring** (`org.springframework.beans.factory.annotation.Value`, `org.springframework.stereotype.Component`): `@Component` makes this a shared bean; `@Value` injects `jwt.secret` and `jwt.expiration` from `application.properties` (which read the `JWT_SECRET` and `JWT_EXPIRATION_MS` environment values).
+
+## Fields
+- `secretKey` (`SecretKey`) — the key used to sign new tokens and verify incoming ones. Built once from the configured secret.
+- `expirationMs` (`long`) — how long a token stays valid, in milliseconds.
+
+## Functions
+
+### `private Claims parseClaims(String token)`
+```java
+private Claims parseClaims(String token) {
+    return Jwts.parser()
+            .verifyWith(secretKey)
+            .build()
+            .parseSignedClaims(token)
+            .getPayload();
+}
+```
+- **What it does:** verifies a token's signature with the secret key and returns its readable body (the claims). If the signature is wrong or the token is malformed, the library throws.
+- **Where it's called:** inside this class only — by `getUserIdFromToken`, `getEmailFromToken`, and `validateToken`.
+- **Why it's written this way:** verification and reading always go together, so putting them in one private helper avoids repeating the parser setup and guarantees every read first checks the signature.
+- **Step by step:**
+  1. Create a parser configured to verify with `secretKey`.
+  2. Parse the signed token; this throws if the signature or format is bad.
+  3. Return the payload (the `Claims`).
+
+### `public JwtUtil(@Value("${jwt.secret}") String secret, @Value("${jwt.expiration}") long expiration)`
 ```java
 public JwtUtil(@Value("${jwt.secret}") String secret,
                @Value("${jwt.expiration}") long expiration) {
@@ -5,13 +46,15 @@ public JwtUtil(@Value("${jwt.secret}") String secret,
     this.expirationMs = expiration;
 }
 ```
+- **What it does:** builds the signing key from the configured secret and stores how long tokens should last.
+- **Where it's called:** by Spring at startup, when it creates this bean; Spring fills in the two `@Value` arguments.
+- **Why it's written this way:** turning the secret into a `SecretKey` once (in the constructor) means every later call reuses the same key, and keeping the secret in configuration keeps it out of the source code.
+- **Step by step:**
+  1. Convert the secret string to bytes (UTF-8) and build an HMAC-SHA key.
+  2. Store that key in `secretKey`.
+  3. Store the token lifetime in `expirationMs`.
 
-What that function does: I load the signing key and how long tokens last from config.
-What the function is responsible for: I am the constructor. I store the key and expiration for later token work.
-Where it works: I am built by Spring as a @Component. AuthService and JwtAuthenticationFilter then use me.
-Why I chose to write the code of the function the way its written: I turn the secret into an HMAC key once at startup so I do not rebuild it on every token.
-More: I use jjwt Keys.hmacShaKeyFor and StandardCharsets.UTF_8. @Value reads jwt.secret and jwt.expiration.
-
+### `public String generateToken(String userId, String email)`
 ```java
 public String generateToken(String userId, String email) {
     Date now = new Date();
@@ -26,37 +69,41 @@ public String generateToken(String userId, String email) {
             .compact();
 }
 ```
+- **What it does:** creates a signed token that carries the user id (as the "subject") and the email, with issue and expiry timestamps.
+- **Where it's called:** `AuthService.login` and `AuthService.verifyRegistration`, right after a user is authenticated or created.
+- **Why it's written this way:** the user id is the token's subject so later requests can identify the caller without a database session; the email is added as an extra claim; signing with the secret key makes the token tamper-proof.
+- **Step by step:**
+  1. Record the current time and compute the expiry (`now + expirationMs`).
+  2. Build a token with subject = `userId`, an `email` claim, and the two timestamps.
+  3. Sign it with `secretKey` and `compact()` it into the final string.
 
-What that function does: I make a signed token with the user id as subject and email as a claim.
-What the function is responsible for: I create login and post-signup tokens.
-Where it works: I am called by AuthService.login and AuthService.verifyRegistration.
-Why I chose to write the code of the function the way its written: I put userId in subject so the filter can set authentication from the token without a database lookup.
-More: I use jjwt Jwts.builder, signWith, and compact. Date is issuedAt and expiration.
-
+### `public String getUserIdFromToken(String token)`
 ```java
 public String getUserIdFromToken(String token) {
     return parseClaims(token).getSubject();
 }
 ```
+- **What it does:** returns the user id stored as the token's subject.
+- **Where it's called:** `JwtAuthenticationFilter.doFilterInternal`, to learn which user is making the request.
+- **Why it's written this way:** the id was stored as the subject in `generateToken`, so reading the subject back is the natural way to identify the caller.
+- **Step by step:**
+  1. Verify and parse the token via `parseClaims`.
+  2. Return its subject.
 
-What that function does: I read the user id from a token's subject.
-What the function is responsible for: I tell the filter who is signed in.
-Where it works: I am called by JwtAuthenticationFilter.doFilterInternal after validateToken.
-Why I chose to write the code of the function the way its written: I wrote it this way because subject is the user id I set in generateToken, so this is a one-line read.
-More: I use jjwt Claims.getSubject after parseClaims checks the signature.
-
+### `public String getEmailFromToken(String token)`
 ```java
 public String getEmailFromToken(String token) {
     return parseClaims(token).get("email", String.class);
 }
 ```
+- **What it does:** returns the email stored in the token's `email` claim.
+- **Where it's called:** **not currently called** anywhere in the backend. It is provided for completeness, since the email is stored in the token and may be needed later.
+- **Why it's written this way:** it mirrors `getUserIdFromToken` for the extra `email` claim, giving a typed read of that value.
+- **Step by step:**
+  1. Verify and parse the token via `parseClaims`.
+  2. Read the `email` claim as a `String` and return it.
 
-What that function does: I read the email claim from a token.
-What the function is responsible for: I expose email stored on the token.
-Where it works: I did not find callers in this backend.
-Why I chose to write the code of the function the way its written: I kept it next to getUserIdFromToken in case a later caller needs email without loading the user.
-More: I use Claims.get with String.class. parseClaims still checks the signature.
-
+### `public boolean validateToken(String token)`
 ```java
 public boolean validateToken(String token) {
     try {
@@ -67,25 +114,10 @@ public boolean validateToken(String token) {
     }
 }
 ```
-
-What that function does: I check the signature and that the token has not expired. Bad tokens return false.
-What the function is responsible for: I decide if a Bearer token may sign the request in.
-Where it works: I am called by JwtAuthenticationFilter.doFilterInternal.
-Why I chose to write the code of the function the way its written: I catch any parse error and return false so a junk token does not blow up the filter.
-More: I use Claims.getExpiration and Date. parseClaims does the signature check.
-
-```java
-private Claims parseClaims(String token) {
-    return Jwts.parser()
-            .verifyWith(secretKey)
-            .build()
-            .parseSignedClaims(token)
-            .getPayload();
-}
-```
-
-What that function does: I parse the token body after checking the signature.
-What the function is responsible for: I am the shared parse used by the read and validate methods.
-Where it works: I am called by getUserIdFromToken, getEmailFromToken, and validateToken. I am unused except internally.
-Why I chose to write the code of the function the way its written: I wrote it this way because one parse path keeps verifyWith in one place.
-More: I use jjwt Jwts.parser, verifyWith, parseSignedClaims, and getPayload.
+- **What it does:** returns `true` only if the token's signature is valid **and** it hasn't expired; any problem returns `false`.
+- **Where it's called:** `JwtAuthenticationFilter.doFilterInternal`, before trusting a request's token.
+- **Why it's written this way:** wrapping the check in a `try/catch` turns every failure mode (bad signature, malformed token, expired) into a simple `false`, so the filter can just skip authentication instead of crashing the request.
+- **Step by step:**
+  1. Parse and verify the token (throws if the signature/format is bad).
+  2. Compare the expiry to now; return `true` if the expiry is not before now.
+  3. If parsing threw for any reason, catch it and return `false`.

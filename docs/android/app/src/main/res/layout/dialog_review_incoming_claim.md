@@ -1,79 +1,77 @@
-```xml
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingStart="@dimen/space_24"
-    android:paddingTop="@dimen/space_8"
-    android:paddingEnd="@dimen/space_24"
-    android:paddingBottom="@dimen/space_4">
+# dialog_review_incoming_claim.xml
+
+## Overview
+This layout is a small dialog body that would show one incoming claim for review: the
+item name, the verification question, and the claimant's answer. **It is unused** —
+no Activity, Fragment, Adapter, or helper in the project inflates
+`R.layout.dialog_review_incoming_claim` or references its view ids. Live claim review
+uses `dialog_pending_claims.xml` / `item_pending_claim.xml` (and the full-screen
+`activity_pending_claims.xml`) instead.
+
+Key idea: a **Layout XML** can exist in `res/layout` without being wired up; this one
+looks like an older or alternate design that was never connected. See `docs/GLOSSARY.md`.
+
+## Concepts used here
+- **LinearLayout** — vertical stack of labels and values. See `docs/GLOSSARY.md`.
+- **MaterialTextView** — the text widgets for item, question, and answer.
+
+## Screen structure
+
+```
+LinearLayout (root, vertical)
+├── MaterialTextView text_review_item
+├── MaterialTextView (static "question" label — no id)
+├── MaterialTextView text_review_question
+├── MaterialTextView (static "answer" label — no id)
+└── MaterialTextView text_review_answer
 ```
 
-What that function does: I am a dialog body that shows item title, check question, and answer.
-What the function is responsible for: I am the incoming-claim review layout.
-Where it works: I did not find a Java inflate of this file. Pending claim review uses item_pending_claim.xml and PendingClaimsSheet instead.
-Why I chose to write the code of the function the way its written: Title and buttons would live on the dialog builder. I only hold the three text blocks.
-More: I use a vertical LinearLayout.
+The root is a vertical `LinearLayout` because the dialog is only stacked text pairs.
 
+## Components
+
+### Item title
 ```xml
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/text_review_item"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textAppearance="?attr/textAppearanceTitleMedium"
-        android:textColor="@color/brand_dark" />
+<com.google.android.material.textview.MaterialTextView
+    android:id="@+id/text_review_item"
+    android:textAppearance="?attr/textAppearanceTitleMedium"
+    android:textColor="@color/brand_dark" />
 ```
+- **What it shows:** the name of the item the claim is about (if anything ever set it).
+- **Why it's set up this way:** title-medium and brand-dark make it the strongest line
+  in the dialog.
+- **How the code uses it:** unused — no Java caller sets this id.
 
-What that function does: I show which item the claim is for.
-What the function is responsible for: I am the item title in the review dialog.
-Where it works: I am text_review_item in this unused-or-legacy layout.
-Why I chose to write the code of the function the way its written: Title medium stands out from the labels below.
-More: I use brand_dark.
-
+### Question block
 ```xml
-    <com.google.android.material.textview.MaterialTextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_16"
-        android:text="@string/claim_review_question_label"
-        android:textAppearance="?attr/textAppearanceLabelMedium"
-        android:textColor="@color/text_secondary" />
+<com.google.android.material.textview.MaterialTextView
+    android:text="@string/claim_review_question_label"
+    android:textAppearance="?attr/textAppearanceLabelMedium"
+    android:textColor="@color/text_secondary" />
 
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/text_review_question"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_4"
-        android:textAppearance="?attr/textAppearanceBodyLarge"
-        android:textColor="@color/brand_dark" />
+<com.google.android.material.textview.MaterialTextView
+    android:id="@+id/text_review_question"
+    android:textAppearance="?attr/textAppearanceBodyLarge"
+    android:textColor="@color/brand_dark" />
 ```
+- **What it shows:** a quiet "question" label, then the verification question text.
+- **Why it's set up this way:** label + value is a common read-only dialog pattern;
+  secondary color on the label keeps the value more prominent.
+- **How the code uses it:** unused — no Java caller sets `text_review_question`.
 
-What that function does: I show the check question under a small label.
-What the function is responsible for: I am the question block.
-Where it works: I am text_review_question in this layout.
-Why I chose to write the code of the function the way its written: Label then value matches the contact dialog.
-More: I use claim_review_question_label.
-
+### Answer block
 ```xml
-    <com.google.android.material.textview.MaterialTextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_16"
-        android:text="@string/claim_review_answer_label"
-        android:textAppearance="?attr/textAppearanceLabelMedium"
-        android:textColor="@color/text_secondary" />
+<com.google.android.material.textview.MaterialTextView
+    android:text="@string/claim_review_answer_label"
+    android:textAppearance="?attr/textAppearanceLabelMedium"
+    android:textColor="@color/text_secondary" />
 
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/text_review_answer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_4"
-        android:textAppearance="?attr/textAppearanceBodyLarge"
-        android:textColor="@color/brand_dark" />
+<com.google.android.material.textview.MaterialTextView
+    android:id="@+id/text_review_answer"
+    android:textAppearance="?attr/textAppearanceBodyLarge"
+    android:textColor="@color/brand_dark" />
 ```
-
-What that function does: I show the claimant's answer under a small label.
-What the function is responsible for: I am the answer block.
-Where it works: I am text_review_answer in this layout.
-Why I chose to write the code of the function the way its written: Question and answer stay as two labeled blocks so the owner can compare them.
-More: I use claim_review_answer_label.
+- **What it shows:** a quiet "answer" label, then the claimant's written answer.
+- **Why it's set up this way:** same label/value pairing as the question block so the
+  two read the same way.
+- **How the code uses it:** unused — no Java caller sets `text_review_answer`.

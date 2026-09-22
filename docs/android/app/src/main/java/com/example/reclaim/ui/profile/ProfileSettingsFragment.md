@@ -1,156 +1,33 @@
-```java
-@Nullable
-@Override
-public View onCreateView(@NonNull LayoutInflater inflater,
-                         @Nullable ViewGroup container,
-                         @Nullable Bundle savedInstanceState) {
-    binding = FragmentProfileSettingsBinding.inflate(inflater, container, false);
-    return binding.getRoot();
-}
-```
+# ProfileSettingsFragment.java
 
-What that function does: I inflate the settings layout.
-What the function is responsible for: I am the fragment view create.
-Where it works: DashboardActivity and ProfileActivity host me. I inflate fragment_profile_settings.xml.
-Why I chose to write the code of the function the way its written: View Binding keeps ids typed.
-More: I use FragmentProfileSettingsBinding.inflate.
+## Overview
+This is the profile/settings **Fragment** (see `docs/GLOSSARY.md`). It shows a summary (name, email, avatar), and rows to edit profile, open report history, open system notification settings, start a password-reset OTP flow, log out, or delete the account. It is hosted by `DashboardActivity` (profile tab) and by `ProfileActivity`.
 
-```java
-@Override
-public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-    super.onViewCreated(view, savedInstanceState);
+## Concepts used here
+- **Fragment** — reusable settings UI inside a host Activity. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `FragmentProfileSettingsBinding`. See `docs/GLOSSARY.md`.
+- **Intent** — opens Edit Profile, Report History, Verify OTP, Login. See `docs/GLOSSARY.md`.
+- **Retrofit Call / Callback** — load user, send reset OTP, delete account. See `docs/GLOSSARY.md`.
+- **JWT / SharedPreferences (TokenManager)** — auth header; clear on logout/delete. See `docs/GLOSSARY.md`.
+- **OTP** — password update reuses the reset-code flow. See `docs/GLOSSARY.md`.
+- **Glide** — round avatar. See `docs/GLOSSARY.md`.
 
-    apiService = RetrofitClient.getApiService();
-    binding.textAppVersion.setText(getString(R.string.app_version_label, "1.0"));
+## Libraries and imports
+- **AndroidX**: Fragment, LayoutInflater, Settings intents.
+- **Material**: MaterialAlertDialogBuilder, TextInputLayout/EditText for delete dialog.
+- **Glide**: avatar load.
+- **Retrofit**: Call, Callback, Response.
+- **Project**: `EditProfileActivity`, `ReportHistoryActivity`, `LoginActivity`, `VerifyOtpActivity`, DTOs (`DeleteAccountRequest`, `ForgotPasswordRequest`), `TokenManager`, `AppDataRefresh`, `ConnectionToasts`.
 
-    binding.cardProfile.setOnClickListener(v ->
-            startActivity(new Intent(requireContext(), EditProfileActivity.class)));
-    binding.rowReportHistory.setOnClickListener(v ->
-            startActivity(new Intent(requireContext(), ReportHistoryActivity.class)));
-    binding.rowNotifications.setOnClickListener(v -> openNotificationSettings());
-    binding.rowPasswordUpdate.setOnClickListener(v -> startPasswordUpdate());
-    binding.rowLogout.setOnClickListener(v -> logout());
-    binding.rowDeleteAccount.setOnClickListener(v -> showDeleteAccountDialog());
-    AppDataRefresh.observeNew(getViewLifecycleOwner(), this::loadProfile);
-}
-```
+## Fields
+- `private FragmentProfileSettingsBinding binding` — settings views (nulled in `onDestroyView`).
+- `private ReClaimApiService apiService` — API client.
+- `private boolean showInitialProgress` — shows progress only on the first load, not every resume refresh.
+- `private String currentEmail` — cached email for the password-update OTP request.
 
-What that function does: I wire the settings rows and show the app version.
-What the function is responsible for: I am the settings click setup.
-Where it works: Fragment calls me after onCreateView.
-Why I chose to write the code of the function the way its written: Edit lives on EditProfileActivity so this screen stays a menu.
-More: I use Intents to EditProfileActivity and ReportHistoryActivity.
+## Functions
 
-```java
-@Override
-public void onResume() {
-    super.onResume();
-    loadProfile();
-}
-```
-
-What that function does: I reload the summary when this tab comes back.
-What the function is responsible for: I pick up name and photo after EditProfileActivity.
-Where it works: Android calls me. AppDataRefresh also reloads.
-Why I chose to write the code of the function the way its written: onResume covers returning from edit.
-More: I call loadProfile.
-
-```java
-private void loadProfile() {
-    String authHeader = TokenManager.getAuthHeader(requireContext());
-    if (authHeader == null) {
-        return;
-    }
-
-    if (showInitialProgress) {
-        binding.progress.setVisibility(View.VISIBLE);
-    }
-    apiService.getCurrentUser(authHeader).enqueue(new Callback<User>() {
-        @Override
-        public void onResponse(@NonNull Call<User> call, @NonNull Response<User> response) {
-            if (binding == null || !isAdded()) {
-                return;
-            }
-            binding.progress.setVisibility(View.GONE);
-            showInitialProgress = false;
-            if (response.isSuccessful() && response.body() != null) {
-                User user = response.body();
-                if (user.getName() != null) {
-                    binding.textUserDisplayName.setText(user.getName());
-                }
-                if (user.getEmail() != null) {
-                    currentEmail = user.getEmail();
-                    binding.textUserDisplayEmail.setText(user.getEmail());
-                }
-                loadAvatar(user.getProfilePictureUrl());
-            }
-        }
-
-        @Override
-        public void onFailure(@NonNull Call<User> call, @NonNull Throwable t) {
-            if (binding == null || !isAdded()) {
-                return;
-            }
-            binding.progress.setVisibility(View.GONE);
-            showInitialProgress = false;
-            ConnectionToasts.showIfOnline(requireContext(),
-                    R.string.msg_profile_load_failed, Toast.LENGTH_SHORT);
-        }
-    });
-}
-```
-
-What that function does: I fetch /users/me and fill name, email, and avatar.
-What the function is responsible for: I am the profile summary load.
-Where it works: I am called from onResume and AppDataRefresh.
-Why I chose to write the code of the function the way its written: I only show the spinner the first time so later refreshes stay quiet. currentEmail is kept for password update.
-More: I use apiService.getCurrentUser.
-
-```java
-public void onResponse(@NonNull Call<User> call, @NonNull Response<User> response) {
-    if (binding == null || !isAdded()) {
-        return;
-    }
-    binding.progress.setVisibility(View.GONE);
-    showInitialProgress = false;
-    if (response.isSuccessful() && response.body() != null) {
-        User user = response.body();
-        if (user.getName() != null) {
-            binding.textUserDisplayName.setText(user.getName());
-        }
-        if (user.getEmail() != null) {
-            currentEmail = user.getEmail();
-            binding.textUserDisplayEmail.setText(user.getEmail());
-        }
-        loadAvatar(user.getProfilePictureUrl());
-    }
-}
-```
-
-What that function does: I fill the summary from the user reply.
-What the function is responsible for: I am the Retrofit success path for getCurrentUser.
-Where it works: Retrofit calls me from loadProfile.
-Why I chose to write the code of the function the way its written: Null name or email leaves whatever was already on screen.
-More: I call loadAvatar.
-
-```java
-public void onFailure(@NonNull Call<User> call, @NonNull Throwable t) {
-    if (binding == null || !isAdded()) {
-        return;
-    }
-    binding.progress.setVisibility(View.GONE);
-    showInitialProgress = false;
-    ConnectionToasts.showIfOnline(requireContext(),
-            R.string.msg_profile_load_failed, Toast.LENGTH_SHORT);
-}
-```
-
-What that function does: I hide the spinner and toast if the API is up.
-What the function is responsible for: I am the Retrofit failure path for getCurrentUser.
-Where it works: Retrofit calls me from loadProfile.
-Why I chose to write the code of the function the way its written: ConnectionToasts hides the toast during an outage.
-More: I use ConnectionToasts.showIfOnline.
-
+### `private void loadAvatar(String url)`
 ```java
 private void loadAvatar(@Nullable String url) {
     if (binding == null || url == null || url.isEmpty()) {
@@ -166,13 +43,33 @@ private void loadAvatar(@Nullable String url) {
             .into(binding.imageSettingsAvatar);
 }
 ```
+- **What it does:** Loads a circular avatar from a URL if present.
+- **Where it's called:** From `loadProfile` on successful user fetch.
+- **Why it's written this way:** Leaves the default person icon when there is no URL.
+- **Step by step:**
+  1. Abort if binding/url missing.
+  2. Clear padding/tint; Glide circle crop into the ImageView.
 
-What that function does: I show the profile photo as a round avatar.
-What the function is responsible for: I load the settings avatar.
-Where it works: I am called from loadProfile.
-Why I chose to write the code of the function the way its written: Empty URL keeps the placeholder icon. I clear padding and tint like the other avatar screens.
-More: I use Glide.circleCrop.
+### `private void loadProfile()`
+```java
+private void loadProfile() {
+    String authHeader = TokenManager.getAuthHeader(requireContext());
+    if (authHeader == null) {
+        return;
+    }
+    // optionally show progress; getCurrentUser → name, email, avatar
+}
+```
+- **What it does:** Fetches the current user and fills the summary card.
+- **Where it's called:** From `onResume` and `AppDataRefresh.observeNew` in `onViewCreated`.
+- **Why it's written this way:** `showInitialProgress` avoids a flashing spinner on every quiet refresh.
+- **Step by step:**
+  1. Require auth header.
+  2. Show progress only if `showInitialProgress`.
+  3. Enqueue `getCurrentUser`; on success set name/email/`currentEmail` and `loadAvatar`.
+  4. Hide progress; clear the initial-progress flag; on failure use `ConnectionToasts`.
 
+### `private void openNotificationSettings()`
 ```java
 private void openNotificationSettings() {
     Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
@@ -185,13 +82,14 @@ private void openNotificationSettings() {
     }
 }
 ```
+- **What it does:** Opens this app’s notification settings in the system UI, with a fallback to app details.
+- **Where it's called:** Notifications row click in `onViewCreated`.
+- **Why it's written this way:** Some devices lack the notification-settings action; the catch opens the generic app settings page.
+- **Step by step:**
+  1. Build notification-settings Intent with package extra.
+  2. Try `startActivity`; on exception open `ACTION_APPLICATION_DETAILS_SETTINGS`.
 
-What that function does: I open this app's notification settings, or app details if that intent fails.
-What the function is responsible for: I am the notifications row.
-Where it works: I am called from rowNotifications.
-Why I chose to write the code of the function the way its written: Some devices lack ACTION_APP_NOTIFICATION_SETTINGS, so I fall back.
-More: I use Settings.EXTRA_APP_PACKAGE.
-
+### `private void startPasswordUpdate()`
 ```java
 private void startPasswordUpdate() {
     if (TextUtils.isEmpty(currentEmail)) {
@@ -200,104 +98,19 @@ private void startPasswordUpdate() {
         loadProfile();
         return;
     }
-
-    final String email = currentEmail;
-    binding.progress.setVisibility(View.VISIBLE);
-    apiService.sendPasswordResetOtp(new ForgotPasswordRequest(email))
-            .enqueue(new Callback<Void>() {
-                @Override
-                public void onResponse(@NonNull Call<Void> call,
-                                       @NonNull Response<Void> response) {
-                    if (binding == null || !isAdded()) {
-                        return;
-                    }
-                    binding.progress.setVisibility(View.GONE);
-                    if (response.isSuccessful()) {
-                        Toast.makeText(requireContext(),
-                                R.string.msg_reset_code_sent, Toast.LENGTH_LONG).show();
-                        Intent intent = new Intent(requireContext(),
-                                VerifyOtpActivity.class);
-                        intent.putExtra(VerifyOtpActivity.EXTRA_EMAIL, email);
-                        intent.putExtra(VerifyOtpActivity.EXTRA_MODE,
-                                VerifyOtpActivity.MODE_RESET);
-                        startActivity(intent);
-                        return;
-                    }
-                    int message = (response.code() == 404 || response.code() == 400)
-                            ? R.string.msg_no_account_for_email
-                            : R.string.error_generic;
-                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-                }
-
-                @Override
-                public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
-                    if (binding == null || !isAdded()) {
-                        return;
-                    }
-                    binding.progress.setVisibility(View.GONE);
-                    ConnectionToasts.showIfOnline(requireContext(),
-                            getString(R.string.msg_network_error, t.getLocalizedMessage()),
-                            Toast.LENGTH_LONG);
-                }
-            });
+    // sendPasswordResetOtp → VerifyOtpActivity MODE_RESET
 }
 ```
+- **What it does:** Emails a password-reset OTP for the loaded email and opens `VerifyOtpActivity` in reset mode.
+- **Where it's called:** Password-update row click.
+- **Why it's written this way:** Reuses the same OTP path as login’s forgot-password flow. If email is not loaded yet, it retries `loadProfile`.
+- **Step by step:**
+  1. If no `currentEmail`, toast and reload profile.
+  2. Show progress; enqueue `sendPasswordResetOtp`.
+  3. On success: toast, start Verify OTP with email + `MODE_RESET`.
+  4. On 404/400/500/other: matching toast; on failure `ConnectionToasts`.
 
-What that function does: I email a reset code to the signed-in address and open verify in reset mode.
-What the function is responsible for: I am the in-app password update start.
-Where it works: I am called from rowPasswordUpdate.
-Why I chose to write the code of the function the way its written: I reuse the same reset flow as login so I do not build a second path.
-More: I use ForgotPasswordRequest and VerifyOtpActivity.MODE_RESET.
-
-```java
-public void onResponse(@NonNull Call<Void> call,
-                       @NonNull Response<Void> response) {
-    if (binding == null || !isAdded()) {
-        return;
-    }
-    binding.progress.setVisibility(View.GONE);
-    if (response.isSuccessful()) {
-        Toast.makeText(requireContext(),
-                R.string.msg_reset_code_sent, Toast.LENGTH_LONG).show();
-        Intent intent = new Intent(requireContext(),
-                VerifyOtpActivity.class);
-        intent.putExtra(VerifyOtpActivity.EXTRA_EMAIL, email);
-        intent.putExtra(VerifyOtpActivity.EXTRA_MODE,
-                VerifyOtpActivity.MODE_RESET);
-        startActivity(intent);
-        return;
-    }
-    int message = (response.code() == 404 || response.code() == 400)
-            ? R.string.msg_no_account_for_email
-            : R.string.error_generic;
-    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-}
-```
-
-What that function does: I open verify-otp, or I toast why the code was not sent.
-What the function is responsible for: I am the Retrofit success path for sendPasswordResetOtp from settings.
-Where it works: Retrofit calls me from startPasswordUpdate.
-Why I chose to write the code of the function the way its written: 404/400 mean the email on the profile did not match an account.
-More: I use VerifyOtpActivity extras.
-
-```java
-public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
-    if (binding == null || !isAdded()) {
-        return;
-    }
-    binding.progress.setVisibility(View.GONE);
-    ConnectionToasts.showIfOnline(requireContext(),
-            getString(R.string.msg_network_error, t.getLocalizedMessage()),
-            Toast.LENGTH_LONG);
-}
-```
-
-What that function does: I hide the spinner and toast a network error if the API is up.
-What the function is responsible for: I am the Retrofit failure path for sendPasswordResetOtp from settings.
-Where it works: Retrofit calls me from startPasswordUpdate.
-Why I chose to write the code of the function the way its written: ConnectionToasts hides the toast during an outage.
-More: I use ConnectionToasts.showIfOnline.
-
+### `private void logout()`
 ```java
 private void logout() {
     TokenManager.clearToken(requireContext());
@@ -306,148 +119,64 @@ private void logout() {
     startActivity(intent);
 }
 ```
+- **What it does:** Clears the saved JWT and opens Login with a cleared back stack.
+- **Where it's called:** Logout row click, and after successful `deleteAccount`.
+- **Why it's written this way:** Clearing the task prevents Back into authenticated screens.
+- **Step by step:**
+  1. `TokenManager.clearToken`.
+  2. Start `LoginActivity` with NEW_TASK | CLEAR_TASK.
 
-What that function does: I drop the token and open login with a clear back stack.
-What the function is responsible for: I am sign-out, and the post-delete send-off.
-Where it works: I am called from rowLogout and from a successful deleteAccount.
-Why I chose to write the code of the function the way its written: CLEAR_TASK keeps the user from backing into settings.
-More: I use TokenManager.clearToken.
-
+### `private void showDeleteAccountDialog()` / `private void deleteAccount(String name, String password)`
 ```java
 private void showDeleteAccountDialog() {
-    View dialogView = LayoutInflater.from(requireContext())
-            .inflate(R.layout.dialog_delete_account, null);
-    TextInputLayout nameLayout = dialogView.findViewById(R.id.input_layout_confirm_name);
-    TextInputLayout passwordLayout = dialogView.findViewById(R.id.input_layout_confirm_password);
-    TextInputEditText nameInput = dialogView.findViewById(R.id.edit_confirm_name);
-    TextInputEditText passwordInput = dialogView.findViewById(R.id.edit_confirm_password);
-
-    new MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.delete_account_title)
-            .setView(dialogView)
-            .setNegativeButton(R.string.btn_cancel, null)
-            .setPositiveButton(R.string.btn_delete_account, (d, w) -> {
-                String name = nameInput.getText() != null
-                        ? nameInput.getText().toString().trim() : "";
-                String password = passwordInput.getText() != null
-                        ? passwordInput.getText().toString() : "";
-                if (TextUtils.isEmpty(name)) {
-                    nameLayout.setError(getString(R.string.msg_name_required));
-                    return;
-                }
-                if (TextUtils.isEmpty(password)) {
-                    passwordLayout.setError(getString(R.string.msg_password_required));
-                    return;
-                }
-                deleteAccount(name, password);
-            })
-            .show();
+    // inflate dialog_delete_account; require name+password; deleteAccount(...)
 }
-```
 
-What that function does: I ask for name and password before delete.
-What the function is responsible for: I am the delete confirm dialog.
-Where it works: I am called from rowDeleteAccount. I inflate dialog_delete_account.xml.
-Why I chose to write the code of the function the way its written: The server checks name and password, so I collect both here. Empty fields set layout errors.
-More: I use MaterialAlertDialogBuilder.
-
-```java
 private void deleteAccount(String name, String password) {
-    String authHeader = TokenManager.getAuthHeader(requireContext());
-    if (authHeader == null) {
-        return;
-    }
-
-    binding.progress.setVisibility(View.VISIBLE);
-    apiService.deleteAccount(authHeader, new DeleteAccountRequest(name, password))
-            .enqueue(new Callback<Void>() {
-                @Override
-                public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
-                    if (binding == null || !isAdded()) {
-                        return;
-                    }
-                    binding.progress.setVisibility(View.GONE);
-                    if (response.isSuccessful()) {
-                        TokenManager.clearToken(requireContext());
-                        Toast.makeText(requireContext(),
-                                R.string.msg_account_deleted, Toast.LENGTH_SHORT).show();
-                        logout();
-                    } else {
-                        Toast.makeText(requireContext(),
-                                R.string.msg_delete_account_failed, Toast.LENGTH_SHORT).show();
-                    }
-                }
-
-                @Override
-                public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
-                    if (binding == null || !isAdded()) {
-                        return;
-                    }
-                    binding.progress.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(),
-                            R.string.msg_delete_account_failed, Toast.LENGTH_SHORT).show();
-                }
-            });
+    // deleteAccount API → clear token, toast, logout
 }
 ```
+- **What it does:** Confirms delete with name+password fields, then calls the delete-account API.
+- **Where it's called:** Delete-account row → dialog; dialog positive → `deleteAccount`.
+- **Why it's written this way:** Backend requires name and password confirmation so delete is intentional. Success clears the token and reuses `logout()` navigation.
+- **Step by step:**
+  1. Inflate dialog; on positive validate name/password errors.
+  2. `deleteAccount`: show progress; enqueue `deleteAccount` with `DeleteAccountRequest`.
+  3. On success: clear token, toast, `logout()`; on failure toast.
 
-What that function does: I DELETE the account, then I sign out.
-What the function is responsible for: I am DELETE /api/users/me from settings.
-Where it works: I am called from showDeleteAccountDialog.
-Why I chose to write the code of the function the way its written: I clear the token on success before logout so the next screen is login.
-More: I use DeleteAccountRequest and apiService.deleteAccount.
-
+### `public View onCreateView(...)` / `public void onViewCreated(...)` / `onResume` / `onDestroyView`
 ```java
-public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
-    if (binding == null || !isAdded()) {
-        return;
-    }
-    binding.progress.setVisibility(View.GONE);
-    if (response.isSuccessful()) {
-        TokenManager.clearToken(requireContext());
-        Toast.makeText(requireContext(),
-                R.string.msg_account_deleted, Toast.LENGTH_SHORT).show();
-        logout();
-    } else {
-        Toast.makeText(requireContext(),
-                R.string.msg_delete_account_failed, Toast.LENGTH_SHORT).show();
-    }
+@Nullable
+@Override
+public View onCreateView(...) {
+    binding = FragmentProfileSettingsBinding.inflate(inflater, container, false);
+    return binding.getRoot();
 }
-```
 
-What that function does: I sign out after delete, or I toast that delete failed.
-What the function is responsible for: I am the Retrofit success path for deleteAccount.
-Where it works: Retrofit calls me from deleteAccount.
-Why I chose to write the code of the function the way its written: Wrong name or password comes back as a failed response, not a network error.
-More: I call logout.
-
-```java
-public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
-    if (binding == null || !isAdded()) {
-        return;
-    }
-    binding.progress.setVisibility(View.GONE);
-    Toast.makeText(requireContext(),
-            R.string.msg_delete_account_failed, Toast.LENGTH_SHORT).show();
+@Override
+public void onViewCreated(...) {
+    apiService = RetrofitClient.getApiService();
+    binding.textAppVersion.setText(getString(R.string.app_version_label, "1.0"));
+    // wire row clicks; AppDataRefresh.observeNew → loadProfile
 }
-```
 
-What that function does: I hide the spinner and toast that delete failed.
-What the function is responsible for: I am the Retrofit failure path for deleteAccount.
-Where it works: Retrofit calls me from deleteAccount.
-Why I chose to write the code of the function the way its written: A simple failed toast is enough here.
-More: I use msg_delete_account_failed.
+@Override
+public void onResume() {
+    super.onResume();
+    loadProfile();
+}
 
-```java
 @Override
 public void onDestroyView() {
     super.onDestroyView();
     binding = null;
 }
 ```
-
-What that function does: I drop the binding when the view is destroyed.
-What the function is responsible for: I stop late callbacks from touching a dead view.
-Where it works: Fragment calls me. loadProfile checks binding == null.
-Why I chose to write the code of the function the way its written: View Binding docs ask to null the binding here.
-More: I set binding to null.
+- **What it does:** Inflates the layout, wires navigation/actions, reloads on resume, clears binding when the view is destroyed.
+- **Where it's called:** Fragment lifecycle; host creates the Fragment in `DashboardActivity` (profile tab) or `ProfileActivity`.
+- **Why it's written this way:** Nulling binding stops late API callbacks from touching destroyed views (`isAdded` checks elsewhere).
+- **Step by step:**
+  1. Inflate and return root.
+  2. Set version label; wire profile/history/notifications/password/logout/delete clicks.
+  3. Observe `AppDataRefresh` for reloads.
+  4. `onResume` → `loadProfile`; `onDestroyView` → `binding = null`.

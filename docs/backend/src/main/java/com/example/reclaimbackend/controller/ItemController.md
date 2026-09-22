@@ -1,3 +1,29 @@
+# ItemController.java
+
+## Overview
+This is a **controller** for lost and found **items** (reports) under `/api/items` (see `docs/GLOSSARY.md`). Most routes need a JWT. The controller takes query/path parameters and the signed-in user id, then calls `ItemService` for search, CRUD, close, matches, and contact. Creating an item always sets `ownerId` from the token so the client cannot invent another owner.
+
+## Concepts used here
+- **Controller / endpoint / REST** — HTTP API for items; see `docs/GLOSSARY.md`.
+- **Authentication** — user id from `Authentication.getName()`; see `docs/GLOSSARY.md`.
+- **Model / entity** — request/response bodies often use `Item` directly; see `docs/GLOSSARY.md`.
+- **DTO** — `CloseReportRequest`, `ContactResponse`; see `docs/GLOSSARY.md`.
+- **Dependency injection** — `ItemService` is injected; see `docs/GLOSSARY.md`.
+
+## Libraries and imports
+- **Spring Web** (mappings, `ResponseEntity`, `@RequestParam`, `@PathVariable`, `@RequestBody`): routing and HTTP responses.
+- **Spring Security** (`Authentication`): signed-in user id.
+- **Spring formatting** (`@DateTimeFormat`): parses ISO date-time query params into `Instant`.
+- **Jakarta Validation** (`@Valid`): validates `CloseReportRequest`.
+- **Lombok** (`@RequiredArgsConstructor`): injects `itemService`.
+- **Project types**: `Item`, DTOs, `ItemService`.
+
+## Fields
+- `itemService` (`ItemService`) — create/search/update/close/delete and matching logic.
+
+## Functions
+
+### `public ResponseEntity<List<Item>> getAllItems(Authentication authentication)`
 ```java
 @GetMapping
 public ResponseEntity<List<Item>> getAllItems(Authentication authentication) {
@@ -5,13 +31,15 @@ public ResponseEntity<List<Item>> getAllItems(Authentication authentication) {
     return ResponseEntity.ok(itemService.getAllItems(viewerId));
 }
 ```
+- **What it does:** returns items visible to the signed-in viewer (service applies visibility rules).
+- **Where it's called:** by Spring MVC on `GET /api/items`.
+- **Why it's written this way:** passing `viewerId` lets the service hide other users' closed/private rows appropriately.
+- **Step by step:**
+  1. Read viewer id from authentication.
+  2. Call `itemService.getAllItems`.
+  3. Return the list.
 
-What that function does: I return the home feed of items for this viewer.
-What the function is responsible for: I am GET /api/items.
-Where it works: I am an HTTP endpoint. I call ItemService.getAllItems.
-Why I chose to write the code of the function the way its written: I pass the viewer id so the service can hide that user's own reports and closed ones.
-More: I use Authentication.getName and ResponseEntity.ok with List<Item>.
-
+### `public ResponseEntity<List<Item>> getMyItems(Authentication authentication)`
 ```java
 @GetMapping("/my-items")
 public ResponseEntity<List<Item>> getMyItems(Authentication authentication) {
@@ -19,13 +47,15 @@ public ResponseEntity<List<Item>> getMyItems(Authentication authentication) {
     return ResponseEntity.ok(itemService.getItemsByOwner(userId));
 }
 ```
+- **What it does:** lists items owned by the signed-in user.
+- **Where it's called:** by Spring MVC on `GET /api/items/my-items`.
+- **Why it's written this way:** owner comes from the token, not a path parameter.
+- **Step by step:**
+  1. Read user id from authentication.
+  2. Call `itemService.getItemsByOwner`.
+  3. Return the list.
 
-What that function does: I return items this user reported.
-What the function is responsible for: I am GET /api/items/my-items.
-Where it works: I am an HTTP endpoint. I call ItemService.getItemsByOwner.
-Why I chose to write the code of the function the way its written: I take the user id from the token so the caller cannot list someone else's items.
-More: I use Authentication.getName.
-
+### `public ResponseEntity<List<Item>> searchItems(...)`
 ```java
 @GetMapping("/search")
 public ResponseEntity<List<Item>> searchItems(
@@ -44,26 +74,29 @@ public ResponseEntity<List<Item>> searchItems(
             authentication.getName()));
 }
 ```
+- **What it does:** searches/filters items with optional category, type, text, date range, and coordinates for the viewer.
+- **Where it's called:** by Spring MVC on `GET /api/items/search`.
+- **Why it's written this way:** all filters are optional query params so the app can send only what the user filled in.
+- **Step by step:**
+  1. Bind optional query params (dates as ISO instants).
+  2. Call `itemService.searchItems` with those filters plus the viewer id.
+  3. Return the matching list.
 
-What that function does: I search items with optional filters and pass the viewer id.
-What the function is responsible for: I am GET /api/items/search.
-Where it works: I am an HTTP endpoint. I call ItemService.searchItems.
-Why I chose to write the code of the function the way its written: I wrote it this way because all query params are optional so a client can send only what it has. I parse dates as ISO instants.
-More: I use @RequestParam, @DateTimeFormat ISO.DATE_TIME, Instant, and Double for map search.
-
+### `public ResponseEntity<List<Item>> getItemsByCategory(@PathVariable String category)`
 ```java
 @GetMapping("/category/{category}")
 public ResponseEntity<List<Item>> getItemsByCategory(@PathVariable String category) {
     return ResponseEntity.ok(itemService.getItemsByCategory(category));
 }
 ```
+- **What it does:** returns items in one category.
+- **Where it's called:** by Spring MVC on `GET /api/items/category/{category}`.
+- **Why it's written this way:** simple category filter without requiring a viewer-specific search payload.
+- **Step by step:**
+  1. Call `itemService.getItemsByCategory`.
+  2. Return the list.
 
-What that function does: I return items in one category.
-What the function is responsible for: I am GET /api/items/category/{category}.
-Where it works: I am an HTTP endpoint. I call ItemService.getItemsByCategory.
-Why I chose to write the code of the function the way its written: I keep this route thin and let the service hide private targeted reports.
-More: I use @PathVariable String category.
-
+### `public ResponseEntity<List<Item>> getTargetedFoundReports(Authentication authentication)`
 ```java
 @GetMapping("/targeted-for-me")
 public ResponseEntity<List<Item>> getTargetedFoundReports(
@@ -72,13 +105,15 @@ public ResponseEntity<List<Item>> getTargetedFoundReports(
             itemService.getTargetedFoundReportsForLostOwner(authentication.getName()));
 }
 ```
+- **What it does:** returns found reports aimed at the signed-in user's lost reports.
+- **Where it's called:** by Spring MVC on `GET /api/items/targeted-for-me`.
+- **Why it's written this way:** the lost-owner id comes from the token so users only see targets meant for them.
+- **Step by step:**
+  1. Read user id from authentication.
+  2. Call `itemService.getTargetedFoundReportsForLostOwner`.
+  3. Return the list.
 
-What that function does: I return private found reports aimed at this user's open lost items.
-What the function is responsible for: I am GET /api/items/targeted-for-me.
-Where it works: I am an HTTP endpoint. I call ItemService.getTargetedFoundReportsForLostOwner.
-Why I chose to write the code of the function the way its written: I pass only the signed-in user id so other people's targeted reports stay hidden.
-More: I use Authentication.getName.
-
+### `public ResponseEntity<List<Item>> getMatchesForLostItem(@PathVariable String id, Authentication authentication)`
 ```java
 @GetMapping("/{id}/matches")
 public ResponseEntity<List<Item>> getMatchesForLostItem(
@@ -88,13 +123,15 @@ public ResponseEntity<List<Item>> getMatchesForLostItem(
     return ResponseEntity.ok(itemService.findMatchesForLostItem(id, userId));
 }
 ```
+- **What it does:** finds candidate matches for one lost item the caller owns/may view.
+- **Where it's called:** by Spring MVC on `GET /api/items/{id}/matches`.
+- **Why it's written this way:** passes both item id and caller id so the service can enforce ownership/visibility.
+- **Step by step:**
+  1. Read user id from authentication.
+  2. Call `itemService.findMatchesForLostItem`.
+  3. Return matches.
 
-What that function does: I return open found items that may match this lost report.
-What the function is responsible for: I am GET /api/items/{id}/matches.
-Where it works: I am an HTTP endpoint. I call ItemService.findMatchesForLostItem. ItemServiceTest checks that service method.
-Why I chose to write the code of the function the way its written: I pass both ids so the service can refuse a viewer who does not own the lost item.
-More: I use @PathVariable id and Authentication.getName.
-
+### `public ResponseEntity<ContactResponse> getLostItemOwnerContact(@PathVariable String id)`
 ```java
 @GetMapping("/{id}/contact")
 public ResponseEntity<ContactResponse> getLostItemOwnerContact(
@@ -102,13 +139,14 @@ public ResponseEntity<ContactResponse> getLostItemOwnerContact(
     return ResponseEntity.ok(itemService.getLostItemOwnerContact(id));
 }
 ```
+- **What it does:** returns contact info for the owner of a lost item when the service allows it.
+- **Where it's called:** by Spring MVC on `GET /api/items/{id}/contact`.
+- **Why it's written this way:** contact rules stay in the service; the controller only exposes the route.
+- **Step by step:**
+  1. Call `itemService.getLostItemOwnerContact`.
+  2. Return `ContactResponse`.
 
-What that function does: I return the reporter's contact for a lost item.
-What the function is responsible for: I am GET /api/items/{id}/contact.
-Where it works: I am an HTTP endpoint. I call ItemService.getLostItemOwnerContact.
-Why I chose to write the code of the function the way its written: I keep this route on the item, not the claim, because a finder of a lost report needs contact without claiming.
-More: I return ContactResponse. This route still needs a signed-in user via SecurityConfig.
-
+### `public ResponseEntity<Item> getItemById(@PathVariable String id, Authentication authentication)`
 ```java
 @GetMapping("/{id}")
 public ResponseEntity<Item> getItemById(@PathVariable String id,
@@ -118,13 +156,15 @@ public ResponseEntity<Item> getItemById(@PathVariable String id,
             .orElse(ResponseEntity.notFound().build());
 }
 ```
+- **What it does:** returns one item if the viewer is allowed to see it; otherwise `404`.
+- **Where it's called:** by Spring MVC on `GET /api/items/{id}`.
+- **Why it's written this way:** using `Optional` maps “not visible / missing” to HTTP `404` without leaking whether the id exists for unauthorized viewers beyond not-found.
+- **Step by step:**
+  1. Call `itemService.getVisibleItem`.
+  2. If present, return `200` with the item.
+  3. If empty, return `404`.
 
-What that function does: I return one item if this viewer may see it, or 404.
-What the function is responsible for: I am GET /api/items/{id}.
-Where it works: I am an HTTP endpoint. I call ItemService.getVisibleItem, not ItemService.getItemById.
-Why I chose to write the code of the function the way its written: I wrote it this way because optional to 404 hides private targeted reports from the wrong viewer instead of leaking them.
-More: I use Optional.map and ResponseEntity.notFound.
-
+### `public ResponseEntity<Item> createItem(@RequestBody Item item, Authentication authentication)`
 ```java
 @PostMapping
 public ResponseEntity<Item> createItem(@RequestBody Item item,
@@ -135,13 +175,15 @@ public ResponseEntity<Item> createItem(@RequestBody Item item,
     return ResponseEntity.status(HttpStatus.CREATED).body(savedItem);
 }
 ```
+- **What it does:** creates a new report owned by the signed-in user.
+- **Where it's called:** by Spring MVC on `POST /api/items`.
+- **Why it's written this way:** overwriting `ownerId` from the token prevents forging ownership.
+- **Step by step:**
+  1. Set `item.ownerId` from authentication.
+  2. Call `itemService.createItem`.
+  3. Return `201` with the saved item.
 
-What that function does: I save a new item as belonging to the signed-in user.
-What the function is responsible for: I am POST /api/items.
-Where it works: I am an HTTP endpoint. I call ItemService.createItem. ItemControllerSecurityTest posts here without a token.
-Why I chose to write the code of the function the way its written: I set ownerId from the token so the body cannot claim another owner. 201 marks a new report.
-More: I use Item.setOwnerId, HttpStatus.CREATED, and Authentication.getName.
-
+### `public ResponseEntity<Item> updateItem(@PathVariable String id, @RequestBody Item item, Authentication authentication)`
 ```java
 @PutMapping("/{id}")
 public ResponseEntity<Item> updateItem(@PathVariable String id,
@@ -151,13 +193,15 @@ public ResponseEntity<Item> updateItem(@PathVariable String id,
     return ResponseEntity.ok(itemService.updateItem(id, userId, item));
 }
 ```
+- **What it does:** updates an item if the caller owns it (enforced in the service).
+- **Where it's called:** by Spring MVC on `PUT /api/items/{id}`.
+- **Why it's written this way:** passes both ids so the service can reject non-owners.
+- **Step by step:**
+  1. Read user id from authentication.
+  2. Call `itemService.updateItem`.
+  3. Return the updated item.
 
-What that function does: I update an item if the caller is the owner.
-What the function is responsible for: I am PUT /api/items/{id}.
-Where it works: I am an HTTP endpoint. I call ItemService.updateItem.
-Why I chose to write the code of the function the way its written: I pass the token user id so the service can refuse other users.
-More: I use @PathVariable, @RequestBody Item, and Authentication.
-
+### `public ResponseEntity<Item> closeReport(@PathVariable String id, @Valid @RequestBody CloseReportRequest request, Authentication authentication)`
 ```java
 @PutMapping("/{id}/close")
 public ResponseEntity<Item> closeReport(@PathVariable String id,
@@ -168,13 +212,15 @@ public ResponseEntity<Item> closeReport(@PathVariable String id,
             itemService.closeReport(id, userId, request.getClosureReason()));
 }
 ```
+- **What it does:** closes a report with a reason chosen by the owner.
+- **Where it's called:** by Spring MVC on `PUT /api/items/{id}/close`.
+- **Why it's written this way:** closure reason is validated via DTO; ownership check stays in the service.
+- **Step by step:**
+  1. Validate `CloseReportRequest`.
+  2. Call `itemService.closeReport` with id, user id, and reason.
+  3. Return the updated item.
 
-What that function does: I close a report for its owner with the given reason.
-What the function is responsible for: I am PUT /api/items/{id}/close.
-Where it works: I am an HTTP endpoint. I call ItemService.closeReport.
-Why I chose to write the code of the function the way its written: I take closureReason from a validated request so only "owner found" or "owner not found" get through.
-More: I use @Valid CloseReportRequest.getClosureReason.
-
+### `public ResponseEntity<Void> deleteItem(@PathVariable String id, Authentication authentication)`
 ```java
 @DeleteMapping("/{id}")
 public ResponseEntity<Void> deleteItem(@PathVariable String id,
@@ -184,9 +230,10 @@ public ResponseEntity<Void> deleteItem(@PathVariable String id,
     return ResponseEntity.noContent().build();
 }
 ```
-
-What that function does: I delete an item if the caller is the owner.
-What the function is responsible for: I am DELETE /api/items/{id}.
-Where it works: I am an HTTP endpoint. I call ItemService.deleteItem.
-Why I chose to write the code of the function the way its written: I wrote it this way because 204 is enough after a successful delete. The service throws if the user does not own it.
-More: I use ResponseEntity.noContent and Authentication.getName.
+- **What it does:** deletes an item owned by the caller (and related cleanup in the service).
+- **Where it's called:** by Spring MVC on `DELETE /api/items/{id}`.
+- **Why it's written this way:** returns `204 No Content`, the usual success shape for deletes with no body.
+- **Step by step:**
+  1. Read user id from authentication.
+  2. Call `itemService.deleteItem`.
+  3. Return `204`.

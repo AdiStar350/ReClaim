@@ -1,25 +1,52 @@
+# PreviewItemAdapter.java
+
+## Overview
+This is a **RecyclerView Adapter** for the small preview cards on the home screen (see `docs/GLOSSARY.md`). Each row shows a title, location, Lost/Found chip, and photo. Tapping a card notifies a click listener with that `Item`.
+
+## Concepts used here
+- **RecyclerView / Adapter / ViewHolder** — the Adapter feeds rows; a ViewHolder holds one row’s views for reuse. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `ItemCardPreviewBinding` gives typed access to `item_card_preview.xml`. See `docs/GLOSSARY.md`.
+- **Glide** — loads the item image URL into the ImageView. See `docs/GLOSSARY.md`.
+- **Interface** — `OnItemClickListener` lets the host Fragment react to taps without the Adapter knowing the screen class.
+
+## Libraries and imports
+- **AndroidX**: `RecyclerView`, LayoutInflater / ViewGroup for creating rows, nullability annotations.
+- **Glide**: image loading with placeholder, error drawable, and a short cross-fade.
+- **Project**: `Item` model, `ItemCardPreviewBinding`, string/color resources for Lost/Found chips.
+
+## Fields
+- `private final List<Item> items` — the current list of items shown in the RecyclerView.
+- `private final OnItemClickListener listener` — callback when a card is tapped.
+
+## Functions
+
+### `public interface OnItemClickListener` — `void onItemClick(Item item)`
 ```java
-void onItemClick(@NonNull Item item);
+public interface OnItemClickListener {
+    void onItemClick(@NonNull Item item);
+}
 ```
+- **What it does:** Declares the one method the host must implement when a preview card is tapped.
+- **Where it's called:** Implemented by `HomeFragment` (lambda passed to the constructor); invoked from `ViewHolder.bind` when the root view is clicked.
+- **Why it's written this way:** Keeps the Adapter reusable — it only knows “tell someone an Item was clicked.”
+- **Step by step:**
+  1. The interface names `onItemClick` with the tapped `Item`.
+  2. The host supplies an implementation at construction time.
 
-What that function does: I am the card-tap callback the host must implement.
-What the function is responsible for: I tell home which preview item was opened.
-Where it works: ViewHolder.bind calls me. HomeFragment implements me.
-Why I chose to write the code of the function the way its written: An interface keeps navigation out of the adapter.
-More: I take a non-null Item.
-
+### `public PreviewItemAdapter(OnItemClickListener listener)`
 ```java
 public PreviewItemAdapter(@NonNull OnItemClickListener listener) {
     this.listener = listener;
 }
 ```
+- **What it does:** Stores the click listener; the item list starts empty.
+- **Where it's called:** `HomeFragment` creates it for the nearby-preview RecyclerView.
+- **Why it's written this way:** Listener is required so every card has somewhere to report taps.
+- **Step by step:**
+  1. Assign `listener` to the field.
+  2. Leave `items` as an empty `ArrayList`.
 
-What that function does: I store the click listener.
-What the function is responsible for: I am the adapter constructor.
-Where it works: I am constructed in HomeFragment for the nearby preview row.
-Why I chose to write the code of the function the way its written: I start with an empty list and fill it with updateItems.
-More: I keep items as an ArrayList.
-
+### `public void updateItems(List<Item> newItems)`
 ```java
 public void updateItems(@NonNull List<Item> newItems) {
     items.clear();
@@ -27,13 +54,15 @@ public void updateItems(@NonNull List<Item> newItems) {
     notifyDataSetChanged();
 }
 ```
+- **What it does:** Replaces the in-memory list and redraws the whole RecyclerView.
+- **Where it's called:** From `HomeFragment` after nearby/search preview data is ready.
+- **Why it's written this way:** Simple full refresh is enough for a short home preview list.
+- **Step by step:**
+  1. Clear `items`.
+  2. Add all of `newItems`.
+  3. Call `notifyDataSetChanged()`.
 
-What that function does: I replace the list and redraw every small card.
-What the function is responsible for: I am the bulk refresh for the home preview.
-Where it works: I am called by HomeFragment.
-Why I chose to write the code of the function the way its written: I clear and refill so the same adapter stays on the RecyclerView.
-More: I use notifyDataSetChanged.
-
+### `public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType)`
 ```java
 @NonNull
 @Override
@@ -43,53 +72,47 @@ public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
     return new ViewHolder(binding);
 }
 ```
+- **What it does:** Inflates one preview card layout and wraps it in a ViewHolder.
+- **Where it's called:** By RecyclerView when it needs a new row view.
+- **Why it's written this way:** ViewBinding inflation avoids `findViewById` and matches the project’s other adapters.
+- **Step by step:**
+  1. Inflate `ItemCardPreviewBinding` with the parent’s context.
+  2. Return a new `ViewHolder` holding that binding.
 
-What that function does: I inflate item_card_preview for a new row.
-What the function is responsible for: I am RecyclerView's create path.
-Where it works: RecyclerView calls me. The layout is item_card_preview.xml.
-Why I chose to write the code of the function the way its written: View Binding keeps ids typed.
-More: I use ItemCardPreviewBinding.inflate.
-
+### `public void onBindViewHolder(ViewHolder holder, int position)`
 ```java
 @Override
 public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
     holder.bind(items.get(position));
 }
 ```
+- **What it does:** Fills the row at `position` with that list item.
+- **Where it's called:** By RecyclerView when a row scrolls on screen or data changes.
+- **Why it's written this way:** Binding logic lives in `ViewHolder.bind` so `onBindViewHolder` stays one line.
+- **Step by step:**
+  1. Get `items.get(position)`.
+  2. Call `holder.bind(...)`.
 
-What that function does: I bind one item to a small card.
-What the function is responsible for: I am RecyclerView's bind path.
-Where it works: RecyclerView calls me for each visible preview.
-Why I chose to write the code of the function the way its written: The holder owns the field mapping.
-More: I call ViewHolder.bind.
-
+### `public int getItemCount()`
 ```java
 @Override
 public int getItemCount() {
     return items.size();
 }
 ```
+- **What it does:** Tells RecyclerView how many rows there are.
+- **Where it's called:** By RecyclerView during layout and updates.
+- **Why it's written this way:** Standard Adapter contract.
+- **Step by step:**
+  1. Return `items.size()`.
 
-What that function does: I return how many preview items I hold.
-What the function is responsible for: I tell RecyclerView the list size.
-Where it works: RecyclerView calls me.
-Why I chose to write the code of the function the way its written: Size matches the in-memory list.
-More: I return items.size().
-
+### `ViewHolder` constructor and `void bind(Item item)`
 ```java
 ViewHolder(@NonNull ItemCardPreviewBinding binding) {
     super(binding.getRoot());
     this.binding = binding;
 }
-```
 
-What that function does: I store the small-card binding.
-What the function is responsible for: I am the row constructor.
-Where it works: I am created in onCreateViewHolder.
-Why I chose to write the code of the function the way its written: super(binding.getRoot()) is what RecyclerView needs.
-More: I keep ItemCardPreviewBinding.
-
-```java
 void bind(@NonNull Item item) {
     android.content.Context ctx = binding.getRoot().getContext();
 
@@ -117,9 +140,12 @@ void bind(@NonNull Item item) {
     binding.getRoot().setOnClickListener(v -> listener.onItemClick(item));
 }
 ```
-
-What that function does: I fill title, place, type chip, photo, and the tap.
-What the function is responsible for: I am one compact home preview card. I skip category and status.
-Where it works: I am called from onBindViewHolder. Taps go to HomeFragment.
-Why I chose to write the code of the function the way its written: The preview row is small, so I only show title, place, type, and photo.
-More: I use Glide and DrawableTransitionOptions.withCrossFade(200).
+- **What it does:** Stores the binding; `bind` fills title, location, Lost/Found chip, image, and click listener for one `Item`.
+- **Where it's called:** Constructor from `onCreateViewHolder`; `bind` from `onBindViewHolder`.
+- **Why it's written this way:** Non-Lost types show as Found (or blank if type is empty). Glide handles missing URLs with a placeholder. Click goes through the listener so HomeFragment can open details.
+- **Step by step:**
+  1. Constructor: keep the binding and pass the root to `RecyclerView.ViewHolder`.
+  2. Set title and location texts.
+  3. Style the type chip for Lost vs Found.
+  4. Load the image with Glide.
+  5. Set the root click listener to call `listener.onItemClick(item)`.

@@ -1,130 +1,98 @@
-```xml
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingStart="@dimen/space_24"
-    android:paddingTop="@dimen/space_8"
-    android:paddingEnd="@dimen/space_16"
-    android:paddingBottom="@dimen/space_4">
+# dialog_contact_info.xml
+
+## Overview
+This layout is the body of the contact-info dialog: another person's name, email, and
+phone, with copy buttons next to email and phone. It is inflated by
+`ContactInfoDialog` through `DialogContactInfoBinding` and shown as the custom view of
+a `MaterialAlertDialogBuilder`. Callers include `PendingClaimsSheet`,
+`ItemDetailsActivity`, `ReportHistoryActivity`, and `HomeFragment` (each passes a
+`ContactResponse` and a title).
+
+Key idea: **ViewBinding** gives typed access to the name/email/phone views and the
+copy buttons. See `docs/GLOSSARY.md`.
+
+## Concepts used here
+- **LinearLayout** — vertical stack of label/value pairs; horizontal rows for
+  value + copy. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `DialogContactInfoBinding`. See `docs/GLOSSARY.md`.
+- **MaterialAlertDialogBuilder** — hosts this view (in Java).
+
+## Screen structure
+
+```
+LinearLayout (root, vertical)
+├── MaterialTextView (name label — no id)
+├── MaterialTextView text_contact_name
+├── MaterialTextView (email label — no id)
+├── LinearLayout (horizontal)
+│   ├── MaterialTextView text_contact_email
+│   └── ImageButton btn_copy_email
+├── MaterialTextView (phone label — no id)
+└── LinearLayout (horizontal)
+    ├── MaterialTextView text_contact_phone
+    └── ImageButton btn_copy_phone
 ```
 
-What that function does: I am the dialog body that shows name, email, and phone.
-What the function is responsible for: I am the contact-info dialog layout.
-Where it works: ContactInfoDialog inflates me through DialogContactInfoBinding.
-Why I chose to write the code of the function the way its written: The dialog title and OK button are set in Java. I only hold the rows.
-More: I use a vertical LinearLayout.
+The root is a vertical `LinearLayout` because the dialog is stacked label/value pairs.
 
+## Components
+
+### Name
 ```xml
-    <com.google.android.material.textview.MaterialTextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/contact_info_label_name"
-        android:textAppearance="?attr/textAppearanceLabelMedium"
-        android:textColor="@color/text_secondary" />
+<com.google.android.material.textview.MaterialTextView
+    android:text="@string/contact_info_label_name"
+    android:textAppearance="?attr/textAppearanceLabelMedium"
+    android:textColor="@color/text_secondary" />
 
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/text_contact_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_4"
-        android:textAppearance="?attr/textAppearanceBodyLarge"
-        android:textColor="@color/brand_dark"
-        tools:text="Ada Lovelace" />
+<com.google.android.material.textview.MaterialTextView
+    android:id="@+id/text_contact_name"
+    android:textAppearance="?attr/textAppearanceBodyLarge"
+    android:textColor="@color/brand_dark" />
 ```
+- **What it shows:** a "Name" label and the contact's display name.
+- **Why it's set up this way:** secondary label + dark body text matches the email and
+  phone blocks so the dialog reads consistently.
+- **How the code uses it:** `ContactInfoDialog.bindContact()` sets
+  `binding.textContactName` from `ContactResponse.getName()` (or an em dash if empty).
 
-What that function does: I show the other person's name under a small label.
-What the function is responsible for: I am the name row.
-Where it works: ContactInfoDialog.bindContact sets text_contact_name.
-Why I chose to write the code of the function the way its written: Name has no copy button because people copy email and phone more.
-More: I use contact_info_label_name.
-
+### Email with copy
 ```xml
+<LinearLayout android:orientation="horizontal" android:gravity="center_vertical">
     <com.google.android.material.textview.MaterialTextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_16"
-        android:text="@string/contact_info_label_email"
-        android:textAppearance="?attr/textAppearanceLabelMedium"
-        android:textColor="@color/text_secondary" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/text_contact_email"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            android:textColor="@color/brand_dark"
-            android:textIsSelectable="true"
-            tools:text="ada@example.com" />
-
-        <ImageButton
-            android:id="@+id/btn_copy_email"
-            android:layout_width="@dimen/space_36"
-            android:layout_height="@dimen/space_36"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/cd_copy_email"
-            android:padding="@dimen/space_8"
-            android:scaleType="centerInside"
-            android:src="@drawable/ic_copy"
-            app:tint="@color/brand_accent" />
-    </LinearLayout>
+        android:id="@+id/text_contact_email"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:textIsSelectable="true" />
+    <ImageButton
+        android:id="@+id/btn_copy_email"
+        android:src="@drawable/ic_copy"
+        android:contentDescription="@string/cd_copy_email" />
+</LinearLayout>
 ```
+- **What it shows:** the email address and a small copy button beside it.
+- **Why it's set up this way:** `layout_weight="1"` lets the text fill the row;
+  `textIsSelectable` lets the user select without using the button; the borderless
+  ripple keeps the icon light.
+- **How the code uses it:** `bindContact()` sets `binding.textContactEmail` and wires
+  `binding.btnCopyEmail` to copy the email to the clipboard (hides the button if email
+  is empty).
 
-What that function does: I show the email and a copy button beside it.
-What the function is responsible for: I am the email row.
-Where it works: ContactInfoDialog.bindContact and bindCopyButton fill text_contact_email and btn_copy_email.
-Why I chose to write the code of the function the way its written: textIsSelectable lets long-press copy too. The button is hidden in Java if email is empty.
-More: I use ic_copy and cd_copy_email.
-
+### Phone with copy
 ```xml
+<LinearLayout android:orientation="horizontal" android:gravity="center_vertical">
     <com.google.android.material.textview.MaterialTextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_16"
-        android:text="@string/contact_info_label_phone"
-        android:textAppearance="?attr/textAppearanceLabelMedium"
-        android:textColor="@color/text_secondary" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/text_contact_phone"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            android:textColor="@color/brand_dark"
-            android:textIsSelectable="true"
-            tools:text="+1 555 0100" />
-
-        <ImageButton
-            android:id="@+id/btn_copy_phone"
-            android:layout_width="@dimen/space_36"
-            android:layout_height="@dimen/space_36"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/cd_copy_phone"
-            android:padding="@dimen/space_8"
-            android:scaleType="centerInside"
-            android:src="@drawable/ic_copy"
-            app:tint="@color/brand_accent" />
-    </LinearLayout>
+        android:id="@+id/text_contact_phone"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:textIsSelectable="true" />
+    <ImageButton
+        android:id="@+id/btn_copy_phone"
+        android:src="@drawable/ic_copy"
+        android:contentDescription="@string/cd_copy_phone" />
+</LinearLayout>
 ```
-
-What that function does: I show the phone and a copy button beside it.
-What the function is responsible for: I am the phone row.
-Where it works: ContactInfoDialog.bindContact and bindCopyButton fill text_contact_phone and btn_copy_phone.
-Why I chose to write the code of the function the way its written: Same pattern as email so both rows feel the same.
-More: I use ic_copy and cd_copy_phone.
+- **What it shows:** the phone number and a copy button beside it.
+- **Why it's set up this way:** same pattern as email so both contact channels work the
+  same way.
+- **How the code uses it:** `bindContact()` sets `binding.textContactPhone` and wires
+  `binding.btnCopyPhone` the same way as email (hides the button if phone is empty).

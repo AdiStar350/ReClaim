@@ -1,219 +1,49 @@
-```java
-public Claim() {
-}
-```
+# Claim.java
 
-What that function does: I make an empty claim so Gson can fill the fields.
-What the function is responsible for: I am the no-arg constructor Gson needs.
-Where it works: Gson uses me when getMyClaims, submitClaim, reviewClaim, or acknowledgeClaimDecision parse JSON.
-Why I chose to write the code of the function the way its written: Gson needs an empty constructor before setters run.
-More: I leave fields null or false until Gson fills them.
+## Overview
+This file is a **model class**: a plain Java object that mirrors one claim record from
+the backend. A claim is one person's request to receive a lost/found item. One `Claim`
+object equals one claim document on the server. See model and Gson in
+`docs/GLOSSARY.md`. Gson fills a `Claim` when parsing claim lists, and the app reads its
+fields to show claim cards and results.
 
-```java
-public Claim(String id, String itemId, String claimantId,
-             String validationAnswer, String status) {
-    this.id = id;
-    this.itemId = itemId;
-    this.claimantId = claimantId;
-    this.validationAnswer = validationAnswer;
-    this.status = status;
-}
-```
+## Concepts used here
+- **Model.** A class that mirrors one stored record; see `docs/GLOSSARY.md`.
+- **Gson `@SerializedName`.** Maps each Java field to the matching JSON key when
+  parsing; see `docs/GLOSSARY.md`.
+- **Getters and setters.** Gson writes the fields and the UI reads them, so the class
+  exposes plain accessors and a no-argument constructor.
 
-What that function does: I build a claim with the main fields.
-What the function is responsible for: I let code make a claim without JSON.
-Where it works: I did not find an app caller of this constructor. Gson uses the empty one.
-Why I chose to write the code of the function the way its written: I kept the five fields a claim always has. Extra display fields can be set by Gson.
-More: I assign id, itemId, claimantId, validationAnswer, and status.
+## Libraries and imports
+- **Gson (`com.google.gson.annotations.SerializedName`).** Tags each field with its
+  JSON key.
 
-```java
-public String getId() {
-    return id;
-}
-```
+## Fields
+Each field is `@SerializedName`-tagged with the JSON key shown by its name.
+- `id` — the claim's unique id.
+- `itemId` — id of the item being claimed.
+- `claimantId` — id of the user making the claim.
+- `validationAnswer` — the claimant's answer to the item's verification question.
+- `status` — the claim's state (for example `Pending`, `Approved`, `Rejected`).
+- `closureReason` — why the claim was closed, if applicable.
+- `itemTitle` — the item's title, copied in so a claim can be shown without a second
+  fetch.
+- `itemImageUrl` — the item's photo URL, copied in for the same reason.
+- `itemType` — whether the item is lost or found.
+- `decisionAcknowledged` — a `boolean` telling whether the claimant has already seen
+  the approve/reject decision.
 
-What that function does: I return the claim id.
-What the function is responsible for: I identify the claim for acknowledge and contact.
-Where it works: I am read by HomeFragment and ReportHistoryActivity.
-Why I chose to write the code of the function the way its written: I kept a simple getter.
-More: I use Gson @SerializedName("id").
+The last few item-related fields are stored on the claim so a claim card can render on
+its own without loading the whole item.
 
-```java
-public String getItemId() {
-    return itemId;
-}
-```
+## Constructors and accessors
+- No-argument constructor `Claim()` — used by Gson.
+- Convenience constructor `Claim(id, itemId, claimantId, validationAnswer, status)` —
+  sets the main fields.
+- Plain getters and setters (with `isDecisionAcknowledged()` as the boolean getter).
+  These carry no logic and so are not documented one by one, per the DTO/model style.
 
-What that function does: I return the item this claim is about.
-What the function is responsible for: I link the claim back to a report.
-Where it works: I am used on history and home with this object.
-Why I chose to write the code of the function the way its written: I kept a simple getter.
-More: I use Gson @SerializedName("itemId").
-
-```java
-public String getClaimantId() {
-    return claimantId;
-}
-```
-
-What that function does: I return who made the claim.
-What the function is responsible for: I identify the claimant.
-Where it works: Gson fills this field. Screens mostly show item title instead.
-Why I chose to write the code of the function the way its written: I kept a simple getter.
-More: I use Gson @SerializedName("claimantId").
-
-```java
-public String getValidationAnswer() {
-    return validationAnswer;
-}
-```
-
-What that function does: I return the check-question answer.
-What the function is responsible for: I hold what the claimant typed.
-Where it works: Gson fills this field. Pending claims use PendingClaimResponse for the same value.
-Why I chose to write the code of the function the way its written: I kept a simple getter.
-More: I use Gson @SerializedName("validationAnswer").
-
-```java
-public String getStatus() {
-    return status;
-}
-```
-
-What that function does: I return Pending, Approved, or Rejected.
-What the function is responsible for: I tell home and history how the claim ended.
-Where it works: I am read by HomeFragment and HistoryAdapter.
-Why I chose to write the code of the function the way its written: I kept a simple getter.
-More: I use Gson @SerializedName("status").
-
-```java
-public String getClosureReason() {
-    return closureReason;
-}
-```
-
-What that function does: I return why the claim was closed, if the server sent one.
-What the function is responsible for: I explain a closed claim.
-Where it works: Gson fills this field. History can show it when present.
-Why I chose to write the code of the function the way its written: I kept a simple getter.
-More: I use Gson @SerializedName("closureReason").
-
-```java
-public String getItemTitle() {
-    return itemTitle;
-}
-```
-
-What that function does: I return the item title for this claim.
-What the function is responsible for: I show which report the claim is for without a second fetch.
-Where it works: I am read by HistoryAdapter.
-Why I chose to write the code of the function the way its written: I keep the title on the claim for the history row.
-More: I use Gson @SerializedName("itemTitle").
-
-```java
-public String getItemImageUrl() {
-    return itemImageUrl;
-}
-```
-
-What that function does: I return the item photo URL.
-What the function is responsible for: I show a thumbnail on the history row.
-Where it works: I am read by HistoryAdapter.
-Why I chose to write the code of the function the way its written: I keep the image URL on the claim for the list.
-More: I use Gson @SerializedName("itemImageUrl").
-
-```java
-public String getItemType() {
-    return itemType;
-}
-```
-
-What that function does: I return Lost or Found for the claimed item.
-What the function is responsible for: I label the history row by report type.
-Where it works: I am read by HistoryAdapter.
-Why I chose to write the code of the function the way its written: I keep type on the claim so history does not need the item.
-More: I use Gson @SerializedName("itemType").
-
-```java
-public boolean isDecisionAcknowledged() {
-    return decisionAcknowledged;
-}
-```
-
-What that function does: I return true if the claimant already saw the decision.
-What the function is responsible for: I stop home from showing the same decision again.
-Where it works: I am read by HomeFragment when it looks for unseen decisions.
-Why I chose to write the code of the function the way its written: I used is... because it is a yes/no.
-More: I use Gson @SerializedName("decisionAcknowledged").
-
-```java
-public void setId(String id) {
-    this.id = id;
-}
-```
-
-What that function does: I set the claim id.
-What the function is responsible for: I let Gson write the id.
-Where it works: Gson may call me while parsing Claim JSON.
-Why I chose to write the code of the function the way its written: I kept a simple setter.
-More: I assign id.
-
-```java
-public void setItemId(String itemId) {
-    this.itemId = itemId;
-}
-```
-
-What that function does: I set the item id.
-What the function is responsible for: I let Gson write itemId.
-Where it works: Gson may call me while parsing Claim JSON.
-Why I chose to write the code of the function the way its written: I kept a simple setter.
-More: I assign itemId.
-
-```java
-public void setClaimantId(String claimantId) {
-    this.claimantId = claimantId;
-}
-```
-
-What that function does: I set who made the claim.
-What the function is responsible for: I let Gson write claimantId.
-Where it works: Gson may call me while parsing Claim JSON.
-Why I chose to write the code of the function the way its written: I kept a simple setter.
-More: I assign claimantId.
-
-```java
-public void setValidationAnswer(String validationAnswer) {
-    this.validationAnswer = validationAnswer;
-}
-```
-
-What that function does: I set the check-question answer.
-What the function is responsible for: I let Gson write the answer.
-Where it works: Gson may call me while parsing Claim JSON.
-Why I chose to write the code of the function the way its written: I kept a simple setter.
-More: I assign validationAnswer.
-
-```java
-public void setStatus(String status) {
-    this.status = status;
-}
-```
-
-What that function does: I set the claim status.
-What the function is responsible for: I let Gson write status.
-Where it works: Gson may call me while parsing Claim JSON.
-Why I chose to write the code of the function the way its written: I kept a simple setter.
-More: I assign status.
-
-```java
-public void setClosureReason(String closureReason) {
-    this.closureReason = closureReason;
-}
-```
-
-What that function does: I set why the claim was closed.
-What the function is responsible for: I let Gson write the close reason.
-Where it works: Gson may call me while parsing Claim JSON.
-Why I chose to write the code of the function the way its written: I kept a simple setter.
-More: I assign closureReason.
+## Where it's used
+Parsed from `getMyClaims`, `submitClaim`, `reviewClaim`, and
+`acknowledgeClaimDecision`. Shown in `HomeFragment`, `ReportHistoryActivity`, and the
+claim dialogs.

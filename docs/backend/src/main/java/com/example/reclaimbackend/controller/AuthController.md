@@ -1,3 +1,28 @@
+# AuthController.java
+
+## Overview
+This is a **controller**: the HTTP front desk for login, signup OTP, and forgot-password flows (see `docs/GLOSSARY.md`). All routes live under `/api/auth` and are public (no JWT required). Each method validates the request body, calls `AuthService`, and turns success or `ResponseStatusException` into an HTTP response with JSON.
+
+## Concepts used here
+- **Controller / endpoint / REST** — maps HTTP methods and paths to Java methods; see `docs/GLOSSARY.md`.
+- **DTO** — request/response shapes like `LoginRequest` and `LoginResponse`; see `docs/GLOSSARY.md`.
+- **Validation** — `@Valid` rejects bad bodies before the method runs; see `docs/GLOSSARY.md`.
+- **JWT** — returned after login or successful registration verify; see `docs/GLOSSARY.md`.
+- **OTP** — emailed codes for signup and password reset; see `docs/GLOSSARY.md`.
+- **Dependency injection** — Spring injects `AuthService` via the Lombok constructor; see `docs/GLOSSARY.md`.
+
+## Libraries and imports
+- **Spring Web** (`@RestController`, `@RequestMapping`, `@PostMapping`, `@RequestBody`, `ResponseEntity`, `HttpStatus`, `ResponseStatusException`): defines routes and builds HTTP responses.
+- **Jakarta Validation** (`@Valid`): runs DTO validation annotations.
+- **Lombok** (`@RequiredArgsConstructor`): constructor injection for `authService`.
+- **Project DTOs / model / service**: request bodies, `LoginResponse`/`ResetTokenResponse`, `User`, and `AuthService` for real logic.
+
+## Fields
+- `authService` (`AuthService`) — does login, registration OTP, and password-reset work.
+
+## Functions
+
+### `public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request)`
 ```java
 @PostMapping("/login")
 public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
@@ -11,13 +36,16 @@ public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
     }
 }
 ```
+- **What it does:** checks email/password via the service and returns a JWT (and user info) on success, or an error JSON with the service's status.
+- **Where it's called:** by Spring MVC on `POST /api/auth/login` (Android `ReClaimApiService` login call).
+- **Why it's written this way:** catching `ResponseStatusException` turns service failures into a consistent `{"error": "..."}` body instead of a raw stack trace.
+- **Step by step:**
+  1. Validate the body as a `LoginRequest`.
+  2. Call `authService.login`.
+  3. On success, return `200` with `LoginResponse`.
+  4. On `ResponseStatusException`, return that status with an `error` map.
 
-What that function does: I check email and password, then return a token or an error body.
-What the function is responsible for: I am POST /api/auth/login.
-Where it works: I am an HTTP endpoint. I call AuthService.login.
-Why I chose to write the code of the function the way its written: I catch ResponseStatusException so the client gets JSON {"error": ...} instead of Spring's default page.
-More: I use @Valid on LoginRequest, ResponseEntity, HttpStatus from the exception, and Map.of for the error body.
-
+### `public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request)`
 ```java
 @PostMapping("/register")
 public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
@@ -33,13 +61,16 @@ public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
     }
 }
 ```
+- **What it does:** creates a user directly (legacy/direct register path), clears the password field before responding, and returns `201`.
+- **Where it's called:** by Spring MVC on `POST /api/auth/register`.
+- **Why it's written this way:** nulling `password` avoids leaking the hash (or any password field) to the client.
+- **Step by step:**
+  1. Validate `RegisterRequest`.
+  2. Call `authService.register`.
+  3. Set `password` to `null` on the saved user.
+  4. Return `201` with the user, or an error map on failure.
 
-What that function does: I create an account and return the user with the password cleared.
-What the function is responsible for: I am POST /api/auth/register.
-Where it works: I am an HTTP endpoint. I call AuthService.register.
-Why I chose to write the code of the function the way its written: I set password to null before the reply so the hash never goes out. 201 marks a new user.
-More: I use HttpStatus.CREATED, User.setPassword, and the same error Map as login.
-
+### `public ResponseEntity<?> sendRegistrationOtp(@Valid @RequestBody SendOtpRequest request)`
 ```java
 @PostMapping("/register/send-otp")
 public ResponseEntity<?> sendRegistrationOtp(@Valid @RequestBody SendOtpRequest request) {
@@ -53,13 +84,15 @@ public ResponseEntity<?> sendRegistrationOtp(@Valid @RequestBody SendOtpRequest 
     }
 }
 ```
+- **What it does:** starts OTP signup by saving pending registration data and emailing a code.
+- **Where it's called:** by Spring MVC on `POST /api/auth/register/send-otp`.
+- **Why it's written this way:** the controller only confirms that a code was sent; it does not return the OTP.
+- **Step by step:**
+  1. Validate `SendOtpRequest`.
+  2. Call `authService.startRegistration`.
+  3. Return `200` with a success message, or an error map.
 
-What that function does: I save signup details and ask the service to email a 6-digit code.
-What the function is responsible for: I am POST /api/auth/register/send-otp.
-Where it works: I am an HTTP endpoint. I call AuthService.startRegistration.
-Why I chose to write the code of the function the way its written: I return a short message, not the code, so the code only goes to email or the log.
-More: I use SendOtpRequest, Map.of, and AuthService.
-
+### `public ResponseEntity<?> verifyRegistrationOtp(@Valid @RequestBody VerifyOtpRequest request)`
 ```java
 @PostMapping("/register/verify-otp")
 public ResponseEntity<?> verifyRegistrationOtp(@Valid @RequestBody VerifyOtpRequest request) {
@@ -72,13 +105,15 @@ public ResponseEntity<?> verifyRegistrationOtp(@Valid @RequestBody VerifyOtpRequ
     }
 }
 ```
+- **What it does:** checks the signup OTP, creates the real user, and returns a login-style response (token + user).
+- **Where it's called:** by Spring MVC on `POST /api/auth/register/verify-otp`.
+- **Why it's written this way:** one endpoint finishes signup and logs the user in by returning the same shape as login.
+- **Step by step:**
+  1. Validate `VerifyOtpRequest`.
+  2. Call `authService.verifyRegistration`.
+  3. Return `200` with that result, or an error map.
 
-What that function does: I check the signup code and return a login token.
-What the function is responsible for: I am POST /api/auth/register/verify-otp.
-Where it works: I am an HTTP endpoint. I call AuthService.verifyRegistration.
-Why I chose to write the code of the function the way its written: I pass the request straight through and reuse the same error mapping as the other auth routes.
-More: I use VerifyOtpRequest and LoginResponse from the service.
-
+### `public ResponseEntity<?> resendRegistrationOtp(@Valid @RequestBody ResendOtpRequest request)`
 ```java
 @PostMapping("/register/resend-otp")
 public ResponseEntity<?> resendRegistrationOtp(@Valid @RequestBody ResendOtpRequest request) {
@@ -92,13 +127,15 @@ public ResponseEntity<?> resendRegistrationOtp(@Valid @RequestBody ResendOtpRequ
     }
 }
 ```
+- **What it does:** emails a new signup OTP for an existing pending registration.
+- **Where it's called:** by Spring MVC on `POST /api/auth/register/resend-otp`.
+- **Why it's written this way:** only the email is needed; the service owns rate limits and expiry rules.
+- **Step by step:**
+  1. Validate `ResendOtpRequest`.
+  2. Call `authService.resendOtp` with the email.
+  3. Return a success message or error map.
 
-What that function does: I send a new signup code to the given email.
-What the function is responsible for: I am POST /api/auth/register/resend-otp.
-Where it works: I am an HTTP endpoint. I call AuthService.resendOtp.
-Why I chose to write the code of the function the way its written: I only pass email because a resend does not need the rest of the signup fields again.
-More: I use ResendOtpRequest.getEmail and Map.of for the message.
-
+### `public ResponseEntity<?> sendPasswordResetOtp(@Valid @RequestBody ForgotPasswordRequest request)`
 ```java
 @PostMapping("/forgot-password/send-otp")
 public ResponseEntity<?> sendPasswordResetOtp(
@@ -113,13 +150,15 @@ public ResponseEntity<?> sendPasswordResetOtp(
     }
 }
 ```
+- **What it does:** starts forgot-password by emailing a reset OTP (service returns 404 if the email is unknown).
+- **Where it's called:** by Spring MVC on `POST /api/auth/forgot-password/send-otp`.
+- **Why it's written this way:** keeps the HTTP message user-friendly while the service decides whether the email exists.
+- **Step by step:**
+  1. Validate `ForgotPasswordRequest`.
+  2. Call `authService.startPasswordReset`.
+  3. Return success or error JSON.
 
-What that function does: I email a reset code, or return the service error if the email is unknown.
-What the function is responsible for: I am POST /api/auth/forgot-password/send-otp.
-Where it works: I am an HTTP endpoint. I call AuthService.startPasswordReset.
-Why I chose to write the code of the function the way its written: I pass only email. The service returns 404 for an unknown address.
-More: I use ForgotPasswordRequest.getEmail and Map.of.
-
+### `public ResponseEntity<?> verifyPasswordResetOtp(@Valid @RequestBody VerifyOtpRequest request)`
 ```java
 @PostMapping("/forgot-password/verify-otp")
 public ResponseEntity<?> verifyPasswordResetOtp(
@@ -134,13 +173,15 @@ public ResponseEntity<?> verifyPasswordResetOtp(
     }
 }
 ```
+- **What it does:** checks the reset OTP and returns a short-lived `resetToken` the app must send when setting the new password.
+- **Where it's called:** by Spring MVC on `POST /api/auth/forgot-password/verify-otp`.
+- **Why it's written this way:** wrapping the string in `ResetTokenResponse` gives a clean JSON field instead of a bare string.
+- **Step by step:**
+  1. Validate `VerifyOtpRequest`.
+  2. Call `authService.verifyPasswordResetOtp`.
+  3. Return `200` with `ResetTokenResponse`, or an error map.
 
-What that function does: I check the reset code and return a reset token.
-What the function is responsible for: I am POST /api/auth/forgot-password/verify-otp.
-Where it works: I am an HTTP endpoint. I call AuthService.verifyPasswordResetOtp.
-Why I chose to write the code of the function the way its written: I wrap the string in ResetTokenResponse so the client gets JSON, not a raw string.
-More: I reuse VerifyOtpRequest and new ResetTokenResponse(resetToken).
-
+### `public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request)`
 ```java
 @PostMapping("/forgot-password/reset")
 public ResponseEntity<?> resetPassword(
@@ -155,9 +196,10 @@ public ResponseEntity<?> resetPassword(
     }
 }
 ```
-
-What that function does: I set the new password after the reset token is checked.
-What the function is responsible for: I am POST /api/auth/forgot-password/reset.
-Where it works: I am an HTTP endpoint. I call AuthService.resetPassword.
-Why I chose to write the code of the function the way its written: I return a message on success and the same error Map on failure as the other auth routes.
-More: I use ResetPasswordRequest, AuthService.resetPassword, and Map.of.
+- **What it does:** sets a new password after the reset token is checked by the service.
+- **Where it's called:** by Spring MVC on `POST /api/auth/forgot-password/reset`.
+- **Why it's written this way:** the controller stays thin; all token and hashing rules live in `AuthService`.
+- **Step by step:**
+  1. Validate `ResetPasswordRequest`.
+  2. Call `authService.resetPassword`.
+  3. Return a success message or error map.

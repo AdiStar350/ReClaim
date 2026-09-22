@@ -1,35 +1,53 @@
+# MyReportAdapter.java
+
+## Overview
+This is a **RecyclerView Adapter** for the user’s own reports on the “My items” screen (see `docs/GLOSSARY.md`). Each row shows title, category, location, photo, and Lost/Found chip, plus Edit and Delete buttons. The card itself is not clickable — only those buttons fire actions.
+
+## Concepts used here
+- **RecyclerView / Adapter / ViewHolder** — feeds and recycles report rows. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `ItemMyReportBinding` for `item_my_report.xml`. See `docs/GLOSSARY.md`.
+- **Glide** — loads thumbnails. See `docs/GLOSSARY.md`.
+- **Interface** — `Listener` with `onEdit` / `onDelete` so the Fragment handles actions.
+
+## Libraries and imports
+- **AndroidX**: RecyclerView, LayoutInflater, Context, annotations.
+- **Glide**: image load with cross-fade.
+- **Project**: `Item` model, `ItemMyReportBinding`, type chip colors/strings.
+
+## Fields
+- `private final List<Item> items` — reports currently shown.
+- `private final Listener listener` — edit/delete callbacks (`MyItemsFragment` implements this).
+
+## Functions
+
+### `public interface Listener` — `onEdit` / `onDelete`
 ```java
-void onEdit(@NonNull Item item);
+public interface Listener {
+    void onEdit(@NonNull Item item);
+
+    void onDelete(@NonNull Item item);
+}
 ```
+- **What it does:** Declares the two actions the host must handle for a report row.
+- **Where it's called:** Implemented by `MyItemsFragment`; invoked from button click listeners in `bind`.
+- **Why it's written this way:** The Adapter only displays; delete/edit logic (dialogs, API) stays in the Fragment.
+- **Step by step:**
+  1. `onEdit` receives the item to open for editing.
+  2. `onDelete` receives the item to delete.
 
-What that function does: I am the edit-button callback the host must implement.
-What the function is responsible for: I tell the screen which report to edit.
-Where it works: ViewHolder.bind calls me. MyItemsFragment implements Listener.
-Why I chose to write the code of the function the way its written: Edit stays a button, not a card tap.
-More: I take a non-null Item.
-
-```java
-void onDelete(@NonNull Item item);
-```
-
-What that function does: I am the delete-button callback the host must implement.
-What the function is responsible for: I tell the screen which report to delete.
-Where it works: ViewHolder.bind calls me. MyItemsFragment implements Listener.
-Why I chose to write the code of the function the way its written: Delete stays a button so a stray tap does not remove a report.
-More: I take a non-null Item.
-
+### `public MyReportAdapter(Listener listener)`
 ```java
 public MyReportAdapter(@NonNull Listener listener) {
     this.listener = listener;
 }
 ```
+- **What it does:** Stores the listener; list starts empty.
+- **Where it's called:** `MyItemsFragment` constructs it with `this` (the Fragment implements `Listener`).
+- **Why it's written this way:** Same pattern as other adapters — listener required at construction.
+- **Step by step:**
+  1. Assign `listener`.
 
-What that function does: I store the edit/delete listener.
-What the function is responsible for: I am the adapter constructor.
-Where it works: I am constructed in MyItemsFragment.
-Why I chose to write the code of the function the way its written: I start with an empty list and fill it with updateItems.
-More: I keep items as an ArrayList.
-
+### `public void updateItems(List<Item> newItems)`
 ```java
 public void updateItems(@NonNull List<Item> newItems) {
     items.clear();
@@ -37,13 +55,13 @@ public void updateItems(@NonNull List<Item> newItems) {
     notifyDataSetChanged();
 }
 ```
+- **What it does:** Replaces the list and refreshes the RecyclerView.
+- **Where it's called:** From `MyItemsFragment` after fetching / mutating the user’s reports.
+- **Why it's written this way:** Full refresh is simple for a personal list that is not huge.
+- **Step by step:**
+  1. Clear, addAll, `notifyDataSetChanged()`.
 
-What that function does: I replace the list and redraw every row.
-What the function is responsible for: I am the bulk refresh after my-items loads.
-Where it works: I am called by MyItemsFragment.
-Why I chose to write the code of the function the way its written: I clear and refill so the same adapter stays on the RecyclerView.
-More: I use notifyDataSetChanged.
-
+### `public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType)`
 ```java
 @NonNull
 @Override
@@ -53,52 +71,33 @@ public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
     return new ViewHolder(binding);
 }
 ```
+- **What it does:** Inflates one “my report” row and wraps it in a ViewHolder.
+- **Where it's called:** By RecyclerView when it needs a new row.
+- **Why it's written this way:** ViewBinding keeps view access typed.
+- **Step by step:**
+  1. Inflate `ItemMyReportBinding`.
+  2. Return `new ViewHolder(binding)`.
 
-What that function does: I inflate item_my_report for a new row.
-What the function is responsible for: I am RecyclerView's create path.
-Where it works: RecyclerView calls me. The layout is item_my_report.xml.
-Why I chose to write the code of the function the way its written: View Binding keeps ids typed.
-More: I use ItemMyReportBinding.inflate.
-
+### `public void onBindViewHolder(ViewHolder holder, int position)` / `getItemCount()`
 ```java
 @Override
 public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
     holder.bind(items.get(position));
 }
-```
 
-What that function does: I bind one report to a row.
-What the function is responsible for: I am RecyclerView's bind path.
-Where it works: RecyclerView calls me for each visible row.
-Why I chose to write the code of the function the way its written: The holder owns the field mapping.
-More: I call ViewHolder.bind.
-
-```java
 @Override
 public int getItemCount() {
     return items.size();
 }
 ```
+- **What it does:** Binds the item at `position`; reports how many rows exist.
+- **Where it's called:** By RecyclerView during scrolling and updates.
+- **Why it's written this way:** Standard Adapter split — count vs bind.
+- **Step by step:**
+  1. `onBindViewHolder` calls `holder.bind(items.get(position))`.
+  2. `getItemCount` returns `items.size()`.
 
-What that function does: I return how many of my reports I hold.
-What the function is responsible for: I tell RecyclerView the list size.
-Where it works: RecyclerView calls me.
-Why I chose to write the code of the function the way its written: Size matches the in-memory list.
-More: I return items.size().
-
-```java
-ViewHolder(@NonNull ItemMyReportBinding binding) {
-    super(binding.getRoot());
-    this.binding = binding;
-}
-```
-
-What that function does: I store the row binding.
-What the function is responsible for: I am the row constructor.
-Where it works: I am created in onCreateViewHolder.
-Why I chose to write the code of the function the way its written: super(binding.getRoot()) is what RecyclerView needs.
-More: I keep ItemMyReportBinding.
-
+### `ViewHolder` / `void bind(Item item)`
 ```java
 void bind(@NonNull Item item) {
     Context context = binding.getRoot().getContext();
@@ -122,21 +121,20 @@ void bind(@NonNull Item item) {
         binding.chipType.setText(type.isEmpty() ? "" : context.getString(R.string.type_found));
         binding.chipType.setChipBackgroundColorResource(R.color.type_found);
     }
-    // White text on the dark chip
     binding.chipType.setTextColor(context.getColor(R.color.text_on_accent));
 
-    // Only the buttons do something. The card
-    // itself is not clickable, so a stray tap
-    // does not open the edit form.
     binding.btnEdit.setOnClickListener(v -> listener.onEdit(item));
     binding.btnDelete.setOnClickListener(v -> listener.onDelete(item));
     binding.getRoot().setOnClickListener(null);
     binding.getRoot().setClickable(false);
 }
 ```
-
-What that function does: I fill title, category, place, photo, type chip, and the edit/delete buttons.
-What the function is responsible for: I am one of the user's own report rows.
-Where it works: I am called from onBindViewHolder. Buttons go to MyItemsFragment.
-Why I chose to write the code of the function the way its written: I turn off the card click so a stray tap does not open edit.
-More: I use Glide, DrawableTransitionOptions.withCrossFade(200), and Listener.onEdit/onDelete.
+- **What it does:** Fills texts, image, and type chip; wires Edit/Delete; clears any root click so the card is not tappable.
+- **Where it's called:** From `onBindViewHolder`.
+- **Why it's written this way:** Comments in the Java note that only buttons should act — a stray card tap must not open edit. Disabling root click avoids that.
+- **Step by step:**
+  1. Set title, category, location.
+  2. Load thumbnail with Glide.
+  3. Style Lost/Found chip.
+  4. Hook edit/delete to `listener`.
+  5. Clear root click listener and set `clickable` false.

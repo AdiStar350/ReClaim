@@ -1,36 +1,32 @@
-```java
-public ClaimRequest(String itemId, String validationAnswer) {
-    this.itemId = itemId;
-    this.validationAnswer = validationAnswer;
-}
-```
+# ClaimRequest.java
 
-What that function does: I store the item id and the answer to the check question.
-What the function is responsible for: I am the JSON body for POST /api/claims.
-Where it works: I am built in ItemDetailsActivity and passed to ReClaimApiService.submitClaim.
-Why I chose to write the code of the function the way its written: I kept the two fields the claim route needs.
-More: I use Gson @SerializedName on itemId and validationAnswer.
+## Overview
+This file is a **DTO (Data Transfer Object)** that carries a claim on an item. A DTO
+holds one request body and fixes its JSON shape; see DTO and Gson in
+`docs/GLOSSARY.md`. `ClaimRequest` is the body for `POST api/claims`: which item is
+being claimed and the answer to the owner's verification question (the check that helps
+prove the claimant really owns the item).
 
-```java
-public String getItemId() {
-    return itemId;
-}
-```
+## Concepts used here
+- **DTO.** A carrier object for one request body; see `docs/GLOSSARY.md`.
+- **Gson `@SerializedName`.** Maps each field to its JSON key; see `docs/GLOSSARY.md`.
+- **Verification answer.** The claimant's reply to the item's check question, used by
+  the owner to judge the claim.
+- **Immutable fields (`final`).** Both values are set once in the constructor.
 
-What that function does: I return the item id I was built with.
-What the function is responsible for: I let callers read the item id.
-Where it works: I did not find an app caller of this getter. Gson reads the field.
-Why I chose to write the code of the function the way its written: I kept a simple getter next to the field.
-More: I return the final itemId field.
+## Libraries and imports
+- **Gson (`com.google.gson.annotations.SerializedName`).** Sets the JSON keys `itemId`
+  and `validationAnswer`.
 
-```java
-public String getValidationAnswer() {
-    return validationAnswer;
-}
-```
+## Fields
+- `@SerializedName("itemId") private final String itemId` — the id of the item being
+  claimed.
+- `@SerializedName("validationAnswer") private final String validationAnswer` — the
+  claimant's answer to the item's verification question.
 
-What that function does: I return the check-question answer I was built with.
-What the function is responsible for: I let callers read the answer.
-Where it works: I did not find an app caller of this getter. Gson reads the field.
-Why I chose to write the code of the function the way its written: I kept a simple getter next to the field.
-More: I return the final validationAnswer field.
+Set by the constructor `ClaimRequest(String itemId, String validationAnswer)`. Plain
+getters (`getItemId`, `getValidationAnswer`) return each field with no logic.
+
+## Where it's used
+Built in `ItemDetailsActivity` when the user submits a claim, and passed to
+`ReClaimApiService.submitClaim`.

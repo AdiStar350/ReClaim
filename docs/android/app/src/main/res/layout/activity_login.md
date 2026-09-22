@@ -1,176 +1,172 @@
+# activity_login.xml
+
+## Overview
+This layout is the login screen: a dark "hero" banner (logo, app name, subtitle) on
+top and a light form sheet with email/password fields below. It is inflated by
+`LoginActivity` through the generated binding `ActivityLoginBinding`
+(`binding = ActivityLoginBinding.inflate(...)` then `setContentView(binding.getRoot())`).
+
+Key idea: an **Activity** is one full screen, and the **layout XML** describes what
+that screen looks like. See `docs/GLOSSARY.md`.
+
+## Concepts used here
+- **LinearLayout** — a container that stacks its children in one direction (here,
+  vertically). See `docs/GLOSSARY.md`.
+- **NestedScrollView** — a scrolling container so the form still fits on small
+  screens. See `docs/GLOSSARY.md`.
+- **TextInputLayout + TextInputEditText** — a Material text field: the outer layout
+  draws the hint, box, and error text; the inner edit text is where you type. See
+  `docs/GLOSSARY.md`.
+- **Material Button** — the styled buttons (login, forgot password, register). See
+  `docs/GLOSSARY.md`.
+- **ViewBinding** — the generated `ActivityLoginBinding` gives typed access to the
+  views by id, so no `findViewById`. See `docs/GLOSSARY.md`.
+
+## Screen structure
+The whole screen is a vertical `LinearLayout`. It has two parts stacked top to bottom:
+
+```
+LinearLayout (root, vertical, dark background)
+├── LinearLayout  (hero: logo + title + subtitle, fixed height)
+└── NestedScrollView  (light rounded form sheet, fills the rest)
+    └── LinearLayout (vertical: title, email, password, buttons, "or", register row)
+```
+
+The root is a `LinearLayout` because the design is just two blocks in a column: a
+fixed-height hero and a form that takes whatever height is left. That is simpler than
+a `ConstraintLayout` here.
+
+## Components
+
+### Root and hero banner
 ```xml
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/brand_deep"
     android:fitsSystemWindows="true"
     android:orientation="vertical">
-```
 
-What that function does: I am the login screen: dark hero on top, form below.
-What the function is responsible for: I am the root of activity_login.
-Where it works: LoginActivity inflates me through ActivityLoginBinding.
-Why I chose to write the code of the function the way its written: fitsSystemWindows keeps the hero off the status bar. brand_deep is the auth look.
-More: I use a vertical LinearLayout.
-
-```xml
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="@dimen/auth_hero_height"
         android:gravity="center"
-        android:orientation="vertical"
-        android:paddingTop="@dimen/space_24"
-        android:paddingBottom="@dimen/space_16">
+        android:orientation="vertical">
 
-        <ImageView
-            android:id="@+id/image_logo"
-            android:layout_width="@dimen/space_72"
-            android:layout_height="@dimen/space_72"
-            android:contentDescription="@string/app_name"
-            android:scaleType="centerInside"
-            android:src="@mipmap/ic_launcher" />
-
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/text_login_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_12"
-            android:text="@string/app_name"
-            android:textAppearance="@style/TextAppearance.ReClaim.AuthHero" />
-
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/text_login_subtitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_6"
-            android:text="@string/dashboard_subtitle"
-            android:textAppearance="@style/TextAppearance.ReClaim.HeroSubtitle" />
+        <ImageView android:id="@+id/image_logo" ... android:src="@mipmap/ic_launcher" />
+        <com.google.android.material.textview.MaterialTextView android:id="@+id/text_login_title" ... />
+        <com.google.android.material.textview.MaterialTextView android:id="@+id/text_login_subtitle" ... />
     </LinearLayout>
 ```
+- **What it shows:** the dark brand area at the top with the app logo, the app name,
+  and a short subtitle.
+- **Why it's set up this way:** `fitsSystemWindows="true"` keeps the content below the
+  status bar so the clock/battery don't overlap the logo. The hero has a fixed height
+  (`auth_hero_height`) so login and register look the same. Centering (`gravity="center"`)
+  stacks the three items neatly in the middle.
+- **How the code uses it:** these ids (`image_logo`, `text_login_title`,
+  `text_login_subtitle`) are static; `LoginActivity` does not read or change them.
 
-What that function does: I show the logo, app name, and a short subtitle.
-What the function is responsible for: I am the login hero.
-Where it works: LoginActivity shows me at the top of activity_login.
-Why I chose to write the code of the function the way its written: A fixed hero height matches register. The launcher icon is enough branding.
-More: I use AuthHero and HeroSubtitle text styles.
-
+### Form sheet container
 ```xml
-    <androidx.core.widget.NestedScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="@drawable/bg_auth_form"
-        android:fillViewport="true">
+<androidx.core.widget.NestedScrollView
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1"
+    android:background="@drawable/bg_auth_form"
+    android:fillViewport="true">
 ```
+- **What it shows:** the light, rounded sheet that holds the form and scrolls if the
+  keyboard covers part of it.
+- **Why it's set up this way:** `height="0dp"` plus `layout_weight="1"` means "take all
+  the space left under the hero." `fillViewport="true"` lets the inner content stretch
+  to fill the view even when it is short. `bg_auth_form` gives the rounded top edge.
+- **How the code uses it:** it is a passive container; the Activity never touches it.
 
-What that function does: I hold the light form sheet and let it scroll on small screens.
-What the function is responsible for: I am the form container.
-Where it works: LoginActivity's fields sit inside me.
-Why I chose to write the code of the function the way its written: layout_weight 1 fills the rest under the hero. bg_auth_form rounds the top.
-More: I use NestedScrollView.
-
+### Email field
 ```xml
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/input_layout_email"
-                style="@style/Widget.ReClaim.TextInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_24"
-                android:hint="@string/hint_email"
-                app:startIconDrawable="@android:drawable/ic_dialog_email">
+<com.google.android.material.textfield.TextInputLayout
+    android:id="@+id/input_layout_email"
+    style="@style/Widget.ReClaim.TextInput"
+    android:hint="@string/hint_email"
+    app:startIconDrawable="@android:drawable/ic_dialog_email">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edit_email"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textEmailAddress" />
-            </com.google.android.material.textfield.TextInputLayout>
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/edit_email"
+        android:inputType="textEmailAddress" />
+</com.google.android.material.textfield.TextInputLayout>
 ```
+- **What it shows:** the email input, with an envelope icon and the hint "Email".
+- **Why it's set up this way:** the `TextInputLayout` wraps the edit text so it can draw
+  the floating hint and show a red error message under the box; that is why error text
+  is set on the layout, not the edit text. `inputType="textEmailAddress"` brings up the
+  email keyboard (with the `@` key).
+- **How the code uses it:** `LoginActivity` reads `binding.editEmail.getText()` in
+  `attemptLogin()`, and shows problems with `binding.inputLayoutEmail.setError(...)`.
 
-What that function does: I am the email field.
-What the function is responsible for: I take the login email. Errors go on the layout.
-Where it works: LoginActivity.attemptLogin reads edit_email.
-Why I chose to write the code of the function the way its written: inputType email brings the email keyboard.
-More: I use Widget.ReClaim.TextInput.
-
+### Password field
 ```xml
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/input_layout_password"
-                style="@style/Widget.ReClaim.TextInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_16"
-                android:hint="@string/hint_password"
-                app:endIconMode="password_toggle">
+<com.google.android.material.textfield.TextInputLayout
+    android:id="@+id/input_layout_password"
+    style="@style/Widget.ReClaim.TextInput"
+    android:hint="@string/hint_password"
+    app:endIconMode="password_toggle">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edit_password"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textPassword" />
-            </com.google.android.material.textfield.TextInputLayout>
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/edit_password"
+        android:inputType="textPassword" />
+</com.google.android.material.textfield.TextInputLayout>
 ```
+- **What it shows:** the password input with a "show/hide" eye icon on the right.
+- **Why it's set up this way:** `inputType="textPassword"` masks the characters, and
+  `endIconMode="password_toggle"` adds the eye so the user can check what they typed.
+- **How the code uses it:** `LoginActivity` reads `binding.editPassword.getText()` and
+  reports errors via `binding.inputLayoutPassword.setError(...)`.
 
-What that function does: I am the password field with a show/hide eye.
-What the function is responsible for: I take the login password.
-Where it works: LoginActivity.attemptLogin reads edit_password.
-Why I chose to write the code of the function the way its written: password_toggle lets the user check what they typed.
-More: I use endIconMode password_toggle.
-
+### Forgot-password and Login buttons
 ```xml
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_forgot_password"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="end"
-                android:text="@string/btn_forgot_password"
-                android:textColor="@color/brand_accent" />
+<com.google.android.material.button.MaterialButton
+    android:id="@+id/btn_forgot_password"
+    style="@style/Widget.Material3.Button.TextButton"
+    android:layout_gravity="end"
+    android:text="@string/btn_forgot_password" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_login"
-                style="@style/Widget.ReClaim.Button.Primary"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/button_height"
-                android:layout_marginTop="@dimen/space_8"
-                android:text="@string/btn_login" />
+<com.google.android.material.button.MaterialButton
+    android:id="@+id/btn_login"
+    style="@style/Widget.ReClaim.Button.Primary"
+    android:layout_width="match_parent"
+    android:text="@string/btn_login" />
 ```
+- **What it shows:** a small "Forgot password?" text button aligned to the right, then
+  the full-width primary "Log in" button.
+- **Why it's set up this way:** the forgot-password action is secondary, so it uses a
+  quiet text-button style and sits to the side (`layout_gravity="end"`). The main login
+  action uses the filled primary style and full width so it is the obvious next tap.
+- **How the code uses it:** `binding.btnLogin` runs `attemptLogin()`;
+  `binding.btnForgotPassword` opens the forgot-password dialog (see
+  `dialog_forgot_password.xml`). Both are disabled while a login request is in flight.
 
-What that function does: I am forgot-password and the main login button.
-What the function is responsible for: I start reset or sign-in.
-Where it works: LoginActivity.setupClickListeners wires both.
-Why I chose to write the code of the function the way its written: Forgot sits as a text button on the right so it stays secondary.
-More: I use Widget.ReClaim.Button.Primary for login.
-
+### "Register instead" row
 ```xml
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_12"
-                android:gravity="center"
-                android:orientation="horizontal">
+<LinearLayout
+    android:orientation="horizontal"
+    android:gravity="center">
 
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/text_no_account"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/login_no_account"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/text_no_account"
+        android:text="@string/login_no_account" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_go_register"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/btn_go_register"
-                    android:textColor="@color/brand_accent" />
-            </LinearLayout>
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_go_register"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:text="@string/btn_go_register" />
+</LinearLayout>
 ```
-
-What that function does: I offer a path to sign-up.
-What the function is responsible for: I am the "no account? register" row.
-Where it works: LoginActivity starts RegisterActivity from btn_go_register.
-Why I chose to write the code of the function the way its written: A text button next to the label is quieter than a second primary button.
-More: I use btn_go_register.
+- **What it shows:** a centered row with the text "Don't have an account?" next to a
+  "Register" text button. (Just above it, an "or" divider row uses two thin `View`
+  lines with a label in the middle.)
+- **Why it's set up this way:** a horizontal `LinearLayout` keeps the label and button
+  on one line; a text button (not a second filled button) keeps this quieter than the
+  primary "Log in" button.
+- **How the code uses it:** `binding.btnGoRegister` opens `RegisterActivity`. The label
+  `text_no_account` is static.

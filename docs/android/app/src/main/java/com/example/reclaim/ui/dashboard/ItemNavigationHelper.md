@@ -1,14 +1,19 @@
-```java
-private ItemNavigationHelper() {
-}
-```
+# ItemNavigationHelper.java
 
-What that function does: I stop anyone from making an instance of this helper.
-What the function is responsible for: I keep details navigation as a static method.
-Where it works: I am not called. Java uses me when someone tries `new ItemNavigationHelper()`.
-Why I chose to write the code of the function the way its written: I made the constructor private so screens call createDetailsIntent.
-More: I use a private constructor. The class is final.
+## Overview
+This is a small **helper class** — a class of static methods with no state, grouped for reuse (see `docs/GLOSSARY.md`). Its one job is to build the `Intent` that opens `ItemDetailsActivity` for a given item, copying all of the item's fields into the intent as extras. Several screens (home, search, match lists) reuse it so the details screen always opens the same way.
 
+## Concepts used here
+- **Helper class** — static methods, private constructor, no instances. See `docs/GLOSSARY.md`.
+- **Intent + extras** — a message that starts another Activity and carries data as key/value "extras". See `docs/GLOSSARY.md`.
+
+## Libraries and imports
+- **Android framework**: `Context` is needed to build an `Intent`; `Intent` is the message that opens the details screen.
+- **Project classes**: `Item` (the data object being opened) and `ItemDetailsActivity` (the target screen, whose `EXTRA_*` keys are used).
+
+## Functions
+
+### `public static Intent createDetailsIntent(Context context, Item item)`
 ```java
 public static Intent createDetailsIntent(Context context, Item item) {
     Intent intent = new Intent(context, ItemDetailsActivity.class);
@@ -32,9 +37,10 @@ public static Intent createDetailsIntent(Context context, Item item) {
     return intent;
 }
 ```
-
-What that function does: I build an Intent that opens item details with the item fields as extras.
-What the function is responsible for: I am the shared way to open ItemDetailsActivity.
-Where it works: I am called by HomeFragment and SearchFragment.
-Why I chose to write the code of the function the way its written: Putting extras here keeps the same keys in one place. Details can show immediately, then refresh from the server.
-More: I use ItemDetailsActivity EXTRA_* keys and Item getters.
+- **What it does:** Creates and returns an `Intent` aimed at `ItemDetailsActivity`, with every field of the `item` attached as an extra so the details screen can show the item right away.
+- **Where it's called:** `HomeFragment` (nearby preview taps, targeted-found card, and each match row) and `SearchFragment` (list taps and map marker taps). Each caller passes the intent to `startActivity(...)`.
+- **Why it's written this way:** Centralizing the intent-building means the extras are always packed the same way in one place, so the details screen never receives a partially filled intent. Passing the fields as extras lets the details screen render instantly before it re-fetches the latest copy from the server.
+- **Step by step:**
+  1. Create an `Intent` from the given `context` to `ItemDetailsActivity`.
+  2. Put each item field under the matching `EXTRA_*` key (id, title, description, location, status, category, image URL, type, verification question, owner id, reported-at, owner name, owner photo, and the "already interacted" flag).
+  3. Return the ready-to-start intent.

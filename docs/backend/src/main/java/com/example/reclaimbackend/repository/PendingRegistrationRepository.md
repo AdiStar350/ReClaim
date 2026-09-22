@@ -1,19 +1,35 @@
+# PendingRegistrationRepository.java
+
+## Overview
+This file is a **Repository**: an interface that reads and writes one type of data in the database — here, `PendingRegistration` records (signups waiting for their email code) (see `docs/GLOSSARY.md`). Spring Data generates the queries from the method names, and inherited `MongoRepository` methods (`save`, `delete`, ...) handle the rest.
+
+## Concepts used here
+- **Repository** — an interface Spring turns into database code for one model; see `docs/GLOSSARY.md`.
+- **Spring Data derived query** — queries generated from method names.
+- **`Optional`** — a container that holds a value or is empty, used instead of `null`.
+
+## Libraries and imports
+- **Spring Data MongoDB** (`MongoRepository`): extending `MongoRepository<PendingRegistration, String>` provides `save`, `delete`, `findById`, etc. `AuthService` uses `save` and `delete` from here alongside the methods below. (Like `PasswordResetTokenRepository`, it isn't annotated `@Repository`; extending `MongoRepository` is enough.)
+- **Project class** (`com.example.reclaimbackend.model.PendingRegistration`): the model stored.
+- **Java standard** (`java.util.Optional`): return type for a lookup that may find nothing.
+
+## Functions
+> Declarations only; Spring Data generates each query from the method name.
+
+### `Optional<PendingRegistration> findByEmail(String email)`
 ```java
 Optional<PendingRegistration> findByEmail(String email);
 ```
+- **What it does:** finds the pending signup for an email, or empty if there isn't one.
+- **Where it's called:** `AuthService.resendOtp` and `AuthService.verifyRegistration`.
+- **Why it's written this way:** `Optional` makes "no pending signup" an explicit case (the service returns a `400`).
+- **Step by step:** Spring matches on `email` and returns the record wrapped in `Optional`, or empty.
 
-What that function does: I look up the pending signup for one email.
-What the function is responsible for: I load the row AuthService needs to resend or check a code.
-Where it works: I am called by AuthService.resendOtp and AuthService.verifyRegistration.
-Why I chose to write the code of the function the way its written: I return Optional so a missing pending signup is empty, not null.
-More: I rely on Spring Data, which builds findByEmail on the unique email index.
-
+### `void deleteByEmail(String email)`
 ```java
 void deleteByEmail(String email);
 ```
-
-What that function does: I delete the pending signup for one email.
-What the function is responsible for: I clear an old pending row before a new code is stored.
-Where it works: I am called by AuthService.startRegistration.
-Why I chose to write the code of the function the way its written: I wrote it this way because email is unique, so delete by email is enough.
-More: I rely on Spring Data, which turns this into a Mongo delete. AuthService.verifyRegistration also deletes by document through delete(pending) from MongoRepository.
+- **What it does:** deletes any pending signup for an email.
+- **Where it's called:** `AuthService.startRegistration`, to clear a leftover pending record before creating a fresh one.
+- **Why it's written this way:** a new signup attempt should replace any old, unverified one, keeping one pending record per email (also enforced by the unique index).
+- **Step by step:** Spring builds a delete query on `email` and removes the matching document(s).

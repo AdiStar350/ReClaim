@@ -1,35 +1,54 @@
+# PendingClaimAdapter.java
+
+## Overview
+This is a **RecyclerView Adapter** for claims waiting on the item owner’s Approve/Reject decision (see `docs/GLOSSARY.md`). Each row shows the report title, claimant name, their validation answer, a thumbnail, and the two review buttons. Used by `PendingClaimsActivity` and `PendingClaimsSheet`.
+
+## Concepts used here
+- **RecyclerView / Adapter / ViewHolder** — list of pending claim cards. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `ItemPendingClaimBinding`. See `docs/GLOSSARY.md`.
+- **Glide** — loads the report thumbnail. See `docs/GLOSSARY.md`.
+- **DTO** — `PendingClaimResponse` is the API-shaped claim waiting for review. See `docs/GLOSSARY.md`.
+
+## Libraries and imports
+- **AndroidX**: RecyclerView, LayoutInflater, TextUtils, annotations.
+- **Glide**: thumbnail loading.
+- **Project**: `PendingClaimResponse`, `ItemPendingClaimBinding`, placeholder strings.
+
+## Fields
+- `private final List<PendingClaimResponse> claims` — current pending claims.
+- `private final ReviewListener listener` — approve/reject callbacks.
+- `private String busyClaimId` — when non-null, Approve/Reject buttons are disabled on every row (a review request is in flight). Note: the field is stored but the bind logic only checks whether it is null, not whether it matches a specific claim.
+
+## Functions
+
+### `public interface ReviewListener` — `onApprove` / `onReject`
 ```java
-void onApprove(PendingClaimResponse claim);
+public interface ReviewListener {
+    void onApprove(PendingClaimResponse claim);
+
+    void onReject(PendingClaimResponse claim);
+}
 ```
+- **What it does:** Declares the two review actions the host must implement.
+- **Where it's called:** Implemented anonymously in `PendingClaimsActivity` and `PendingClaimsSheet`; invoked from button listeners in `bind`.
+- **Why it's written this way:** Network/review logic stays in the Activity/Sheet, not in the Adapter.
+- **Step by step:**
+  1. Host implements both methods.
+  2. Buttons call the matching method with that row’s claim.
 
-What that function does: I am the approve callback the host must implement.
-What the function is responsible for: I tell the screen which claim to approve.
-Where it works: ViewHolder.bind calls me. PendingClaimsActivity and PendingClaimsSheet implement me.
-Why I chose to write the code of the function the way its written: An interface keeps the adapter free of API calls.
-More: I take PendingClaimResponse.
-
-```java
-void onReject(PendingClaimResponse claim);
-```
-
-What that function does: I am the reject callback the host must implement.
-What the function is responsible for: I tell the screen which claim to reject.
-Where it works: ViewHolder.bind calls me. PendingClaimsActivity and PendingClaimsSheet implement me.
-Why I chose to write the code of the function the way its written: Approve and reject stay two methods so the host can confirm reject separately.
-More: I take PendingClaimResponse.
-
+### `public PendingClaimAdapter(ReviewListener listener)`
 ```java
 public PendingClaimAdapter(ReviewListener listener) {
     this.listener = listener;
 }
 ```
+- **What it does:** Stores the review listener.
+- **Where it's called:** `PendingClaimsActivity` and `PendingClaimsSheet` constructors/setup.
+- **Why it's written this way:** Listener is required for the buttons to do anything.
+- **Step by step:**
+  1. Assign `listener`.
 
-What that function does: I store the review listener.
-What the function is responsible for: I am the adapter constructor.
-Where it works: I am constructed in PendingClaimsActivity and PendingClaimsSheet.
-Why I chose to write the code of the function the way its written: I start with an empty list and fill it later with updateClaims.
-More: I keep claims as an ArrayList.
-
+### `public void updateClaims(List<PendingClaimResponse> newClaims)`
 ```java
 public void updateClaims(List<PendingClaimResponse> newClaims) {
     claims.clear();
@@ -39,26 +58,29 @@ public void updateClaims(List<PendingClaimResponse> newClaims) {
     notifyDataSetChanged();
 }
 ```
+- **What it does:** Replaces the list (null becomes empty) and redraws.
+- **Where it's called:** From the pending-claims Activity/Sheet after loading claims from the API.
+- **Why it's written this way:** Null-safe so a failed/empty response does not crash.
+- **Step by step:**
+  1. Clear `claims`.
+  2. If `newClaims` is non-null, add them.
+  3. `notifyDataSetChanged()`.
 
-What that function does: I replace the list and redraw every row.
-What the function is responsible for: I am the bulk refresh after a fetch.
-Where it works: I am called by PendingClaimsActivity and PendingClaimsSheet.
-Why I chose to write the code of the function the way its written: A null list becomes empty so the UI does not crash.
-More: I use notifyDataSetChanged.
-
+### `public List<PendingClaimResponse> getClaims()`
 ```java
 @NonNull
 public List<PendingClaimResponse> getClaims() {
     return Collections.unmodifiableList(new ArrayList<>(claims));
 }
 ```
+- **What it does:** Returns a read-only copy of the current claims.
+- **Where it's called:** Grep shows no external callers in Java beyond the class itself being used; hosts may rely on their own lists. The method exists on the Adapter for safe read access without mutating internals.
+- **Why it's written this way:** Unmodifiable copy prevents outside code from changing the Adapter’s list by accident.
+- **Step by step:**
+  1. Copy `claims` into a new list.
+  2. Wrap with `Collections.unmodifiableList` and return.
 
-What that function does: I return a copy of the current claims that cannot be edited.
-What the function is responsible for: I let the host read remaining claims after a review.
-Where it works: I am called by PendingClaimsSheet when reporting remaining claims.
-Why I chose to write the code of the function the way its written: An unmodifiable copy stops the host from changing my list behind my back.
-More: I use Collections.unmodifiableList.
-
+### `public void setBusyClaimId(String claimId)`
 ```java
 public void setBusyClaimId(@Nullable String claimId) {
     this.busyClaimId = claimId;
@@ -67,13 +89,14 @@ public void setBusyClaimId(@Nullable String claimId) {
     }
 }
 ```
+- **What it does:** Stores a “busy” claim id and rebinds all rows so buttons enable/disable.
+- **Where it's called:** From `PendingClaimsActivity` / `PendingClaimsSheet` around approve/reject network calls.
+- **Why it's written this way:** Disabling all buttons while one review is in flight stops double-taps; rebinding every row refreshes enabled state.
+- **Step by step:**
+  1. Set `busyClaimId`.
+  2. If there are claims, `notifyItemRangeChanged` for the whole range.
 
-What that function does: I remember which claim is in flight and disable the buttons.
-What the function is responsible for: I stop a second tap while a review request runs.
-Where it works: I am called by PendingClaimsActivity and PendingClaimsSheet around reviewClaim.
-Why I chose to write the code of the function the way its written: I redraw all rows so every approve/reject pair updates. A null id means idle.
-More: I use notifyItemRangeChanged.
-
+### `public boolean removeClaim(String claimId)`
 ```java
 public boolean removeClaim(@Nullable String claimId) {
     if (claimId == null) {
@@ -89,13 +112,15 @@ public boolean removeClaim(@Nullable String claimId) {
     return false;
 }
 ```
+- **What it does:** Finds one claim by id, removes that row with an animated removal, returns whether it found it.
+- **Where it's called:** From pending-claims UI after a successful reject (or similar single-claim removal).
+- **Why it's written this way:** `notifyItemRemoved` animates better than a full dataset refresh.
+- **Step by step:**
+  1. If id is null, return false.
+  2. Loop for matching `getClaimId()`.
+  3. Remove at index, notify, return true; else return false.
 
-What that function does: I remove one claim row with a list animation.
-What the function is responsible for: I drop a claim after a successful review.
-Where it works: I am called by PendingClaimsActivity and PendingClaimsSheet after review succeeds.
-Why I chose to write the code of the function the way its written: notifyItemRemoved animates one row instead of redrawing the whole list.
-More: I match on getClaimId.
-
+### `public void removeClaimsForItem(String itemId)`
 ```java
 public void removeClaimsForItem(@Nullable String itemId) {
     if (itemId == null) {
@@ -109,13 +134,14 @@ public void removeClaimsForItem(@Nullable String itemId) {
     }
 }
 ```
+- **What it does:** Removes every pending claim that belongs to the same report (item), including siblings auto-rejected when one claim is approved.
+- **Where it's called:** From pending-claims UI after a successful approve (all claims for that item should leave the list).
+- **Why it's written this way:** Walks backward so removing while iterating stays safe; comment in Java notes auto-rejected siblings.
+- **Step by step:**
+  1. If `itemId` is null, return.
+  2. From last index to 0, remove matching `getItemId()` and notify each removal.
 
-What that function does: I remove every pending claim for one report.
-What the function is responsible for: I drop sibling claims that the server auto-rejects after an approve.
-Where it works: I am called by PendingClaimsSheet after an approve.
-Why I chose to write the code of the function the way its written: I walk backwards so remove does not skip indexes.
-More: I match on getItemId and notifyItemRemoved.
-
+### `onCreateViewHolder` / `onBindViewHolder` / `getItemCount`
 ```java
 @NonNull
 @Override
@@ -124,53 +150,26 @@ public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             LayoutInflater.from(parent.getContext()), parent, false);
     return new ViewHolder(binding);
 }
-```
 
-What that function does: I inflate item_pending_claim for a new row.
-What the function is responsible for: I am RecyclerView's create path.
-Where it works: RecyclerView calls me. The layout is item_pending_claim.xml.
-Why I chose to write the code of the function the way its written: View Binding keeps findViewById out of the holder.
-More: I use ItemPendingClaimBinding.inflate.
-
-```java
 @Override
 public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
     holder.bind(claims.get(position));
 }
-```
 
-What that function does: I bind one claim to a row.
-What the function is responsible for: I am RecyclerView's bind path.
-Where it works: RecyclerView calls me for each visible row.
-Why I chose to write the code of the function the way its written: The holder owns the field mapping.
-More: I call ViewHolder.bind.
-
-```java
 @Override
 public int getItemCount() {
     return claims.size();
 }
 ```
+- **What it does:** Standard create/bind/count for pending-claim rows.
+- **Where it's called:** By RecyclerView.
+- **Why it's written this way:** Same pattern as other adapters.
+- **Step by step:**
+  1. Inflate binding into ViewHolder.
+  2. Bind claim at position.
+  3. Return list size.
 
-What that function does: I return how many pending claims I hold.
-What the function is responsible for: I tell RecyclerView the list size.
-Where it works: RecyclerView calls me.
-Why I chose to write the code of the function the way its written: Size matches the in-memory list.
-More: I return claims.size().
-
-```java
-ViewHolder(ItemPendingClaimBinding binding) {
-    super(binding.getRoot());
-    this.binding = binding;
-}
-```
-
-What that function does: I store the row binding.
-What the function is responsible for: I am the row constructor.
-Where it works: I am created in onCreateViewHolder.
-Why I chose to write the code of the function the way its written: super(binding.getRoot()) is what RecyclerView needs.
-More: I keep ItemPendingClaimBinding.
-
+### `ViewHolder.bind(PendingClaimResponse claim)`
 ```java
 void bind(PendingClaimResponse claim) {
     Context context = binding.getRoot().getContext();
@@ -205,9 +204,11 @@ void bind(PendingClaimResponse claim) {
     binding.btnRejectClaim.setOnClickListener(v -> listener.onReject(claim));
 }
 ```
-
-What that function does: I fill title, claimant, answer, photo, and the two buttons.
-What the function is responsible for: I am one pending-claim card.
-Where it works: I am called from onBindViewHolder. Clicks go to ReviewListener.
-Why I chose to write the code of the function the way its written: I disable both buttons while any review is busy. Empty titles get a placeholder.
-More: I use Glide, TextUtils, and string resources for labels.
+- **What it does:** Fills title/claimant/answer/image; enables buttons only when no review is busy; wires Approve/Reject.
+- **Where it's called:** From `onBindViewHolder`.
+- **Why it's written this way:** Placeholders cover missing title/name. Empty image URL loads `null` so Glide shows the placeholder. Buttons disable for the whole list while `busyClaimId` is set.
+- **Step by step:**
+  1. Choose title / claimant / answer strings (with fallbacks).
+  2. Load thumbnail with Glide.
+  3. Enable buttons iff `busyClaimId == null`.
+  4. Set click listeners to `listener.onApprove` / `onReject`.

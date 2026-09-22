@@ -1,6 +1,49 @@
+# AuthService.java
+
+## Overview
+This is a **service** for login, signup (including **OTP**), and forgot-password flows (see `docs/GLOSSARY.md`). It hashes passwords and OTP codes, emails codes via `EmailService`, stores pending signup / reset records in MongoDB, and issues **JWTs** through `JwtUtil` after a successful login or verified registration.
+
+## Concepts used here
+- **Service** — auth logic behind `AuthController`; see `docs/GLOSSARY.md`.
+- **JWT** — returned after login or OTP signup verify; see `docs/GLOSSARY.md`.
+- **Password hashing** — `PasswordEncoder` stores and checks passwords/OTP hashes; see `docs/GLOSSARY.md`.
+- **OTP** — 6-digit emailed codes with expiry and attempt limits; see `docs/GLOSSARY.md`.
+- **Repository / model** — `User`, `PendingRegistration`, `PasswordResetToken`; see `docs/GLOSSARY.md`.
+- **DTO** — login/register/OTP request and response types; see `docs/GLOSSARY.md`.
+
+## Libraries and imports
+- **Spring** (`@Service`, `@Value`, `HttpStatus`, `ResponseStatusException`, `PasswordEncoder`): service bean, OTP config, API errors, hashing.
+- **Lombok** (`@RequiredArgsConstructor`, `@Slf4j`): DI and logging.
+- **Java security / time** (`SecureRandom`, `Instant`, `UUID`): OTP generation, expiry, reset tokens.
+- **Project**: repositories, DTOs, models, `JwtUtil`, `EmailService`.
+
+## Fields
+- `userRepository` / `pendingRegistrationRepository` / `passwordResetTokenRepository` — persistence.
+- `passwordEncoder` (`PasswordEncoder`) — hashes passwords and OTP codes; verifies matches.
+- `jwtUtil` (`JwtUtil`) — creates JWT strings.
+- `emailService` (`EmailService`) — sends OTP emails.
+- `secureRandom` (`SecureRandom`) — generates OTPs.
+- `otpExpiryMinutes` (`long`) — how long a code lasts (default 10).
+- `otpMaxAttempts` (`int`) — wrong-code limit (default 5).
+
+## Functions
+
+### `private String generateOtp()`
+```java
+private String generateOtp() {
+    return String.format("%06d", secureRandom.nextInt(1_000_000));
+}
+```
+- **What it does:** returns a zero-padded 6-digit code (`000000`–`999999`).
+- **Where it's called:** `startRegistration`, `resendOtp`, and `startPasswordReset` in this class.
+- **Why it's written this way:** `SecureRandom` is harder to predict than `Random`; formatting keeps leading zeros.
+- **Step by step:**
+  1. Draw an int in `0..999999`.
+  2. Format as six digits and return.
+
+### `public LoginResponse login(LoginRequest request)`
 ```java
 public LoginResponse login(LoginRequest request) {
-    // Look up the user
     User user = userRepository.findByEmail(request.getEmail())
             .orElseThrow(() -> {
                 log.warn("Login failed: email not found — {}", request.getEmail());
@@ -9,7 +52,6 @@ public LoginResponse login(LoginRequest request) {
                         "Invalid email or password");
             });
 
-    // Check the password
     if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
         log.warn("Login failed: incorrect password for — {}", request.getEmail());
         throw new ResponseStatusException(
@@ -17,7 +59,6 @@ public LoginResponse login(LoginRequest request) {
                 "Invalid email or password");
     }
 
-    // Make a token
     String token = jwtUtil.generateToken(user.getId(), user.getEmail());
 
     log.info("Login successful for user: {} (ID: {})",
@@ -26,16 +67,17 @@ public LoginResponse login(LoginRequest request) {
     return new LoginResponse(token);
 }
 ```
+- **What it does:** verifies email/password and returns a JWT; wrong email or password both look like `401 Invalid email or password`.
+- **Where it's called:** `AuthController.login`.
+- **Why it's written this way:** the same error text for missing email vs bad password avoids revealing which accounts exist.
+- **Step by step:**
+  1. Find user by email or throw 401.
+  2. Check password hash or throw 401.
+  3. Generate JWT and return `LoginResponse`.
 
-What that function does: I check email and password, then return a token.
-What the function is responsible for: I sign the user in. Wrong email or password both look the same to the caller.
-Where it works: I am called by AuthController.login from POST /api/auth/login. AuthServiceTest.login_rejectsWrongPassword checks me.
-Why I chose to write the code of the function the way its written: I use the same 401 text for missing email and bad password so a caller cannot tell which failed.
-More: I use UserRepository.findByEmail, PasswordEncoder.matches, JwtUtil.generateToken, and slf4j log.
-
+### `public User register(RegisterRequest request)`
 ```java
 public User register(RegisterRequest request) {
-    // Stop if the email is taken
     if (userRepository.existsByEmail(request.getEmail())) {
         log.warn("Registration failed: email already exists — {}",
                 request.getEmail());
@@ -44,7 +86,6 @@ public User register(RegisterRequest request) {
                 "Email is already registered");
     }
 
-    // Hash the password and build the user
     User user = User.builder()
             .email(request.getEmail())
             .password(passwordEncoder.encode(request.getPassword()))
@@ -52,7 +93,6 @@ public User register(RegisterRequest request) {
             .phoneNumber(request.getPhoneNumber())
             .build();
 
-    // Save the user
     User savedUser = userRepository.save(user);
 
     log.info("User registered successfully: {} (ID: {})",
@@ -61,13 +101,15 @@ public User register(RegisterRequest request) {
     return savedUser;
 }
 ```
+- **What it does:** creates a user immediately if the email is free (direct register path without OTP).
+- **Where it's called:** `AuthController.register`.
+- **Why it's written this way:** hashes the password before save; returns the entity so the controller can strip the password field.
+- **Step by step:**
+  1. Reject if email exists (`409`).
+  2. Build user with hashed password.
+  3. Save and return.
 
-What that function does: I create a user if the email is free, with a hashed password.
-What the function is responsible for: I am the direct signup path without an email code.
-Where it works: I am called by AuthController.register from POST /api/auth/register.
-Why I chose to write the code of the function the way its written: I hash before save so the raw password never sits in Mongo. 409 stops a duplicate email.
-More: I use existsByEmail, PasswordEncoder.encode, User.builder, and userRepository.save.
-
+### `public void startRegistration(SendOtpRequest request)`
 ```java
 public void startRegistration(SendOtpRequest request) {
     if (userRepository.existsByEmail(request.getEmail())) {
@@ -76,7 +118,6 @@ public void startRegistration(SendOtpRequest request) {
                 HttpStatus.CONFLICT, "Email is already registered");
     }
 
-    // Drop any leftover pending record for this email.
     pendingRegistrationRepository.deleteByEmail(request.getEmail());
 
     String code = generateOtp();
@@ -98,13 +139,16 @@ public void startRegistration(SendOtpRequest request) {
     log.info("Registration OTP issued for {}", request.getEmail());
 }
 ```
+- **What it does:** stores signup details + hashed OTP as a pending registration and emails the plain code.
+- **Where it's called:** `AuthController.sendRegistrationOtp`.
+- **Why it's written this way:** the real `User` is not created until verify; deleting any old pending row avoids duplicates; OTP is hashed like a password.
+- **Step by step:**
+  1. Reject if email already has an account.
+  2. Delete any prior pending record for that email.
+  3. Generate OTP, build/save `PendingRegistration` with hashed password and OTP.
+  4. Email the plain code.
 
-What that function does: I save signup details, email a 6-digit code, and do not create the user yet.
-What the function is responsible for: I start the coded signup. I replace any older pending row for that email.
-Where it works: I am called by AuthController.sendRegistrationOtp from POST /api/auth/register/send-otp.
-Why I chose to write the code of the function the way its written: I hash password and code, then send the raw code only by email. deleteByEmail avoids two pending rows.
-More: I use Instant, ChronoUnit.MINUTES, otpExpiryMinutes, EmailService.sendOtpEmail, and generateOtp.
-
+### `public void resendOtp(String email)`
 ```java
 public void resendOtp(String email) {
     PendingRegistration pending = pendingRegistrationRepository.findByEmail(email)
@@ -123,13 +167,15 @@ public void resendOtp(String email) {
     log.info("Registration OTP resent for {}", email);
 }
 ```
+- **What it does:** issues a fresh signup OTP for an existing pending registration.
+- **Where it's called:** `AuthController.resendRegistrationOtp`.
+- **Why it's written this way:** resets attempts and expiry so a new code is usable.
+- **Step by step:**
+  1. Load pending or throw 400.
+  2. Generate new code, update hash/attempts/expiry, save.
+  3. Email the code.
 
-What that function does: I send a new signup code for a pending email and reset tries.
-What the function is responsible for: I refresh the code without asking for signup details again.
-Where it works: I am called by AuthController.resendRegistrationOtp from POST /api/auth/register/resend-otp.
-Why I chose to write the code of the function the way its written: I reset attempts and expiry so a new code is a clean try. 400 if nothing is pending.
-More: I use findByEmail, PasswordEncoder.encode, and EmailService.sendOtpEmail.
-
+### `public LoginResponse verifyRegistration(VerifyOtpRequest request)`
 ```java
 public LoginResponse verifyRegistration(VerifyOtpRequest request) {
     PendingRegistration pending = pendingRegistrationRepository
@@ -158,7 +204,6 @@ public LoginResponse verifyRegistration(VerifyOtpRequest request) {
                 HttpStatus.BAD_REQUEST, "Invalid verification code");
     }
 
-    // Stop if someone else registered this email first.
     if (userRepository.existsByEmail(pending.getEmail())) {
         pendingRegistrationRepository.delete(pending);
         throw new ResponseStatusException(
@@ -183,13 +228,16 @@ public LoginResponse verifyRegistration(VerifyOtpRequest request) {
     return new LoginResponse(token);
 }
 ```
+- **What it does:** validates the signup OTP (expiry/attempts), creates the user from pending data, deletes the pending row, and returns a JWT.
+- **Where it's called:** `AuthController.verifyRegistrationOtp`.
+- **Why it's written this way:** checks race (email taken after OTP was sent); reuses the already-hashed password from pending.
+- **Step by step:**
+  1. Load pending or 400.
+  2. Reject expired (`410`) or too many attempts (`429`), deleting the pending row.
+  3. On wrong code, increment attempts and return 400.
+  4. Create user, delete pending, return JWT.
 
-What that function does: I check the code, create the user from the pending row, and return a token.
-What the function is responsible for: I finish coded signup. I drop the pending row after success or when the code is dead.
-Where it works: I am called by AuthController.verifyRegistrationOtp from POST /api/auth/register/verify-otp.
-Why I chose to write the code of the function the way its written: I count wrong tries, expire the code, and copy the already-hashed password onto the user so I do not hash twice.
-More: I use HttpStatus.GONE and TOO_MANY_REQUESTS, PasswordEncoder.matches, and JwtUtil.generateToken.
-
+### `public void startPasswordReset(String email)`
 ```java
 public void startPasswordReset(String email) {
     Optional<User> user = userRepository.findByEmail(email);
@@ -218,13 +266,15 @@ public void startPasswordReset(String email) {
     log.info("Password reset OTP issued for {}", email);
 }
 ```
+- **What it does:** starts forgot-password for a known email by saving a reset OTP record and emailing the code.
+- **Where it's called:** `AuthController.sendPasswordResetOtp`.
+- **Why it's written this way:** unknown emails get `404` (explicit for this app); old reset rows are cleared first.
+- **Step by step:**
+  1. Require an existing user or throw 404.
+  2. Delete prior reset token for the email.
+  3. Save new hashed OTP record and email the code.
 
-What that function does: I email a reset code, or stop with 404 if the email is unknown.
-What the function is responsible for: I start forgot-password. I replace any older reset row.
-Where it works: I am called by AuthController.sendPasswordResetOtp from POST /api/auth/forgot-password/send-otp. AuthServiceTest.startPasswordReset_rejectsUnknownEmail checks me.
-Why I chose to write the code of the function the way its written: I return 404 for unknown email as the controller comment says. I hash the code before save.
-More: I use Optional, deleteByEmail, EmailService.sendPasswordResetEmail, and PasswordResetToken.builder.
-
+### `public String verifyPasswordResetOtp(VerifyOtpRequest request)`
 ```java
 public String verifyPasswordResetOtp(VerifyOtpRequest request) {
     PasswordResetToken token = passwordResetTokenRepository
@@ -265,13 +315,15 @@ public String verifyPasswordResetOtp(VerifyOtpRequest request) {
     return resetToken;
 }
 ```
+- **What it does:** checks the reset OTP, then marks the record verified and returns a random `resetToken` for the final password change.
+- **Where it's called:** `AuthController.verifyPasswordResetOtp`.
+- **Why it's written this way:** a second token (not the OTP) is required to set the password, so intercepting only the email is not enough.
+- **Step by step:**
+  1. Load reset record; check expiry/attempts like signup.
+  2. On success, set `verified`, store a long random `resetToken`, refresh expiry.
+  3. Return that reset token string.
 
-What that function does: I check the reset code and return a random token used to set a new password.
-What the function is responsible for: I mark the reset as verified. The code itself is no longer enough to change the password.
-Where it works: I am called by AuthController.verifyPasswordResetOtp from POST /api/auth/forgot-password/verify-otp.
-Why I chose to write the code of the function the way its written: I glue two UUIDs so the reset token is long and not guessable. I extend expiry for the next step.
-More: I use UUID.randomUUID, PasswordEncoder.matches, and the same attempt/expiry checks as signup.
-
+### `public void resetPassword(ResetPasswordRequest request)`
 ```java
 public void resetPassword(ResetPasswordRequest request) {
     PasswordResetToken token = passwordResetTokenRepository
@@ -304,21 +356,10 @@ public void resetPassword(ResetPasswordRequest request) {
             user.getEmail(), user.getId());
 }
 ```
-
-What that function does: I check the reset token, save the new hashed password, and drop the reset row.
-What the function is responsible for: I finish forgot-password.
-Where it works: I am called by AuthController.resetPassword from POST /api/auth/forgot-password/reset.
-Why I chose to write the code of the function the way its written: I require verified plus matching resetToken so a stolen email alone cannot change the password. I delete the row so the token cannot be reused.
-More: I use PasswordEncoder.encode, findByEmail, and passwordResetTokenRepository.delete.
-
-```java
-private String generateOtp() {
-    return String.format("%06d", secureRandom.nextInt(1_000_000));
-}
-```
-
-What that function does: I make a 6-digit code, including leading zeros.
-What the function is responsible for: I am the shared code generator for signup and password reset.
-Where it works: I am called by startRegistration, resendOtp, and startPasswordReset. I am unused except internally.
-Why I chose to write the code of the function the way its written: I wrote it this way because %06d keeps codes like 004231 as six characters. SecureRandom is harder to guess than Random.
-More: I use java.security.SecureRandom nextInt(1_000_000) and String.format.
+- **What it does:** verifies the reset token, hashes and saves the new password, then deletes the reset record.
+- **Where it's called:** `AuthController.resetPassword`.
+- **Why it's written this way:** one-time use of the reset session; password never stored in plain text.
+- **Step by step:**
+  1. Load token; require verified + matching `resetToken`.
+  2. Reject if expired (`410`).
+  3. Load user, encode new password, save, delete token.

@@ -1,175 +1,115 @@
-```xml
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/brand_deep"
-    android:fitsSystemWindows="true"
-    android:orientation="vertical">
+# activity_verify_otp.xml
+
+## Overview
+This layout is the "enter the 6-digit code" screen used during sign-up and during
+password reset. It has a back-arrow toolbar, a small hero, one code field, a verify
+button, a spinner, and a "resend code" row. It is inflated by `VerifyOtpActivity`
+through `ActivityVerifyOtpBinding`.
+
+Key idea: an **OTP** is a one-time code emailed to prove the user owns the address;
+this **Activity** collects that code. See `docs/GLOSSARY.md`.
+
+## Concepts used here
+- **LinearLayout** — vertical stack for the whole screen. See `docs/GLOSSARY.md`.
+- **MaterialToolbar** — top bar with the back arrow. See `docs/GLOSSARY.md`.
+- **NestedScrollView** — scrolls the form if needed. See `docs/GLOSSARY.md`.
+- **TextInputLayout + TextInputEditText** — the code field. See `docs/GLOSSARY.md`.
+- **Material Button** — verify and resend buttons. See `docs/GLOSSARY.md`.
+- **ProgressBar** — spinner during the check. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `ActivityVerifyOtpBinding`. See `docs/GLOSSARY.md`.
+
+## Screen structure
+A vertical `LinearLayout`:
+
+```
+LinearLayout (root, vertical, dark background)
+├── MaterialToolbar (back arrow)
+├── LinearLayout (small hero: logo + "Verify" title)
+└── NestedScrollView
+    └── LinearLayout (form)
+        ├── subtitle text (tells you which email got the code)
+        ├── OTP code field
+        ├── Verify button
+        ├── ProgressBar (hidden)
+        └── "No code? Resend" row
 ```
 
-What that function does: I am the OTP screen: back bar, hero, then the code form.
-What the function is responsible for: I am the root of activity_verify_otp.
-Where it works: VerifyOtpActivity inflates me through ActivityVerifyOtpBinding.
-Why I chose to write the code of the function the way its written: Same auth split as login and register.
-More: I use a vertical LinearLayout.
+The root is a `LinearLayout` because everything is stacked in one column.
 
+## Components
+
+### Toolbar
 ```xml
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar_verify"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
-        app:navigationIcon="@drawable/ic_arrow_back_24"
-        app:navigationIconTint="@color/brand_white" />
+<com.google.android.material.appbar.MaterialToolbar
+    android:id="@+id/toolbar_verify"
+    android:background="@android:color/transparent"
+    app:navigationIcon="@drawable/ic_arrow_back_24"
+    app:navigationIconTint="@color/brand_white" />
 ```
+- **What it shows:** a transparent bar with a white back arrow over the dark hero.
+- **Why it's set up this way:** transparent so the hero color shows through; the white
+  tint keeps the arrow readable on the dark background.
+- **How the code uses it:** `binding.toolbarVerify.setNavigationOnClickListener(...)`
+  navigates back.
 
-What that function does: I am a transparent back bar on the dark hero.
-What the function is responsible for: I let the user leave OTP.
-Where it works: VerifyOtpActivity uses toolbar_verify for up navigation.
-Why I chose to write the code of the function the way its written: Transparent keeps the dark hero unbroken.
-More: I use ic_arrow_back_24.
-
+### Subtitle
 ```xml
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/space_160"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:paddingBottom="@dimen/space_12">
-
-        <ImageView
-            android:layout_width="@dimen/space_56"
-            android:layout_height="@dimen/space_56"
-            android:contentDescription="@string/app_name"
-            android:scaleType="centerInside"
-            android:src="@mipmap/ic_launcher" />
-
-        <com.google.android.material.textview.MaterialTextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_10"
-            android:text="@string/verify_title"
-            android:textAppearance="@style/TextAppearance.ReClaim.AuthHero" />
-    </LinearLayout>
+<com.google.android.material.textview.MaterialTextView
+    android:id="@+id/text_verify_subtitle"
+    android:text="@string/verify_title" />
 ```
+- **What it shows:** a line telling the user a code was sent to their email.
+- **Why it's set up this way:** it is a plain text view because the message changes at
+  runtime (it includes the email address and differs between sign-up and reset).
+- **How the code uses it:** `binding.textVerifySubtitle.setText(getString(subtitleRes, email))`
+  fills in the right message and email.
 
-What that function does: I show the logo and Verify title.
-What the function is responsible for: I am the OTP hero.
-Where it works: VerifyOtpActivity shows me under the toolbar.
-Why I chose to write the code of the function the way its written: Shorter than login because the form is small.
-More: I use AuthHero.
-
+### OTP code field
 ```xml
-    <androidx.core.widget.NestedScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="@drawable/bg_auth_form"
-        android:fillViewport="true">
+<com.google.android.material.textfield.TextInputLayout
+    android:id="@+id/input_layout_otp"
+    android:hint="@string/hint_otp_code"
+    app:startIconDrawable="@android:drawable/ic_lock_lock">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/edit_otp"
+        android:inputType="number"
+        android:letterSpacing="0.3"
+        android:maxLength="6"
+        android:textSize="@dimen/text_size_20" />
+</com.google.android.material.textfield.TextInputLayout>
 ```
+- **What it shows:** a single field for the 6-digit code, with a lock icon, wide letter
+  spacing, and large text.
+- **Why it's set up this way:** `inputType="number"` shows a number pad, `maxLength="6"`
+  stops after six digits, and the larger text plus `letterSpacing` make the code easy to
+  read as you type. The `TextInputLayout` shows the error if the code is empty or wrong.
+- **How the code uses it:** `VerifyOtpActivity.attemptVerify()` reads
+  `binding.editOtp.getText()`, requires it to be non-empty, and shows problems on
+  `binding.inputLayoutOtp` (for example "code required" or "wrong code").
 
-What that function does: I hold the light form sheet.
-What the function is responsible for: I am the OTP form container.
-Where it works: The code field and buttons sit in me.
-Why I chose to write the code of the function the way its written: fillViewport keeps the sheet tall even with few fields.
-More: I use NestedScrollView.
-
+### Verify button, spinner, and Resend row
 ```xml
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/text_verify_subtitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/verify_title"
-                android:textAppearance="?attr/textAppearanceBodyLarge"
-                android:textColor="@color/brand_slate" />
+<com.google.android.material.button.MaterialButton
+    android:id="@+id/btn_verify"
+    style="@style/Widget.ReClaim.Button.Primary"
+    android:text="@string/btn_verify" />
+
+<ProgressBar android:id="@+id/progress" android:visibility="gone" />
+
+<LinearLayout android:orientation="horizontal" android:gravity="center">
+    <com.google.android.material.textview.MaterialTextView android:text="@string/verify_no_code" ... />
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_resend_code"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:text="@string/btn_resend_code" />
+</LinearLayout>
 ```
-
-What that function does: I explain where the code was sent.
-What the function is responsible for: I am the OTP subtitle.
-Where it works: VerifyOtpActivity sets my text from the email extra.
-Why I chose to write the code of the function the way its written: XML starts with the title string; Java replaces it with the email line.
-More: I use text_verify_subtitle.
-
-```xml
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/input_layout_otp"
-                style="@style/Widget.ReClaim.TextInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_24"
-                android:hint="@string/hint_otp_code"
-                app:startIconDrawable="@android:drawable/ic_lock_lock">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edit_otp"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="number"
-                    android:letterSpacing="0.3"
-                    android:maxLength="6"
-                    android:textSize="@dimen/text_size_20" />
-            </com.google.android.material.textfield.TextInputLayout>
-```
-
-What that function does: I am the six-digit code field.
-What the function is responsible for: I take the email OTP.
-Where it works: VerifyOtpActivity reads edit_otp.
-Why I chose to write the code of the function the way its written: number keyboard and maxLength 6 match a short code. Wider letter spacing makes digits easier to check.
-More: I use inputType number.
-
-```xml
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_verify"
-                style="@style/Widget.ReClaim.Button.Primary"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/button_height"
-                android:layout_marginTop="@dimen/space_20"
-                android:text="@string/btn_verify" />
-
-            <ProgressBar
-                android:id="@+id/progress"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="@dimen/space_16"
-                android:indeterminateTint="@color/brand_accent"
-                android:visibility="gone" />
-```
-
-What that function does: I am verify and a spinner while the call runs.
-What the function is responsible for: I submit the code.
-Where it works: VerifyOtpActivity wires btn_verify and shows progress.
-Why I chose to write the code of the function the way its written: The spinner starts gone so the form stays calm.
-More: I use Widget.ReClaim.Button.Primary.
-
-```xml
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_12"
-                android:gravity="center"
-                android:orientation="horizontal">
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/verify_no_code"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_resend_code"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/btn_resend_code"
-                    android:textColor="@color/brand_accent" />
-            </LinearLayout>
-```
-
-What that function does: I offer a resend if the code did not arrive.
-What the function is responsible for: I am the resend row.
-Where it works: VerifyOtpActivity wires btn_resend_code.
-Why I chose to write the code of the function the way its written: A text button next to the label matches login's secondary action.
-More: I use btn_resend_code.
+- **What it shows:** the primary "Verify" button, a hidden spinner, and a centered
+  "Didn't get a code? Resend" row.
+- **Why it's set up this way:** the primary button is the main action; resending is
+  secondary, so it is a quiet text button. The spinner is `gone` until a request runs.
+- **How the code uses it:** `binding.btnVerify` runs `attemptVerify()` and
+  `binding.btnResendCode` runs `resendCode()`. While loading, the code shows
+  `binding.progress`, disables the buttons and `binding.editOtp`, and sets a "please
+  wait" label on the verify button. The verify button's idle text switches between
+  "Verify" and "Continue" depending on whether this is sign-up or reset.

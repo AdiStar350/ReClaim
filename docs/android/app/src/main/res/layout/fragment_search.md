@@ -1,229 +1,142 @@
-```xml
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/md_theme_background">
+# fragment_search.xml
+
+## Overview
+This layout is the Search tab: a header with a list/map toggle, a search card with a
+text field and a filter button, a row that shows the active filter, and a main area that
+switches between a pull-to-refresh list and a map. It is inflated by `SearchFragment`
+through `FragmentSearchBinding` (hosted by `SearchActivity` via `activity_fragment_host.xml`).
+
+Key idea: one screen with two views of the same data — a **RecyclerView** list and a
+Google map — swapped by a toggle. See `docs/GLOSSARY.md`.
+
+## Concepts used here
+- **CoordinatorLayout / LinearLayout** — the root and the main column. See `docs/GLOSSARY.md`.
+- **MaterialToolbar** — the header bar (also holds the toggle). See `docs/GLOSSARY.md`.
+- **MaterialButtonToggleGroup + Material Button** — the List/Map switch. See `docs/GLOSSARY.md`.
+- **MaterialCardView** — the search box card and the map frame. See `docs/GLOSSARY.md`.
+- **TextInputLayout + TextInputEditText** — the search field. See `docs/GLOSSARY.md`.
+- **Chip** — the active-filters pill. See `docs/GLOSSARY.md`.
+- **SwipeRefreshLayout + RecyclerView** — the pull-to-refresh results list. See `docs/GLOSSARY.md`.
+- **FragmentContainerView** — hosts the map fragment. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `FragmentSearchBinding`. See `docs/GLOSSARY.md`.
+
+## Screen structure
+
+```
+CoordinatorLayout (root)
+└── LinearLayout (vertical)
+    ├── MaterialToolbar toolbar_search (title + toggle_view_mode: btn_view_list / btn_view_map)
+    ├── Card: search box (input_layout_search / edit_search) + btn_filter_sort
+    ├── RelativeLayout search_filter_bar (chip_active_filters)
+    └── FrameLayout (fills the rest)
+        ├── SwipeRefreshLayout swipe_refresh → RecyclerView recycler_items
+        ├── FrameLayout map_container → Card → FragmentContainerView (@id/map)
+        └── MaterialTextView text_empty (centered, hidden)
 ```
 
-What that function does: I am the search screen: toolbar, search box, then list or map.
-What the function is responsible for: I am the root of fragment_search.
-Where it works: SearchFragment inflates me. DashboardActivity and SearchActivity host the fragment.
-Why I chose to write the code of the function the way its written: A vertical LinearLayout under the coordinator keeps header and content stacked.
-More: I use CoordinatorLayout.
+The list, map, and empty message share the bottom `FrameLayout` so exactly one is shown
+at a time in the same space.
 
+## Components
+
+### Toolbar with List/Map toggle
 ```xml
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar_search"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/brand_dark"
-            android:minHeight="@dimen/space_60"
-            android:paddingStart="@dimen/screen_padding_horizontal"
-            android:paddingEnd="@dimen/screen_padding_horizontal"
-            android:paddingTop="@dimen/screen_padding_top"
-            android:paddingBottom="@dimen/screen_padding_bottom"
-            app:title="@string/search_title"
-            app:titleTextColor="@color/brand_cream">
-
-            <com.google.android.material.button.MaterialButtonToggleGroup
-                android:id="@+id/toggle_view_mode"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="end"
-                android:layout_marginEnd="@dimen/space_4"
-                app:checkedButton="@+id/btn_view_list"
-                app:selectionRequired="true"
-                app:singleSelection="true">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_view_list"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="@dimen/space_48"
-                    android:minWidth="0dp"
-                    android:paddingStart="@dimen/space_14"
-                    android:paddingEnd="@dimen/space_14"
-                    android:text="@string/view_list"
-                    android:textColor="@color/toggle_btn_text"
-                    android:textSize="@dimen/text_size_13"
-                    app:backgroundTint="@color/toggle_btn_background"
-                    app:strokeColor="@color/brand_accent" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_view_map"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="@dimen/space_48"
-                    android:minWidth="0dp"
-                    android:paddingStart="@dimen/space_14"
-                    android:paddingEnd="@dimen/space_14"
-                    android:text="@string/view_map"
-                    android:textColor="@color/toggle_btn_text"
-                    android:textSize="@dimen/text_size_13"
-                    app:backgroundTint="@color/toggle_btn_background"
-                    app:strokeColor="@color/brand_accent" />
-            </com.google.android.material.button.MaterialButtonToggleGroup>
-        </com.google.android.material.appbar.MaterialToolbar>
+<com.google.android.material.appbar.MaterialToolbar android:id="@+id/toolbar_search" ...>
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/toggle_view_mode"
+        app:checkedButton="@+id/btn_view_list"
+        app:selectionRequired="true"
+        app:singleSelection="true">
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_view_list" android:text="@string/view_list" ... />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_view_map" android:text="@string/view_map" ... />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+</com.google.android.material.appbar.MaterialToolbar>
 ```
+- **What it shows:** the "Search" title with a two-button "List / Map" switch on the
+  right; List is selected by default.
+- **Why it's set up this way:** a `MaterialButtonToggleGroup` with `singleSelection` and
+  `selectionRequired` makes the two buttons act like a segmented control — exactly one is
+  always on. Placing it inside the toolbar keeps the header compact.
+- **How the code uses it:** the code listens on `binding.toggleViewMode` (an
+  `addOnButtonCheckedListener`) to switch between showing the list and the map.
 
-What that function does: I am the search title bar with list/map toggle.
-What the function is responsible for: I switch view mode.
-Where it works: SearchFragment.updateViewMode listens to toggle_view_mode.
-Why I chose to write the code of the function the way its written: singleSelection keeps one mode. The toggle sits in the toolbar so the list can use the rest of the screen.
-More: I use MaterialButtonToggleGroup.
-
+### Search box and filter button
 ```xml
-        <com.google.android.material.card.MaterialCardView
-            style="@style/Widget.ReClaim.Card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/screen_padding_horizontal"
-            android:layout_marginTop="@dimen/space_neg_10"
-            android:layout_marginEnd="@dimen/screen_padding_horizontal"
-            app:cardElevation="@dimen/space_6">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="@dimen/space_12"
-                android:paddingTop="@dimen/space_10"
-                android:paddingEnd="@dimen/space_10"
-                android:paddingBottom="@dimen/space_10">
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/input_layout_search"
-                    style="@style/Widget.ReClaim.TextInput"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="@string/search_hint"
-                    app:startIconDrawable="@android:drawable/ic_menu_search">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/edit_search"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="text"
-                        android:textColor="@color/text_primary" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_filter_sort"
-                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
-                    android:layout_width="@dimen/space_48"
-                    android:layout_height="@dimen/space_48"
-                    android:layout_marginStart="@dimen/space_8"
-                    android:contentDescription="@string/filter_sort_menu"
-                    app:backgroundTint="@color/brand_accent"
-                    app:icon="@android:drawable/ic_menu_sort_by_size"
-                    app:iconTint="@color/text_on_accent" />
-            </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
+<com.google.android.material.card.MaterialCardView style="@style/Widget.ReClaim.Card">
+    <LinearLayout android:orientation="horizontal">
+        <com.google.android.material.textfield.TextInputLayout android:id="@+id/input_layout_search" android:layout_weight="1" ...>
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/edit_search" ... />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_filter_sort" app:icon="@android:drawable/ic_menu_sort_by_size" ... />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
 ```
+- **What it shows:** a floating search card with a search field (magnifier icon) and a
+  round filter/sort button next to it.
+- **Why it's set up this way:** the field uses `layout_weight="1"` so it grows to fill
+  the row while the fixed-size filter button stays on the right. The card is lifted with a
+  negative top margin so it overlaps the header for a modern look.
+- **How the code uses it:** the code adds a text watcher to `binding.editSearch` to
+  filter as you type, and `binding.btnFilterSort` opens the filter/sort menu.
 
-What that function does: I am the search field and the filter button.
-What the function is responsible for: I take a query and open the filter menu.
-Where it works: SearchFragment watches edit_search and btn_filter_sort.
-Why I chose to write the code of the function the way its written: Negative top margin overlaps the dark toolbar a little so the card feels attached.
-More: I use Widget.ReClaim.TextInput.
-
+### Active filters pill
 ```xml
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_active_filters"
-                style="@style/Widget.ReClaim.Chip.Sort"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/screen_padding_horizontal"
-                android:layout_alignParentStart="true"
-                android:layout_centerVertical="true"
-                android:text="@string/filter_sort_default"
-                android:visibility="gone" />
+<RelativeLayout android:id="@+id/search_filter_bar">
+    <com.google.android.material.chip.Chip
+        android:id="@+id/chip_active_filters"
+        style="@style/Widget.ReClaim.Chip.Sort"
+        android:text="@string/filter_sort_default"
+        android:visibility="gone" />
+</RelativeLayout>
 ```
+- **What it shows:** a small chip summarizing the current filter/sort (e.g. "Newest
+  first").
+- **Why it's set up this way:** it sits in a thin `RelativeLayout` bar aligned to the
+  start; it starts `gone` and is shown once results load.
+- **How the code uses it:** the code sets `binding.chipActiveFilters` text with a filter
+  summary and makes it visible when there are results.
 
-What that function does: I show a short summary of the active filters.
-What the function is responsible for: I am the filter chip.
-Where it works: SearchFragment.applyFilters sets my text and shows me.
-Why I chose to write the code of the function the way its written: Start gone until the first apply so an empty chip is not shown.
-More: I use Widget.ReClaim.Chip.Sort.
-
+### Results list (pull to refresh)
 ```xml
-            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-                android:id="@+id/swipe_refresh"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
-
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/recycler_items"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:clipToPadding="false"
-                    android:paddingStart="@dimen/screen_padding_horizontal"
-                    android:paddingTop="@dimen/space_8"
-                    android:paddingEnd="@dimen/screen_padding_horizontal"
-                    android:paddingBottom="@dimen/space_96" />
-            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+<androidx.swiperefreshlayout.widget.SwipeRefreshLayout android:id="@+id/swipe_refresh">
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/recycler_items" ... />
+</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 ```
+- **What it shows:** the vertical list of item cards, which you can pull down to refresh.
+- **Why it's set up this way:** wrapping the `RecyclerView` in a `SwipeRefreshLayout`
+  adds the standard pull-to-refresh spinner with no extra UI. Each row uses `item_card.xml`.
+- **How the code uses it:** the code sets a `LinearLayoutManager` and adapter on
+  `binding.recyclerItems`, and wires `binding.swipeRefresh` to reload items and to show
+  the refreshing spinner.
 
-What that function does: I am the item list with pull to refresh.
-What the function is responsible for: I show filtered cards.
-Where it works: SearchFragment sets ItemAdapter on recycler_items. Swipe calls viewModel.loadItems.
-Why I chose to write the code of the function the way its written: Bottom padding leaves room for the dashboard bar when I sit in DashboardActivity.
-More: I use SwipeRefreshLayout.
-
+### Map view
 ```xml
-            <FrameLayout
-                android:id="@+id/map_container"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:paddingStart="@dimen/screen_padding_horizontal"
-                android:paddingEnd="@dimen/screen_padding_horizontal"
-                android:paddingBottom="@dimen/space_50"
-                android:clipToPadding="false"
-                android:visibility="gone">
-
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    app:cardCornerRadius="@dimen/space_22"
-                    app:cardElevation="@dimen/space_2"
-                    app:strokeColor="@color/md_theme_outlineVariant"
-                    app:strokeWidth="@dimen/space_0_5">
-
-                    <androidx.fragment.app.FragmentContainerView
-                        android:id="@+id/map"
-                        android:name="com.google.android.gms.maps.SupportMapFragment"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent" />
-                </com.google.android.material.card.MaterialCardView>
-            </FrameLayout>
+<FrameLayout android:id="@+id/map_container" android:visibility="gone">
+    <com.google.android.material.card.MaterialCardView>
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/map"
+            android:name="com.google.android.gms.maps.SupportMapFragment" />
+    </com.google.android.material.card.MaterialCardView>
+</FrameLayout>
 ```
+- **What it shows:** a Google map (inside a rounded card) with pins for items; hidden
+  until you pick "Map".
+- **Why it's set up this way:** the map is a `FragmentContainerView` (the standard way to
+  embed a map), wrapped in a card for rounded corners. The whole thing starts `gone` so
+  only the list shows at first.
+- **How the code uses it:** the code toggles `binding.mapContainer` vs
+  `binding.swipeRefresh` visibility when the List/Map switch changes.
 
-What that function does: I hold the map in a rounded card. Start hidden.
-What the function is responsible for: I am map mode.
-Where it works: SearchFragment.onMapReady uses R.id.map. updateViewMode shows me.
-Why I chose to write the code of the function the way its written: A card clips the map corners. Start gone so list is the default.
-More: I use SupportMapFragment.
-
+### Empty state
 ```xml
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/text_empty"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:gravity="center"
-                android:paddingStart="@dimen/space_32"
-                android:paddingEnd="@dimen/space_32"
-                android:text="@string/list_empty"
-                android:textColor="@color/text_secondary"
-                android:visibility="gone" />
+<com.google.android.material.textview.MaterialTextView
+    android:id="@+id/text_empty"
+    android:layout_gravity="center"
+    android:text="@string/list_empty"
+    android:visibility="gone" />
 ```
-
-What that function does: I say the filtered list is empty.
-What the function is responsible for: I am the empty state.
-Where it works: SearchFragment.applyFilters shows me when filtered is empty.
-Why I chose to write the code of the function the way its written: Center gravity sits over the list or map slot.
-More: I use list_empty.
+- **What it shows:** a centered "no results" message.
+- **Why it's set up this way:** it lives in the same `FrameLayout` as the list/map,
+  centered and `gone` until needed.
+- **How the code uses it:** the code shows/hides `binding.textEmpty` based on whether the
+  results list is empty.

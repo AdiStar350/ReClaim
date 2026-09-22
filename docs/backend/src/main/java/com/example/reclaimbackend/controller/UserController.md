@@ -1,3 +1,29 @@
+# UserController.java
+
+## Overview
+This is a **controller** for the signed-in user's **profile** under `/api/users` (see `docs/GLOSSARY.md`). Every route needs a JWT. The controller never takes a user id from the URL; it always uses `Authentication.getName()` and calls `UserService` for read/update profile, FCM token save, and account deletion.
+
+## Concepts used here
+- **Controller / endpoint / REST** — profile HTTP doors; see `docs/GLOSSARY.md`.
+- **Authentication** — identity from the JWT via Spring Security; see `docs/GLOSSARY.md`.
+- **DTO** — `UserResponse`, `UpdateProfileRequest`, `FcmTokenRequest`, `DeleteAccountRequest`; see `docs/GLOSSARY.md`.
+- **Firebase / FCM** — the FCM token endpoint stores the device token for pushes; see `docs/GLOSSARY.md`.
+- **Validation** — `@Valid` on bodies; see `docs/GLOSSARY.md`.
+- **Dependency injection** — `UserService` is injected; see `docs/GLOSSARY.md`.
+
+## Libraries and imports
+- **Spring Web** (mappings, `ResponseEntity`, `@RequestBody`): HTTP routing and responses.
+- **Spring Security** (`Authentication`): signed-in user id.
+- **Jakarta Validation** (`@Valid`): validates request DTOs.
+- **Lombok** (`@RequiredArgsConstructor`): injects `userService`.
+- **Project DTOs / service**: profile shapes and `UserService`.
+
+## Fields
+- `userService` (`UserService`) — profile, FCM token, and account-deletion logic.
+
+## Functions
+
+### `public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication)`
 ```java
 @GetMapping("/me")
 public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication) {
@@ -5,13 +31,15 @@ public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication
     return ResponseEntity.ok(userService.getProfile(userId));
 }
 ```
+- **What it does:** returns the current user's safe profile DTO (no password).
+- **Where it's called:** by Spring MVC on `GET /api/users/me`.
+- **Why it's written this way:** `/me` plus token identity avoids guessing other users' ids in the path.
+- **Step by step:**
+  1. Read user id from authentication.
+  2. Call `userService.getProfile`.
+  3. Return `UserResponse`.
 
-What that function does: I return the signed-in user's profile without the password.
-What the function is responsible for: I am GET /api/users/me.
-Where it works: I am an HTTP endpoint. I call UserService.getProfile.
-Why I chose to write the code of the function the way its written: I take the user id from Authentication so the caller cannot ask for someone else's profile.
-More: I use Authentication.getName, which JwtAuthenticationFilter set to the user id. ResponseEntity.ok wraps UserResponse.
-
+### `public ResponseEntity<UserResponse> updateCurrentUser(@Valid @RequestBody UpdateProfileRequest request, Authentication authentication)`
 ```java
 @PutMapping("/me")
 public ResponseEntity<UserResponse> updateCurrentUser(
@@ -21,13 +49,15 @@ public ResponseEntity<UserResponse> updateCurrentUser(
     return ResponseEntity.ok(userService.updateProfile(userId, request));
 }
 ```
+- **What it does:** updates name/phone (and related fields) for the signed-in user.
+- **Where it's called:** by Spring MVC on `PUT /api/users/me`.
+- **Why it's written this way:** validated DTO + token id keeps updates scoped to the caller.
+- **Step by step:**
+  1. Validate `UpdateProfileRequest`.
+  2. Call `userService.updateProfile`.
+  3. Return the updated `UserResponse`.
 
-What that function does: I update the signed-in user's profile and return the new shape.
-What the function is responsible for: I am PUT /api/users/me.
-Where it works: I am an HTTP endpoint. I call UserService.updateProfile.
-Why I chose to write the code of the function the way its written: I pass the token user id plus the body so the service can change only that account.
-More: I use @Valid UpdateProfileRequest and Authentication.getName.
-
+### `public ResponseEntity<Void> updateFcmToken(@Valid @RequestBody FcmTokenRequest request, Authentication authentication)`
 ```java
 @PutMapping("/me/fcm-token")
 public ResponseEntity<Void> updateFcmToken(
@@ -38,13 +68,15 @@ public ResponseEntity<Void> updateFcmToken(
     return ResponseEntity.noContent().build();
 }
 ```
+- **What it does:** stores the device's FCM token so push notifications can reach this user.
+- **Where it's called:** by Spring MVC on `PUT /api/users/me/fcm-token`.
+- **Why it's written this way:** returns `204` because the client only needs success/failure, not a body.
+- **Step by step:**
+  1. Validate `FcmTokenRequest`.
+  2. Call `userService.updateFcmToken`.
+  3. Return `204 No Content`.
 
-What that function does: I save the device token for this user and return no body.
-What the function is responsible for: I am PUT /api/users/me/fcm-token.
-Where it works: I am an HTTP endpoint. I call UserService.updateFcmToken.
-Why I chose to write the code of the function the way its written: I wrote it this way because 204 is enough; the client does not need the token echoed back.
-More: I use FcmTokenRequest.getToken and ResponseEntity.noContent.
-
+### `public ResponseEntity<Void> deleteCurrentUser(@Valid @RequestBody DeleteAccountRequest request, Authentication authentication)`
 ```java
 @DeleteMapping("/me")
 public ResponseEntity<Void> deleteCurrentUser(
@@ -55,9 +87,10 @@ public ResponseEntity<Void> deleteCurrentUser(
     return ResponseEntity.noContent().build();
 }
 ```
-
-What that function does: I delete the signed-in account after name and password are checked.
-What the function is responsible for: I am DELETE /api/users/me.
-Where it works: I am an HTTP endpoint. I call UserService.deleteAccount.
-Why I chose to write the code of the function the way its written: I pass name and password from the body so the service can refuse a mismatch. 204 means the account is gone.
-More: I use DeleteAccountRequest getters and ResponseEntity.noContent.
+- **What it does:** deletes the account after the service checks the typed name and password.
+- **Where it's called:** by Spring MVC on `DELETE /api/users/me`.
+- **Why it's written this way:** requiring name + password in the body makes accidental deletes harder.
+- **Step by step:**
+  1. Validate `DeleteAccountRequest`.
+  2. Call `userService.deleteAccount` with user id, name, and password.
+  3. Return `204 No Content`.

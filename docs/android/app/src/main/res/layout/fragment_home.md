@@ -1,245 +1,134 @@
-```xml
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/md_theme_background">
+# fragment_home.xml
+
+## Overview
+This layout is the Home tab: a greeting header with avatar, a few optional highlight
+cards (a claim decision, a targeted found item, and pending claims), a horizontal
+"Nearby" list, and a "Possible matches" section. It is inflated by `HomeFragment`
+through `FragmentHomeBinding` and shown inside the dashboard's fragment container.
+
+Key idea: a **Fragment** is a page inside an Activity; this one shows a scrolling
+dashboard of cards and lists. See `docs/GLOSSARY.md`.
+
+## Concepts used here
+- **CoordinatorLayout** — the root container for this scrolling page. See `docs/GLOSSARY.md`.
+- **NestedScrollView** — makes the whole page scroll. See `docs/GLOSSARY.md`.
+- **LinearLayout / FrameLayout** — stack and overlay the header pieces. See `docs/GLOSSARY.md`.
+- **MaterialCardView** — the highlight cards and the round avatar. See `docs/GLOSSARY.md`.
+- **RecyclerView** — the horizontal "Nearby" list. See `docs/GLOSSARY.md`.
+- **Material Button** — the "Show more" button. See `docs/GLOSSARY.md`.
+- **ProgressBar** — the loading spinner. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `FragmentHomeBinding`. See `docs/GLOSSARY.md`.
+
+## Screen structure
+
+```
+CoordinatorLayout (root)
+└── NestedScrollView
+    └── LinearLayout (vertical)
+        ├── FrameLayout (header: greeting + subtitle + avatar, decorative orb)
+        ├── Card card_claim_decision (hidden until there is a decision)
+        ├── Card card_targeted_found (hidden unless a found report targets you)
+        ├── Card card_pending_claims (hidden unless you have claims to review)
+        ├── "Nearby" section title + subtitle
+        ├── RecyclerView recycler_nearby (horizontal) + text_nearby_empty
+        ├── "Show more" button
+        ├── "Possible matches" section title + subtitle
+        ├── LinearLayout layout_matches (filled in code) + text_matches_empty
+        └── ProgressBar progress_home
 ```
 
-What that function does: I am the home tab: greeting, notice cards, nearby, and matches.
-What the function is responsible for: I am the root of fragment_home.
-Where it works: HomeFragment inflates me through FragmentHomeBinding. DashboardActivity hosts the fragment.
-Why I chose to write the code of the function the way its written: NestedScrollView lets nearby and matches share one scroll.
-More: I use CoordinatorLayout.
+The root is a `CoordinatorLayout` (a common choice for scrolling dashboard fragments),
+with a `NestedScrollView` doing the actual scrolling so it cooperates with the
+dashboard's bottom bar.
 
+## Components
+
+### Header (greeting + avatar)
 ```xml
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_dashboard_header"
-                android:clipChildren="false"
-                android:clipToPadding="false"
-                android:paddingTop="@dimen/screen_padding_top"
-                android:paddingBottom="@dimen/screen_padding_bottom"
-                android:paddingEnd="@dimen/screen_padding_horizontal"
-                android:paddingStart="@dimen/screen_padding_horizontal">
+<FrameLayout android:background="@drawable/bg_dashboard_header">
+    <View android:background="@drawable/bg_header_orb" ... /> <!-- decorative -->
+    <LinearLayout android:orientation="horizontal">
+        <LinearLayout android:layout_weight="1" android:orientation="vertical">
+            <com.google.android.material.textview.MaterialTextView android:id="@+id/text_greeting" ... />
+            <com.google.android.material.textview.MaterialTextView android:id="@+id/text_dashboard_subtitle" ... />
+        </LinearLayout>
+        <com.google.android.material.card.MaterialCardView> <!-- round avatar -->
+            <ImageView android:id="@+id/image_home_avatar" ... />
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</FrameLayout>
 ```
+- **What it shows:** a colored header with a personalized greeting and subtitle on the
+  left and a round profile avatar on the right, plus a soft decorative "orb" behind it.
+- **Why it's set up this way:** a `FrameLayout` lets the orb sit behind the text/avatar
+  row. The text block uses `layout_weight="1"` to take the remaining width so the avatar
+  stays pinned to the right. The avatar is a `MaterialCardView` circle.
+- **How the code uses it:** the code sets `binding.textGreeting` with the user's name and
+  loads the photo into `binding.imageHomeAvatar` with Glide. The subtitle is static.
 
-What that function does: I am the dark greeting header with the avatar.
-What the function is responsible for: I am the home hero.
-Where it works: HomeFragment sets text_greeting and image_home_avatar.
-Why I chose to write the code of the function the way its written: clipChildren false lets the orb and avatar hang off the edge.
-More: I use bg_dashboard_header.
-
+### Highlight cards (claim decision / targeted found / pending claims)
 ```xml
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/text_greeting"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="@string/dashboard_greeting"
-                            android:textAppearance="@style/TextAppearance.ReClaim.DashboardTitle"
-                            tools:text="Hello, Alex" />
+<com.google.android.material.card.MaterialCardView
+    android:id="@+id/card_claim_decision"
+    android:visibility="gone" ...>
+    <!-- icon + title (text_claim_decision_title) + subtitle (text_claim_decision_subtitle) + chevron -->
+</com.google.android.material.card.MaterialCardView>
+
+<com.google.android.material.card.MaterialCardView android:id="@+id/card_targeted_found" android:visibility="gone" ...>
+    <!-- icon + title + subtitle (text_targeted_found_subtitle) + chevron -->
+</com.google.android.material.card.MaterialCardView>
+
+<com.google.android.material.card.MaterialCardView android:id="@+id/card_pending_claims" android:visibility="gone" ...>
+    <!-- icon + title + count (text_pending_claims_count) + chevron -->
+</com.google.android.material.card.MaterialCardView>
 ```
+- **What it shows:** up to three tappable notice cards — a decision on your claim, a
+  found item aimed at your lost report, and a count of claims awaiting your review. Each
+  has an icon, a title/subtitle, and a right chevron.
+- **Why it's set up this way:** all three start `visibility="gone"` and are turned on
+  only when relevant, so the home screen stays clean. Each card is `clickable`/`focusable`
+  with a `foreground` ripple so the whole card feels like a button. They share the same
+  icon-left / text-middle (`layout_weight="1"`) / chevron-right layout.
+- **How the code uses it:** the code shows/hides `binding.cardClaimDecision`,
+  `binding.cardTargetedFound`, and `binding.cardPendingClaims`, fills
+  `binding.textClaimDecisionTitle`/`textClaimDecisionSubtitle`,
+  `binding.textTargetedFoundSubtitle`, and `binding.textPendingClaimsCount`, and sets
+  click listeners that navigate or open the pending-claims sheet.
 
-What that function does: I show Hello, then the user's name when it loads.
-What the function is responsible for: I am the greeting.
-Where it works: HomeFragment.loadUserGreeting sets me.
-Why I chose to write the code of the function the way its written: XML default keeps the header filled before the user call returns.
-More: I use dashboard_greeting.
-
+### "Nearby" list, empty text, and Show more
 ```xml
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="@dimen/space_82"
-                        android:layout_height="@dimen/space_82"
-                        android:layout_marginStart="@dimen/space_16"
-                        android:layout_marginEnd="@dimen/space_neg_10"
-                        android:layout_marginTop="@dimen/space_neg_10"
-                        android:layout_marginBottom="@dimen/space_neg_10"
-                        app:cardBackgroundColor="#28F7F5F0"
-                        app:cardCornerRadius="@dimen/space_41"
-                        app:cardElevation="0dp"
-                        app:strokeColor="#40F7F5F0"
-                        app:strokeWidth="@dimen/space_1_5">
+<androidx.recyclerview.widget.RecyclerView
+    android:id="@+id/recycler_nearby"
+    android:orientation="horizontal"
+    android:fadingEdgeLength="@dimen/space_48"
+    android:requiresFadingEdge="horizontal"
+    tools:listitem="@layout/item_card_preview" />
 
-                        <ImageView
-                            android:id="@+id/image_home_avatar"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:contentDescription="@string/profile_title"
-                            android:padding="@dimen/space_12"
-                            android:scaleType="centerCrop"
-                            android:src="@drawable/ic_settings_person"
-                            app:tint="@color/brand_white" />
-                    </com.google.android.material.card.MaterialCardView>
+<com.google.android.material.textview.MaterialTextView android:id="@+id/text_nearby_empty" android:visibility="gone" ... />
+<com.google.android.material.button.MaterialButton android:id="@+id/btn_show_more" ... />
 ```
+- **What it shows:** a horizontally scrolling row of small item cards that fade at the
+  edges, an empty message when there's nothing nearby, and a "Show more" button.
+- **Why it's set up this way:** the list is horizontal with fading edges to hint there's
+  more to scroll; it uses no side padding so the fade sits at the screen edge (spacing
+  between cards is added in code via an item decoration). Each row uses
+  `item_card_preview.xml` (see that doc).
+- **How the code uses it:** the code sets a horizontal `LinearLayoutManager`, an item
+  decoration, and the preview adapter on `binding.recyclerNearby`. It toggles
+  `binding.textNearbyEmpty`/`binding.btnShowMore` based on whether the list is empty, and
+  `binding.btnShowMore` opens the full search list.
 
-What that function does: I am the round home avatar.
-What the function is responsible for: I show the profile photo.
-Where it works: HomeFragment.loadAvatar loads into image_home_avatar.
-Why I chose to write the code of the function the way its written: Java clears padding and tint before a real photo so the icon style does not stay on.
-More: I use a translucent stroke on the dark header.
-
+### "Possible matches" and progress
 ```xml
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_claim_decision"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/screen_padding_horizontal"
-                android:layout_marginEnd="@dimen/screen_padding_horizontal"
-                android:layout_marginTop="@dimen/space_20"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                android:visibility="gone"
-                app:cardBackgroundColor="@color/brand_dark"
-                app:cardCornerRadius="@dimen/space_18"
-                app:cardElevation="@dimen/space_4"
-                app:strokeWidth="0dp">
+<LinearLayout android:id="@+id/layout_matches" android:orientation="vertical" />
+<com.google.android.material.textview.MaterialTextView android:id="@+id/text_matches_empty" android:visibility="gone" ... />
+<ProgressBar android:id="@+id/progress_home" android:visibility="gone" />
 ```
-
-What that function does: I am the approved/declined notice. Start gone.
-What the function is responsible for: I open the decision dialog.
-Where it works: HomeFragment.renderDecisionCard shows me. cardClaimDecision click opens the dialog.
-Why I chose to write the code of the function the way its written: Dark fill stands apart from the other home cards.
-More: I use text_claim_decision_title and text_claim_decision_subtitle inside.
-
-```xml
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_targeted_found"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/screen_padding_horizontal"
-                android:layout_marginEnd="@dimen/screen_padding_horizontal"
-                android:layout_marginTop="@dimen/space_20"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                android:visibility="gone"
-                app:cardBackgroundColor="@color/brand_accent"
-                app:cardCornerRadius="@dimen/space_18"
-                app:cardElevation="@dimen/space_4"
-                app:strokeWidth="0dp">
-```
-
-What that function does: I am the private found-report notice. Start gone.
-What the function is responsible for: I open the latest targeted found item.
-Where it works: HomeFragment.renderTargetedFoundCard shows me. Click opens ItemDetailsActivity.
-Why I chose to write the code of the function the way its written: Accent fill marks this as a match aimed at me.
-More: I use text_targeted_found_subtitle.
-
-```xml
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_pending_claims"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/screen_padding_horizontal"
-                android:layout_marginEnd="@dimen/screen_padding_horizontal"
-                android:layout_marginTop="@dimen/space_20"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                android:visibility="gone"
-                app:cardBackgroundColor="@color/md_theme_surfaceContainerLowest"
-                app:cardCornerRadius="@dimen/space_18"
-                app:cardElevation="@dimen/space_2"
-                app:strokeColor="@color/brand_accent"
-                app:strokeWidth="@dimen/space_1">
-```
-
-What that function does: I am the pending-claims notice with a count. Start gone.
-What the function is responsible for: I open PendingClaimsSheet.
-Where it works: HomeFragment.renderClaimCards shows me. Click calls showPendingClaimsSheet.
-Why I chose to write the code of the function the way its written: A light card with an accent stroke is quieter than the decision card.
-More: I use text_pending_claims_count.
-
-```xml
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recycler_nearby"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_12"
-                android:background="@color/md_theme_background"
-                android:clipToPadding="false"
-                android:fadingEdgeLength="@dimen/space_48"
-                android:nestedScrollingEnabled="false"
-                android:orientation="horizontal"
-                android:requiresFadingEdge="horizontal"
-                tools:itemCount="4"
-                tools:listitem="@layout/item_card_preview" />
-```
-
-What that function does: I am the horizontal nearby row.
-What the function is responsible for: I show up to four preview cards.
-Where it works: HomeFragment sets PreviewItemAdapter. Cards use item_card_preview.xml.
-Why I chose to write the code of the function the way its written: No side padding so the fade reaches the edge. Gutters come from ItemDecoration.
-More: I use nestedScrollingEnabled false.
-
-```xml
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/text_nearby_empty"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_10"
-                android:gravity="center"
-                android:paddingTop="@dimen/space_16"
-                android:paddingBottom="@dimen/space_16"
-                android:text="@string/home_nearby_empty"
-                android:textColor="@color/text_secondary"
-                android:visibility="gone" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_show_more"
-                style="@style/Widget.ReClaim.Button.Secondary"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/button_height"
-                android:layout_marginTop="@dimen/space_14"
-                android:layout_marginStart="@dimen/space_24"
-                android:layout_marginEnd="@dimen/space_24"
-                android:text="@string/btn_show_more"
-                android:visibility="visible" />
-```
-
-What that function does: I am nearby empty text and the show-more button.
-What the function is responsible for: Empty hides the row. Show more jumps to Search.
-Where it works: HomeFragment.renderNearby toggles these. btnShowMore uses DashboardNavigator.selectTab.
-Why I chose to write the code of the function the way its written: Empty starts gone. Show more hides when there is nothing nearby.
-More: I use Widget.ReClaim.Button.Secondary.
-
-```xml
-            <LinearLayout
-                android:id="@+id/layout_matches"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_12"
-                android:paddingEnd="@dimen/screen_padding_horizontal"
-                android:paddingStart="@dimen/screen_padding_horizontal"
-                android:orientation="vertical" />
-
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/text_matches_empty"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_10"
-                android:gravity="center"
-                android:paddingTop="@dimen/space_16"
-                android:paddingBottom="@dimen/space_16"
-                android:text="@string/home_matches_empty"
-                android:textColor="@color/text_secondary"
-                android:visibility="gone" />
-
-            <ProgressBar
-                android:id="@+id/progress_home"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="@dimen/space_32"
-                android:indeterminateTint="@color/brand_accent"
-                android:visibility="gone" />
-```
-
-What that function does: I am the matches slot, empty text, and home spinner.
-What the function is responsible for: Java adds headers and ItemAdapter lists into layout_matches.
-Where it works: HomeFragment.renderMatches fills me. progress_home follows ItemsViewModel loading.
-Why I chose to write the code of the function the way its written: Group count is not known in XML, so the slot starts empty.
-More: Match cards use item_card.xml through ItemAdapter.
+- **What it shows:** a vertical area where suggested matches for your lost items appear,
+  an empty message when there are none, and a centered loading spinner.
+- **Why it's set up this way:** `layout_matches` is an empty `LinearLayout` that the code
+  fills at runtime (each match is added as a child view), which is simpler than a second
+  RecyclerView for a short, built-in-code list.
+- **How the code uses it:** the code clears and re-adds child views to
+  `binding.layoutMatches` (`removeAllViews()` then `addView(...)`), shows/hides
+  `binding.textMatchesEmpty`, and toggles `binding.progressHome` while loading.

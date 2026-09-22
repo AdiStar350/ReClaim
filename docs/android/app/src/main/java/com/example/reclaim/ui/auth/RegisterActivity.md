@@ -1,42 +1,160 @@
+# RegisterActivity.java
+
+## Overview
+This is step 1 of sign-up. An **Activity** is one full screen with its own logic and lifecycle (see `docs/GLOSSARY.md`). This screen collects the new user's name, email, phone, password, and an optional profile photo. When the form is valid it uploads the photo (if any) and asks the backend to email a one-time code (OTP), then opens `VerifyOtpActivity` for step 2.
+
+## Concepts used here
+- **Activity lifecycle** — `onCreate` builds the screen; `onDestroy` cleans up the background thread. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `ActivityRegisterBinding` exposes the views from `activity_register.xml`. See `docs/GLOSSARY.md`.
+- **Activity Result API** — `registerForActivityResult` opens the photo gallery and receives the picked image back. See `docs/GLOSSARY.md`.
+- **Background thread (`ExecutorService`)** — the photo upload runs off the main thread so the UI does not freeze; results are posted back with `runOnUiThread`.
+- **Retrofit `Call` / `enqueue`** — sends the "email a code" request and reads the reply. See `docs/GLOSSARY.md`.
+- **Glide** — loads the chosen photo into a round preview. See `docs/GLOSSARY.md`.
+- **OTP** — a 6-digit code emailed to prove the address is real. See `docs/GLOSSARY.md`.
+
+## Libraries and imports
+- **AndroidX / AppCompat**: `AppCompatActivity` base class; `WindowCompat` for edge-to-edge; `ActivityResultLauncher`/`ActivityResultContracts.GetContent` for the gallery picker.
+- **Android framework**: `Intent` opens the next screen; `Uri` points at the picked image; `TextUtils`/`Patterns` validate input; `Toast` shows short messages; `Log` records upload errors.
+- **Glide** (`com.bumptech.glide.Glide`): loads the photo preview with `circleCrop()`.
+- **Project classes**: `ActivityRegisterBinding` (layout), `RetrofitClient`/`ReClaimApiService` (API), `SendOtpRequest` (the JSON body), `ImageUploadService` (uploads the photo to storage and returns its URL), `ConnectionToasts` (network-aware error toast), `VerifyOtpActivity` (step 2).
+- **Java standard**: `UUID` makes a random id for the photo path; `ExecutorService`/`Executors` run the upload on a single background thread; `IOException` is thrown if the upload fails.
+- **Retrofit**: `Call`, `Callback`, `Response`.
+
+## Fields
+- `private static final String TAG = "RegisterActivity";` — label for log messages.
+- `private ActivityRegisterBinding binding;` — typed access to all views in the layout.
+- `private ReClaimApiService apiService;` — makes the backend calls.
+- `private final ExecutorService uploadExecutor = Executors.newSingleThreadExecutor();` — a one-thread background worker used to upload the photo without blocking the UI.
+- `private Uri selectedImageUri;` — the photo the user picked (may still be uploading).
+- `private String uploadedProfileUrl;` — the photo's URL after a successful upload, or null.
+- `private String pendingImageId;` — the random id used as the photo's storage path.
+- `private boolean uploadingImage;` — true while an upload is in progress; blocks submit until it finishes.
+- `private final ActivityResultLauncher<String> galleryLauncher = registerForActivityResult(...)` — opens the gallery; its callback stores the picked `Uri`, resets the previous URL, makes a new `pendingImageId`, shows the avatar, and kicks off `uploadProfileImage`. It must be created as a field (during construction) because the Activity Result API requires registration before the screen starts.
+
+## Functions
+
+### `private void setLoadingState(boolean isLoading)`
 ```java
-@Override
-protected void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-
-    WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-
-    binding = ActivityRegisterBinding.inflate(getLayoutInflater());
-    setContentView(binding.getRoot());
-
-    apiService = RetrofitClient.getApiService();
-
-    setupClickListeners();
+private void setLoadingState(boolean isLoading) {
+    binding.btnRegister.setEnabled(!isLoading);
+    binding.btnRegister.setText(isLoading ? R.string.btn_creating_account : R.string.btn_register);
+    binding.editFullName.setEnabled(!isLoading);
+    binding.editEmail.setEnabled(!isLoading);
+    binding.editPhone.setEnabled(!isLoading);
+    binding.editPassword.setEnabled(!isLoading);
+    binding.editConfirmPassword.setEnabled(!isLoading);
+    binding.btnGoLogin.setEnabled(!isLoading);
+    binding.cardAvatar.setEnabled(!isLoading);
+    binding.btnAddPhoto.setEnabled(!isLoading);
 }
 ```
+- **What it does:** Enables or disables the whole form and changes the register button label while the app is busy.
+- **Where it's called:** From `attemptRegistration` and from the `sendOtp` callbacks.
+- **Why it's written this way:** Locking every input during the request prevents a double submit and signals that work is happening.
+- **Step by step:**
+  1. Toggle the register button and swap its text to "Creating account…" while loading.
+  2. Toggle each text field, the go-to-login button, the avatar card, and the add-photo button together.
 
-What that function does: I show the sign-up form.
-What the function is responsible for: I am sign-up step 1.
-Where it works: LoginActivity starts me. I inflate activity_register.xml.
-Why I chose to write the code of the function the way its written: I draw behind the system bars like login.
-More: I use ActivityRegisterBinding and RetrofitClient.getApiService.
-
+### `private void showAvatar(Uri uri)`
 ```java
-private void setupClickListeners() {
-    binding.btnRegister.setOnClickListener(v -> attemptRegistration());
-    binding.btnGoLogin.setOnClickListener(v -> finish());
-
-    android.view.View.OnClickListener pickPhoto = v -> galleryLauncher.launch("image/*");
-    binding.cardAvatar.setOnClickListener(pickPhoto);
-    binding.btnAddPhoto.setOnClickListener(pickPhoto);
+private void showAvatar(@NonNull Uri uri) {
+    binding.imageProfileAvatar.setPadding(0, 0, 0, 0);
+    binding.imageProfileAvatar.setImageTintList(null);
+    Glide.with(this)
+            .load(uri)
+            .circleCrop()
+            .placeholder(R.drawable.ic_settings_person)
+            .error(R.drawable.ic_settings_person)
+            .into(binding.imageProfileAvatar);
 }
 ```
+- **What it does:** Shows the picked photo as a round avatar in the preview.
+- **Where it's called:** From the `galleryLauncher` callback right after a photo is chosen.
+- **Why it's written this way:** It removes the placeholder padding and tint so the real photo fills the circle, and uses Glide's `circleCrop()` for the round shape with a fallback icon.
+- **Step by step:**
+  1. Clear the padding and color tint used by the placeholder icon.
+  2. Ask Glide to load the `uri`, crop it into a circle, and show it, using the person icon while loading or on error.
 
-What that function does: I wire register, back to login, and photo pick.
-What the function is responsible for: I am the click setup for the sign-up form.
-Where it works: I am called from onCreate. galleryLauncher uses GetContent for image/*.
-Why I chose to write the code of the function the way its written: finish() returns to login because login started me. Avatar and add-photo share one picker.
-More: I use ActivityResultContracts.GetContent.
+### `private void handleRegistrationError(int statusCode)`
+```java
+private void handleRegistrationError(int statusCode) {
+    String errorMsg;
+    switch (statusCode) {
+        case 409:
+            errorMsg = getString(R.string.msg_email_already_registered);
+            break;
+        case 400:
+            errorMsg = getString(R.string.msg_invalid_registration);
+            break;
+        case 422:
+            errorMsg = getString(R.string.msg_validation_error);
+            break;
+        case 500:
+            // Server is up but the code email failed to send.
+            errorMsg = getString(R.string.msg_otp_send_failed);
+            break;
+        default:
+            if (statusCode >= 500) {
+                errorMsg = getString(R.string.msg_server_error);
+            } else {
+                errorMsg = getString(R.string.msg_registration_failed, statusCode);
+            }
+            break;
+    }
+    Toast.makeText(RegisterActivity.this, errorMsg, Toast.LENGTH_LONG).show();
+}
+```
+- **What it does:** Turns an error status code from the "send code" request into a clear message.
+- **Where it's called:** From the `sendOtp` `onResponse` when the response is not successful.
+- **Why it's written this way:** Each known code (`409` already registered, `400` bad input, `422` validation, `500` email send failed) gets its own message; anything else falls back to a generic server or numbered error.
+- **Step by step:**
+  1. Pick a message based on the status code.
+  2. For unknown codes ≥ 500 use "server error"; otherwise show a generic message including the code.
+  3. Toast the chosen message.
 
+### `private void sendOtp(String email, String password, String name, String phone, String profilePictureUrl)`
+```java
+private void sendOtp(String email, String password, String name,
+                     String phone, String profilePictureUrl) {
+    SendOtpRequest request = new SendOtpRequest(
+            email, password, name, phone, profilePictureUrl);
+
+    apiService.sendRegistrationOtp(request).enqueue(new Callback<Void>() {
+        @Override
+        public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
+            setLoadingState(false);
+            if (response.isSuccessful()) {
+                Toast.makeText(RegisterActivity.this,
+                        R.string.msg_otp_sent, Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(RegisterActivity.this, VerifyOtpActivity.class);
+                intent.putExtra(VerifyOtpActivity.EXTRA_EMAIL, email);
+                startActivity(intent);
+            } else {
+                handleRegistrationError(response.code());
+            }
+        }
+
+        @Override
+        public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
+            setLoadingState(false);
+            ConnectionToasts.showIfOnline(RegisterActivity.this,
+                    getString(R.string.msg_network_error, t.getLocalizedMessage()),
+                    Toast.LENGTH_LONG);
+        }
+    });
+}
+```
+- **What it does:** Sends all the collected details to the backend so it can email a verification code, then opens step 2.
+- **Where it's called:** From `attemptRegistration` — either directly (no photo, or photo already uploaded) or after a retry upload succeeds.
+- **Why it's written this way:** The whole registration payload is carried in the OTP request so the account can be created only after the code is confirmed on the next screen. The email is passed forward as an intent extra.
+- **Step by step:**
+  1. Build a `SendOtpRequest` with email, password, name, phone, and photo URL.
+  2. `enqueue` `apiService.sendRegistrationOtp(...)`.
+  3. In `onResponse`: stop loading; on success toast "code sent" and start `VerifyOtpActivity` with the email extra.
+  4. On an error response, delegate to `handleRegistrationError(code)`.
+  5. In `onFailure`: stop loading and show a network error only if the backend is online.
+
+### `private void uploadProfileImage(Uri uri, String pendingId)`
 ```java
 private void uploadProfileImage(@NonNull Uri uri, @NonNull String pendingId) {
     uploadingImage = true;
@@ -69,13 +187,17 @@ private void uploadProfileImage(@NonNull Uri uri, @NonNull String pendingId) {
     });
 }
 ```
+- **What it does:** Uploads the chosen photo to storage on a background thread and remembers its URL, so it is ready by the time the user submits.
+- **Where it's called:** From the `galleryLauncher` callback, right after a photo is picked.
+- **Why it's written this way:** Uploading early (as soon as the photo is chosen) means the submit step usually has the URL already. Upload is network/disk work, so it runs on `uploadExecutor` and the result is posted back with `runOnUiThread`. The `uploadingImage` flag lets `attemptRegistration` wait if needed.
+- **Step by step:**
+  1. Mark `uploadingImage = true`, change the button to "Uploading…", and disable it.
+  2. On the background thread, call `ImageUploadService.uploadImage(...)` into the profiles folder; catch and log any `IOException`.
+  3. Back on the UI thread, clear the uploading flag and store the URL (may be null).
+  4. If the binding is gone, stop.
+  5. Re-enable and relabel the button; if the upload failed (null URL), toast the failure.
 
-What that function does: I upload the picked photo on a background thread and keep the URL.
-What the function is responsible for: I start the profile photo upload as soon as a picture is picked.
-Where it works: The gallery launcher calls me. ImageUploadService uses FOLDER_PROFILES.
-Why I chose to write the code of the function the way its written: pendingId is a UUID path, not a user id, because the account does not exist yet. I restore the button on the UI thread.
-More: I use Executors.newSingleThreadExecutor and ImageUploadService.uploadImage.
-
+### `private void attemptRegistration()`
 ```java
 private void attemptRegistration() {
     binding.inputLayoutFullName.setError(null);
@@ -177,158 +299,63 @@ private void attemptRegistration() {
     sendOtp(email, password, fullName, phone, uploadedProfileUrl);
 }
 ```
+- **What it does:** Validates every field, waits for or retries the photo upload, and then calls `sendOtp` to email the code.
+- **Where it's called:** From the Register button, wired in `setupClickListeners`.
+- **Why it's written this way:** Every field is checked locally, in order, so problems are caught before the network. If the photo is still uploading it asks the user to wait; if a photo was picked but its upload failed earlier, it retries once before sending, so a temporary glitch does not lose the photo.
+- **Step by step:**
+  1. Clear old field errors and read all five fields (trimmed).
+  2. Run the checks in order (name, email present, email valid, phone, password present, password length, confirm present, passwords match); each failure sets an error, refocuses, and returns.
+  3. If an upload is still running, toast "uploading" and stop.
+  4. Lock the form with `setLoadingState(true)`.
+  5. If a photo was picked but has no URL yet, retry the upload on the background thread; on failure toast and unlock, on success store the URL and call `sendOtp` from the UI thread.
+  6. Otherwise call `sendOtp` immediately with whatever photo URL exists (possibly null).
 
-What that function does: I check the form, wait for a photo if needed, then I send the sign-up code.
-What the function is responsible for: I am the register button path.
-Where it works: I am called from btnRegister. Success goes to sendOtp.
-Why I chose to write the code of the function the way its written: I retry a failed photo once so a flaky upload does not block sign-up forever. I do not send while uploadingImage is true.
-More: I use Patterns.EMAIL_ADDRESS and ImageUploadService on retry.
-
+### `private void setupClickListeners()`
 ```java
-private void sendOtp(String email, String password, String name,
-                     String phone, String profilePictureUrl) {
-    SendOtpRequest request = new SendOtpRequest(
-            email, password, name, phone, profilePictureUrl);
+private void setupClickListeners() {
+    binding.btnRegister.setOnClickListener(v -> attemptRegistration());
+    binding.btnGoLogin.setOnClickListener(v -> finish());
 
-    apiService.sendRegistrationOtp(request).enqueue(new Callback<Void>() {
-        @Override
-        public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
-            setLoadingState(false);
-            if (response.isSuccessful()) {
-                Toast.makeText(RegisterActivity.this,
-                        R.string.msg_otp_sent, Toast.LENGTH_SHORT).show();
-                Intent intent = new Intent(RegisterActivity.this, VerifyOtpActivity.class);
-                intent.putExtra(VerifyOtpActivity.EXTRA_EMAIL, email);
-                startActivity(intent);
-            } else {
-                handleRegistrationError(response.code());
-            }
-        }
-
-        @Override
-        public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
-            setLoadingState(false);
-            ConnectionToasts.showIfOnline(RegisterActivity.this,
-                    getString(R.string.msg_network_error, t.getLocalizedMessage()),
-                    Toast.LENGTH_LONG);
-        }
-    });
+    android.view.View.OnClickListener pickPhoto = v -> galleryLauncher.launch("image/*");
+    binding.cardAvatar.setOnClickListener(pickPhoto);
+    binding.btnAddPhoto.setOnClickListener(pickPhoto);
 }
 ```
+- **What it does:** Wires the register button, the "back to login" button, and the two ways to pick a photo.
+- **Where it's called:** Once from `onCreate`.
+- **Why it's written this way:** "Go to login" just calls `finish()` because login is the screen underneath, so closing returns to it. The avatar card and the add-photo button share one listener that launches the gallery for images.
+- **Step by step:**
+  1. Register button → `attemptRegistration()`.
+  2. Go-to-login button → `finish()` this screen.
+  3. Both the avatar card and add-photo button → launch the gallery with `image/*`.
 
-What that function does: I POST the sign-up fields so the server can email a code, then I open verify.
-What the function is responsible for: I am POST /api/auth/register/send-otp from this screen.
-Where it works: I am called from attemptRegistration. Success starts VerifyOtpActivity with EXTRA_EMAIL.
-Why I chose to write the code of the function the way its written: Mode defaults to register on VerifyOtpActivity, so I only pass email.
-More: I use SendOtpRequest and apiService.sendRegistrationOtp.
-
+### `protected void onCreate(Bundle savedInstanceState)`
 ```java
-public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
-    setLoadingState(false);
-    if (response.isSuccessful()) {
-        Toast.makeText(RegisterActivity.this,
-                R.string.msg_otp_sent, Toast.LENGTH_SHORT).show();
-        Intent intent = new Intent(RegisterActivity.this, VerifyOtpActivity.class);
-        intent.putExtra(VerifyOtpActivity.EXTRA_EMAIL, email);
-        startActivity(intent);
-    } else {
-        handleRegistrationError(response.code());
-    }
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+
+    WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+    binding = ActivityRegisterBinding.inflate(getLayoutInflater());
+    setContentView(binding.getRoot());
+
+    apiService = RetrofitClient.getApiService();
+
+    setupClickListeners();
 }
 ```
+- **What it does:** Builds the screen and wires its buttons.
+- **Where it's called:** Android calls it when the Activity is created.
+- **Why it's written this way:** Standard setup: edge-to-edge window, inflate the layout with ViewBinding, get the API client once, then attach listeners.
+- **Step by step:**
+  1. Call `super.onCreate`.
+  2. Draw behind the system bars.
+  3. Inflate `activity_register.xml` and set it as content.
+  4. Get the shared API service.
+  5. Wire the click listeners.
 
-What that function does: I open verify-otp, or I map the HTTP error.
-What the function is responsible for: I am the Retrofit success path for sendRegistrationOtp.
-Where it works: Retrofit calls me from sendOtp.
-Why I chose to write the code of the function the way its written: 409 and 400 need different toasts, so I use handleRegistrationError.
-More: I use VerifyOtpActivity.EXTRA_EMAIL.
-
-```java
-public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
-    setLoadingState(false);
-    ConnectionToasts.showIfOnline(RegisterActivity.this,
-            getString(R.string.msg_network_error, t.getLocalizedMessage()),
-            Toast.LENGTH_LONG);
-}
-```
-
-What that function does: I stop loading and toast a network error if the API is up.
-What the function is responsible for: I am the Retrofit failure path for sendRegistrationOtp.
-Where it works: Retrofit calls me from sendOtp.
-Why I chose to write the code of the function the way its written: ConnectionToasts hides the toast during an outage.
-More: I use ConnectionToasts.showIfOnline.
-
-```java
-private void handleRegistrationError(int statusCode) {
-    String errorMsg;
-    switch (statusCode) {
-        case 409:
-            errorMsg = getString(R.string.msg_email_already_registered);
-            break;
-        case 400:
-            errorMsg = getString(R.string.msg_invalid_registration);
-            break;
-        case 422:
-            errorMsg = getString(R.string.msg_validation_error);
-            break;
-        default:
-            if (statusCode >= 500) {
-                errorMsg = getString(R.string.msg_server_error);
-            } else {
-                errorMsg = getString(R.string.msg_registration_failed, statusCode);
-            }
-            break;
-    }
-    Toast.makeText(RegisterActivity.this, errorMsg, Toast.LENGTH_LONG).show();
-}
-```
-
-What that function does: I toast why sign-up could not start.
-What the function is responsible for: I map HTTP codes from send-otp.
-Where it works: I am called from sendOtp's onResponse.
-Why I chose to write the code of the function the way its written: 409 is the usual taken-email case so it has its own string.
-More: I use string resources for 409, 400, 422, and 5xx.
-
-```java
-private void showAvatar(@NonNull Uri uri) {
-    binding.imageProfileAvatar.setPadding(0, 0, 0, 0);
-    binding.imageProfileAvatar.setImageTintList(null);
-    Glide.with(this)
-            .load(uri)
-            .circleCrop()
-            .placeholder(R.drawable.ic_settings_person)
-            .error(R.drawable.ic_settings_person)
-            .into(binding.imageProfileAvatar);
-}
-```
-
-What that function does: I show the picked photo as a round avatar.
-What the function is responsible for: I preview the picture before upload finishes.
-Where it works: The gallery launcher calls me.
-Why I chose to write the code of the function the way its written: I clear padding and tint so the placeholder icon does not sit on top of the photo.
-More: I use Glide.circleCrop.
-
-```java
-private void setLoadingState(boolean isLoading) {
-    binding.btnRegister.setEnabled(!isLoading);
-    binding.btnRegister.setText(isLoading ? R.string.btn_creating_account : R.string.btn_register);
-    binding.editFullName.setEnabled(!isLoading);
-    binding.editEmail.setEnabled(!isLoading);
-    binding.editPhone.setEnabled(!isLoading);
-    binding.editPassword.setEnabled(!isLoading);
-    binding.editConfirmPassword.setEnabled(!isLoading);
-    binding.btnGoLogin.setEnabled(!isLoading);
-    binding.cardAvatar.setEnabled(!isLoading);
-    binding.btnAddPhoto.setEnabled(!isLoading);
-}
-```
-
-What that function does: I lock the form while send-otp or a retry upload runs.
-What the function is responsible for: I stop a second submit.
-Where it works: I am called from attemptRegistration and sendOtp.
-Why I chose to write the code of the function the way its written: I also lock the photo picker so the URI does not change mid-call.
-More: I toggle enabled flags and the button text.
-
+### `protected void onDestroy()`
 ```java
 @Override
 protected void onDestroy() {
@@ -336,9 +363,9 @@ protected void onDestroy() {
     uploadExecutor.shutdownNow();
 }
 ```
-
-What that function does: I stop the photo upload thread when the screen closes.
-What the function is responsible for: I clean the executor so work does not outlive the activity.
-Where it works: Android calls me when this activity is destroyed.
-Why I chose to write the code of the function the way its written: shutdownNow is enough for a single-thread pool.
-More: I use ExecutorService.shutdownNow.
+- **What it does:** Stops the background upload thread when the screen is closed.
+- **Where it's called:** Android calls it as the Activity is destroyed (lifecycle end).
+- **Why it's written this way:** `shutdownNow()` releases the thread so no upload keeps running after the screen is gone, avoiding leaks.
+- **Step by step:**
+  1. Call `super.onDestroy`.
+  2. Shut down `uploadExecutor`.

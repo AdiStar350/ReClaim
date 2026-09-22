@@ -1,306 +1,173 @@
+# activity_register.xml
+
+## Overview
+This layout is the sign-up screen: the same dark hero as login on top, then a light
+scrolling form for profile photo, name, email, phone, password, and confirm password.
+It is inflated by `RegisterActivity` through `ActivityRegisterBinding`
+(`ActivityRegisterBinding.inflate(...)` then `setContentView(binding.getRoot())`).
+
+Key idea: a **layout XML** describes the views; `RegisterActivity` (an **Activity**,
+one full screen) fills them in and reads them. See `docs/GLOSSARY.md`.
+
+## Concepts used here
+- **LinearLayout** — stacks children vertically (root and form). See `docs/GLOSSARY.md`.
+- **NestedScrollView** — makes the tall form scroll. See `docs/GLOSSARY.md`.
+- **FrameLayout** — stacks views on top of each other; used to place a small camera
+  badge over the avatar circle. See `docs/GLOSSARY.md`.
+- **MaterialCardView** — a rounded card; here it makes the circular avatar and the tiny
+  camera badge. See `docs/GLOSSARY.md`.
+- **TextInputLayout + TextInputEditText** — the Material text fields. See `docs/GLOSSARY.md`.
+- **Material Button** — the register button and the text buttons. See `docs/GLOSSARY.md`.
+- **ViewBinding** — `ActivityRegisterBinding` for typed access to the ids. See `docs/GLOSSARY.md`.
+
+## Screen structure
+A vertical `LinearLayout` with a fixed hero and a scrollable form:
+
+```
+LinearLayout (root, vertical)
+├── LinearLayout (hero: logo + title + subtitle)
+└── NestedScrollView
+    └── LinearLayout (vertical form)
+        ├── title text
+        ├── FrameLayout (avatar circle + camera badge)
+        ├── "Add photo" text button
+        ├── full name field
+        ├── email field
+        ├── phone field
+        ├── password field
+        ├── confirm password field
+        ├── Register button
+        └── "Have an account? Log in" row
+```
+
+The root is a `LinearLayout` for the same reason as login: two blocks stacked in a
+column (fixed hero + flexible form).
+
+## Components
+
+### Root and hero banner
 ```xml
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
+<LinearLayout
     android:background="@color/brand_deep"
     android:fitsSystemWindows="true"
     android:orientation="vertical">
-```
 
-What that function does: I am the sign-up screen: dark hero on top, form below.
-What the function is responsible for: I am the root of activity_register.
-Where it works: RegisterActivity inflates me through ActivityRegisterBinding.
-Why I chose to write the code of the function the way its written: Same split as login so the two screens feel like a pair.
-More: I use a vertical LinearLayout.
-
-```xml
     <LinearLayout
-        android:layout_width="match_parent"
         android:layout_height="@dimen/space_200"
         android:gravity="center"
-        android:orientation="vertical"
-        android:paddingTop="@dimen/space_20"
-        android:paddingBottom="@dimen/space_12">
-
-        <ImageView
-            android:id="@+id/image_logo"
-            android:layout_width="@dimen/space_64"
-            android:layout_height="@dimen/space_64"
-            android:contentDescription="@string/app_name"
-            android:scaleType="centerInside"
-            android:src="@mipmap/ic_launcher" />
-
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/text_register_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_10"
-            android:text="@string/app_name"
-            android:textAppearance="@style/TextAppearance.ReClaim.AuthHero" />
-
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/text_register_subtitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_4"
-            android:text="@string/register_subtitle"
-            android:textAppearance="@style/TextAppearance.ReClaim.HeroSubtitle" />
+        android:orientation="vertical">
+        <ImageView android:id="@+id/image_logo" ... />
+        <com.google.android.material.textview.MaterialTextView android:id="@+id/text_register_title" ... />
+        <com.google.android.material.textview.MaterialTextView android:id="@+id/text_register_subtitle" ... />
     </LinearLayout>
 ```
+- **What it shows:** the dark brand header with logo, app name, and a "create your
+  account" subtitle.
+- **Why it's set up this way:** matches the login hero so the two auth screens feel
+  like one flow; `fitsSystemWindows="true"` keeps it clear of the status bar.
+- **How the code uses it:** these ids are static; `RegisterActivity` does not touch them.
 
-What that function does: I show the logo, app name, and a short sign-up line.
-What the function is responsible for: I am the register hero.
-Where it works: RegisterActivity shows me at the top.
-Why I chose to write the code of the function the way its written: A shorter hero than login leaves more room for extra fields.
-More: I use AuthHero and HeroSubtitle.
-
+### Avatar picker (circle + camera badge)
 ```xml
-    <androidx.core.widget.NestedScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="@drawable/bg_auth_form"
-        android:fillViewport="true">
+<FrameLayout
+    android:layout_gravity="center_horizontal">
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_avatar"
+        android:clickable="true"
+        app:cardCornerRadius="@dimen/space_48">
+        <ImageView
+            android:id="@+id/image_profile_avatar"
+            android:src="@drawable/ic_settings_person" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_gravity="bottom|end"
+        app:cardBackgroundColor="@color/brand_accent">
+        <ImageView android:src="@android:drawable/ic_menu_camera" />
+    </com.google.android.material.card.MaterialCardView>
+</FrameLayout>
+
+<com.google.android.material.button.MaterialButton
+    android:id="@+id/btn_add_photo"
+    android:text="@string/register_add_photo" />
 ```
+- **What it shows:** a round avatar (person icon until a photo is chosen) with a small
+  accent-colored camera badge in the bottom-right corner, plus an "Add photo" button.
+- **Why it's set up this way:** a `FrameLayout` overlays the badge on top of the avatar
+  circle. The circle is a `MaterialCardView` with a large corner radius (half its size),
+  which is the easy way to make a square image look round.
+- **How the code uses it:** `binding.cardAvatar` and `binding.btnAddPhoto` both open the
+  photo picker. After a photo is picked, the code clears the icon padding/tint and loads
+  the image into `binding.imageProfileAvatar` (with Glide). `btnAddPhoto` also shows an
+  "uploading…" state while the photo uploads.
 
-What that function does: I hold the light form sheet and let it scroll.
-What the function is responsible for: I am the form container.
-Where it works: RegisterActivity's fields sit inside me.
-Why I chose to write the code of the function the way its written: Name, email, phone, two passwords, and a photo need scroll on a small screen.
-More: I use NestedScrollView.
-
+### Name / Email / Phone fields
 ```xml
-            <FrameLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="@dimen/space_18">
+<com.google.android.material.textfield.TextInputLayout
+    android:id="@+id/input_layout_full_name"
+    android:hint="@string/hint_full_name"
+    app:startIconDrawable="@android:drawable/ic_menu_myplaces">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/edit_full_name"
+        android:inputType="textPersonName" />
+</com.google.android.material.textfield.TextInputLayout>
 
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_avatar"
-                    android:layout_width="@dimen/space_96"
-                    android:layout_height="@dimen/space_96"
-                    android:clickable="true"
-                    android:focusable="true"
-                    app:cardBackgroundColor="@color/md_theme_primaryContainer"
-                    app:cardCornerRadius="@dimen/space_48"
-                    app:cardElevation="0dp"
-                    app:strokeWidth="0dp">
-
-                    <ImageView
-                        android:id="@+id/image_profile_avatar"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:contentDescription="@string/cd_profile_avatar"
-                        android:padding="@dimen/space_26"
-                        android:scaleType="centerCrop"
-                        android:src="@drawable/ic_settings_person"
-                        app:tint="@color/brand_dark" />
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="@dimen/space_32"
-                    android:layout_height="@dimen/space_32"
-                    android:layout_gravity="bottom|end"
-                    android:clickable="false"
-                    app:cardBackgroundColor="@color/brand_accent"
-                    app:cardCornerRadius="@dimen/space_16"
-                    app:cardElevation="@dimen/space_2"
-                    app:strokeColor="@color/brand_white"
-                    app:strokeWidth="@dimen/space_2">
-
-                    <ImageView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:contentDescription="@string/register_add_photo"
-                        android:padding="@dimen/space_7"
-                        android:src="@android:drawable/ic_menu_camera"
-                        app:tint="@color/text_on_accent" />
-                </com.google.android.material.card.MaterialCardView>
-            </FrameLayout>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_add_photo"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="@dimen/space_2"
-                android:text="@string/register_add_photo"
-                android:textColor="@color/brand_accent" />
+<!-- email field: id input_layout_email / edit_email, inputType textEmailAddress -->
+<!-- phone field: id input_layout_phone / edit_phone, inputType phone -->
 ```
+- **What it shows:** three stacked fields for full name, email, and phone, each with a
+  leading icon and hint.
+- **Why it's set up this way:** each field is one `TextInputLayout` wrapping one edit
+  text so the hint floats up and errors appear under the box. The `inputType` differs per
+  field so Android shows the right keyboard: a name keyboard, an email keyboard, and a
+  phone dialpad.
+- **How the code uses it:** `RegisterActivity.attemptRegistration()` reads
+  `binding.editFullName`, `binding.editEmail`, and `binding.editPhone`, and reports
+  problems on the matching `inputLayout*` (for example `binding.inputLayoutEmail.setError(...)`
+  when the email is empty or invalid).
 
-What that function does: I am the avatar picker with a camera badge and an add-photo button.
-What the function is responsible for: I take an optional profile picture.
-Where it works: RegisterActivity wires card_avatar and btn_add_photo.
-Why I chose to write the code of the function the way its written: The small camera badge is only a hint. The card and text button both open the picker.
-More: I use MaterialCardView for a round avatar.
-
+### Password and Confirm password fields
 ```xml
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/input_layout_full_name"
-                style="@style/Widget.ReClaim.TextInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_20"
-                android:hint="@string/hint_full_name"
-                app:startIconDrawable="@android:drawable/ic_menu_myplaces">
+<com.google.android.material.textfield.TextInputLayout
+    android:id="@+id/input_layout_password"
+    android:hint="@string/hint_password"
+    app:endIconMode="password_toggle">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/edit_password"
+        android:inputType="textPassword" />
+</com.google.android.material.textfield.TextInputLayout>
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edit_full_name"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textPersonName" />
-            </com.google.android.material.textfield.TextInputLayout>
+<!-- confirm: id input_layout_confirm_password / edit_confirm_password, same toggle -->
 ```
+- **What it shows:** two masked password fields, each with a show/hide eye.
+- **Why it's set up this way:** two separate fields let the app check that the password
+  and its confirmation match before creating the account; `password_toggle` helps the
+  user avoid typos they can't see.
+- **How the code uses it:** the code reads `binding.editPassword` and
+  `binding.editConfirmPassword`, enforces a minimum length, and shows
+  "passwords don't match" on `binding.inputLayoutConfirmPassword` when they differ.
 
-What that function does: I am the full-name field.
-What the function is responsible for: I take the name sent with the OTP signup.
-Where it works: RegisterActivity reads edit_full_name.
-Why I chose to write the code of the function the way its written: inputType person name helps the keyboard. Errors go on the layout.
-More: I use Widget.ReClaim.TextInput.
-
+### Register button and "Log in" row
 ```xml
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/input_layout_email"
-                style="@style/Widget.ReClaim.TextInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_14"
-                android:hint="@string/hint_email"
-                app:startIconDrawable="@android:drawable/ic_dialog_email">
+<com.google.android.material.button.MaterialButton
+    android:id="@+id/btn_register"
+    style="@style/Widget.ReClaim.Button.Primary"
+    android:text="@string/btn_register" />
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edit_email"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textEmailAddress" />
-            </com.google.android.material.textfield.TextInputLayout>
+<LinearLayout android:orientation="horizontal" android:gravity="center">
+    <com.google.android.material.textview.MaterialTextView android:id="@+id/text_has_account" ... />
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_go_login"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:text="@string/btn_go_login" />
+</LinearLayout>
 ```
-
-What that function does: I am the email field.
-What the function is responsible for: I take the signup email.
-Where it works: RegisterActivity reads edit_email.
-Why I chose to write the code of the function the way its written: Email input type brings the email keyboard.
-More: I use startIconDrawable email.
-
-```xml
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/input_layout_phone"
-                style="@style/Widget.ReClaim.TextInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_14"
-                android:hint="@string/hint_phone"
-                app:startIconDrawable="@android:drawable/ic_menu_call">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edit_phone"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="phone" />
-            </com.google.android.material.textfield.TextInputLayout>
-```
-
-What that function does: I am the phone field.
-What the function is responsible for: I take the signup phone.
-Where it works: RegisterActivity reads edit_phone.
-Why I chose to write the code of the function the way its written: inputType phone brings the number pad.
-More: I use ic_menu_call.
-
-```xml
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/input_layout_password"
-                style="@style/Widget.ReClaim.TextInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_14"
-                android:hint="@string/hint_password"
-                app:endIconMode="password_toggle">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edit_password"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textPassword" />
-            </com.google.android.material.textfield.TextInputLayout>
-```
-
-What that function does: I am the password field with a show/hide eye.
-What the function is responsible for: I take the signup password.
-Where it works: RegisterActivity reads edit_password.
-Why I chose to write the code of the function the way its written: password_toggle lets the user check the value.
-More: I use endIconMode password_toggle.
-
-```xml
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/input_layout_confirm_password"
-                style="@style/Widget.ReClaim.TextInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_14"
-                android:hint="@string/hint_confirm_password"
-                app:endIconMode="password_toggle">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edit_confirm_password"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textPassword" />
-            </com.google.android.material.textfield.TextInputLayout>
-```
-
-What that function does: I am the confirm-password field.
-What the function is responsible for: I catch a mismatch before the OTP call.
-Where it works: RegisterActivity reads edit_confirm_password.
-Why I chose to write the code of the function the way its written: A second field is simpler than asking the user to retype later.
-More: I use password_toggle.
-
-```xml
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_register"
-                style="@style/Widget.ReClaim.Button.Primary"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/button_height"
-                android:layout_marginTop="@dimen/space_20"
-                android:text="@string/btn_register" />
-```
-
-What that function does: I am the main sign-up button.
-What the function is responsible for: I start the OTP send.
-Where it works: RegisterActivity wires btn_register.
-Why I chose to write the code of the function the way its written: Full width primary matches login.
-More: I use Widget.ReClaim.Button.Primary.
-
-```xml
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_18"
-                android:gravity="center"
-                android:orientation="horizontal">
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/text_has_account"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/register_has_account"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_go_login"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/btn_go_login"
-                    android:textColor="@color/brand_accent" />
-            </LinearLayout>
-```
-
-What that function does: I offer a path back to login.
-What the function is responsible for: I am the already-have-account row.
-Where it works: RegisterActivity starts LoginActivity from btn_go_login.
-Why I chose to write the code of the function the way its written: A text button stays quieter than a second primary.
-More: I use btn_go_login.
+- **What it shows:** the full-width primary "Create account" button, then a centered
+  "Already have an account? Log in" row.
+- **Why it's set up this way:** the primary button is the main action; the log-in link is
+  a quiet text button so it doesn't compete with it.
+- **How the code uses it:** `binding.btnRegister` runs `attemptRegistration()`;
+  `binding.btnGoLogin` calls `finish()` to go back to login. While registering, the code
+  disables all the fields and buttons and switches the register button text to
+  "Creating account…".
