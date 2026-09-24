@@ -201,7 +201,7 @@ public static synchronized ReClaimApiService getApiService() {
 - **Where it's called:** widely across the app, including `LoginActivity`,
   `RegisterActivity`, `VerifyOtpActivity`, `ResetPasswordActivity`, `HomeFragment`,
   `ItemsViewModel`, `ItemDetailsActivity`, `ReportActivity`, `MyItemsFragment`,
-  `ReportHistoryActivity`, `PendingClaimsActivity`, `PendingClaimsSheet`,
+  `ReportHistoryActivity`, `PendingClaimsSheet`,
   `ProfileSettingsFragment`, `EditProfileActivity`, `ReportSyncWorker`, and
   `FcmTokenRegistrar`.
 - **Why it's written this way:** reusing one API proxy means the interceptors and

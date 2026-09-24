@@ -98,7 +98,7 @@ public static String getAuthHeader(@NonNull Context context) {
   `null` if there is no token.
 - **Where it's called:** in almost every networked screen and worker (for example
   `HomeFragment`, `ItemDetailsActivity`, `MyItemsFragment`, `ReportActivity`,
-  `EditProfileActivity`, `ProfileSettingsFragment`, `PendingClaimsActivity`,
+  `EditProfileActivity`, `ProfileSettingsFragment`,
   `ReportHistoryActivity`, `ReportSyncWorker`, and `FcmTokenRegistrar`) to fill the
   `@Header("Authorization")` argument on API calls.
 - **Why it's written this way:** it hides the exact header format ("Bearer " prefix)

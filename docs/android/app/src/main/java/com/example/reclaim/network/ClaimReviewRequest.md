@@ -26,5 +26,5 @@ object is only serialized and sent. The claim id itself is not in the body — i
 in the URL path by the API method's `@Path` argument.
 
 ## Where it's used
-Built in `PendingClaimsActivity` and `PendingClaimsSheet` when the owner approves or
-rejects a claim, and passed to `ReClaimApiService.reviewClaim`.
+Built in `PendingClaimsSheet` when the owner approves or rejects a claim, and
+passed to `ReClaimApiService.reviewClaim`.

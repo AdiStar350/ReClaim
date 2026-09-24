@@ -35,5 +35,5 @@ Fields are not `final` because Gson fills them. The only methods are plain gette
 no logic, so they are not documented one by one, per the DTO style.
 
 ## Where it's used
-Returned by `getPendingClaimsOnMyItems` and shown in `PendingClaimsActivity`,
-`PendingClaimsSheet`, and the claim card in `HomeFragment`.
+Returned by `getPendingClaimsOnMyItems` and shown in `PendingClaimsSheet` and the
+claim card in `HomeFragment`.

@@ -1,7 +1,7 @@
 # PendingClaimAdapter.java
 
 ## Overview
-This is a **RecyclerView Adapter** for claims waiting on the item owner’s Approve/Reject decision (see `docs/GLOSSARY.md`). Each row shows the report title, claimant name, their validation answer, a thumbnail, and the two review buttons. Used by `PendingClaimsActivity` and `PendingClaimsSheet`.
+This is a **RecyclerView Adapter** for claims waiting on the item owner’s Approve/Reject decision (see `docs/GLOSSARY.md`). Each row shows the report title, claimant name, their validation answer, a thumbnail, and the two review buttons. Used by `PendingClaimsSheet`.
 
 ## Concepts used here
 - **RecyclerView / Adapter / ViewHolder** — list of pending claim cards. See `docs/GLOSSARY.md`.
@@ -30,7 +30,7 @@ public interface ReviewListener {
 }
 ```
 - **What it does:** Declares the two review actions the host must implement.
-- **Where it's called:** Implemented anonymously in `PendingClaimsActivity` and `PendingClaimsSheet`; invoked from button listeners in `bind`.
+- **Where it's called:** Implemented in `PendingClaimsSheet`; invoked from button listeners in `bind`.
 - **Why it's written this way:** Network/review logic stays in the Activity/Sheet, not in the Adapter.
 - **Step by step:**
   1. Host implements both methods.
@@ -43,7 +43,7 @@ public PendingClaimAdapter(ReviewListener listener) {
 }
 ```
 - **What it does:** Stores the review listener.
-- **Where it's called:** `PendingClaimsActivity` and `PendingClaimsSheet` constructors/setup.
+- **Where it's called:** `PendingClaimsSheet` when the sheet is set up.
 - **Why it's written this way:** Listener is required for the buttons to do anything.
 - **Step by step:**
   1. Assign `listener`.
@@ -59,7 +59,7 @@ public void updateClaims(List<PendingClaimResponse> newClaims) {
 }
 ```
 - **What it does:** Replaces the list (null becomes empty) and redraws.
-- **Where it's called:** From the pending-claims Activity/Sheet after loading claims from the API.
+- **Where it's called:** From `PendingClaimsSheet` after loading claims from the API.
 - **Why it's written this way:** Null-safe so a failed/empty response does not crash.
 - **Step by step:**
   1. Clear `claims`.
@@ -90,7 +90,7 @@ public void setBusyClaimId(@Nullable String claimId) {
 }
 ```
 - **What it does:** Stores a “busy” claim id and rebinds all rows so buttons enable/disable.
-- **Where it's called:** From `PendingClaimsActivity` / `PendingClaimsSheet` around approve/reject network calls.
+- **Where it's called:** From `PendingClaimsSheet` around approve/reject network calls.
 - **Why it's written this way:** Disabling all buttons while one review is in flight stops double-taps; rebinding every row refreshes enabled state.
 - **Step by step:**
   1. Set `busyClaimId`.

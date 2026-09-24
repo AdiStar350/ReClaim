@@ -5,8 +5,7 @@ This layout is a small dialog body that would show one incoming claim for review
 item name, the verification question, and the claimant's answer. **It is unused** —
 no Activity, Fragment, Adapter, or helper in the project inflates
 `R.layout.dialog_review_incoming_claim` or references its view ids. Live claim review
-uses `dialog_pending_claims.xml` / `item_pending_claim.xml` (and the full-screen
-`activity_pending_claims.xml`) instead.
+uses `dialog_pending_claims.xml` and `item_pending_claim.xml` instead.
 
 Key idea: a **Layout XML** can exist in `res/layout` without being wired up; this one
 looks like an older or alternate design that was never connected. See `docs/GLOSSARY.md`.

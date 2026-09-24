@@ -248,7 +248,7 @@ Call<java.util.List<com.example.reclaim.model.PendingClaimResponse>> getPendingC
 - **Sends / returns:** returns claims other people made on this user's items, using
   the richer `PendingClaimResponse` shape (so the owner sees claimant name, item
   title, the check question, etc.).
-- **Where it's called:** `HomeFragment` and `PendingClaimsActivity`.
+- **Where it's called:** `HomeFragment`.
 
 ### `Call<Claim> reviewClaim(...)`
 ```java
@@ -261,8 +261,8 @@ Call<com.example.reclaim.model.Claim> reviewClaim(
 - **HTTP:** `PUT api/claims/{claimId}/review`.
 - **Sends / returns:** sends a `ClaimReviewRequest` (the new status, e.g. approved or
   rejected); returns the updated `Claim`.
-- **Where it's called:** `PendingClaimsActivity` and `PendingClaimsSheet` when the
-  owner approves or rejects a claim.
+- **Where it's called:** `PendingClaimsSheet` when the owner approves or rejects a
+  claim.
 
 ### `Call<Claim> acknowledgeClaimDecision(...)`
 ```java

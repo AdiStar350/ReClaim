@@ -83,7 +83,7 @@ public static void observeNew(@NonNull LifecycleOwner owner, @NonNull Runnable o
 - **What it does:** runs `onChanged` only for ticks that happen *after* this call, tied
   to the given lifecycle.
 - **Where it's called:** `ProfileSettingsFragment`, `ReportHistoryActivity`,
-  `MyItemsFragment`, `PendingClaimsActivity`, and `SearchFragment` to reload when data
+  `MyItemsFragment`, and `SearchFragment` to reload when data
   changes.
 - **Why it's written this way:** capturing a baseline and only reacting to greater ticks
   skips the value that already existed when the screen opened, so a screen does not fetch

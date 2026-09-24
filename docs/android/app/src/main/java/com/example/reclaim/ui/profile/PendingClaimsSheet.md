@@ -1,7 +1,7 @@
 # PendingClaimsSheet.java
 
 ## Overview
-This is a helper that shows a Material **BottomSheetDialog** listing every pending claim the signed-in owner still needs to review. Unlike `PendingClaimsActivity`, it lives on top of a host **Fragment** (Home), can confirm reject, and after Approve it opens `ContactInfoDialog` with the claimant’s contact info.
+This is a helper that shows a Material **BottomSheetDialog** listing every pending claim the signed-in owner still needs to review. It lives on top of a host **Fragment** (Home), can confirm reject, and after Approve it opens `ContactInfoDialog` with the claimant’s contact info.
 
 ## Concepts used here
 - **BottomSheetDialog / BottomSheetBehavior** — sheet that expands over the current screen.

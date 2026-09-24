@@ -74,11 +74,6 @@
             android:name=".ui.details.ItemDetailsActivity"
             android:exported="false" />
 
-        <!-- Pending claims -->
-        <activity
-            android:name=".ui.profile.PendingClaimsActivity"
-            android:exported="false" />
-
         <!-- Report history -->
         <activity
             android:name=".ui.profile.ReportHistoryActivity"

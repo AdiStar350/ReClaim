@@ -46,7 +46,7 @@ public static void showIfOnline(@NonNull Context context, @StringRes int resId, 
 - **Where it's called:** many UI screens after failed or informational API calls, for
   example `LoginActivity`, `RegisterActivity`, `VerifyOtpActivity`,
   `ResetPasswordActivity`, `ReportActivity`, `ItemDetailsActivity`,
-  `EditProfileActivity`, `PendingClaimsActivity`, `ProfileSettingsFragment`,
+  `EditProfileActivity`, `ProfileSettingsFragment`,
   `MyItemsFragment`, and related auth/profile flows.
 - **Why it's written this way:** resource ids keep copy in `strings.xml`; gating on
   backend availability prevents toast spam during an outage the dialog already covers.

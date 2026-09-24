@@ -4,8 +4,7 @@
 This layout is one pending-claim card: item thumbnail, title, claimant name, their
 verification answer, and Approve / Reject buttons. It is inflated once per claim by
 `PendingClaimAdapter` through `ItemPendingClaimBinding`. The adapter is used in
-`PendingClaimsSheet` (bottom sheet from `HomeFragment`) and in
-`PendingClaimsActivity` (full-screen list).
+`PendingClaimsSheet` (the bottom sheet from `HomeFragment`).
 
 Key idea: an **Adapter** inflates this layout once per list item and a **ViewHolder**
 holds its views so the list can scroll smoothly. See `docs/GLOSSARY.md`.
