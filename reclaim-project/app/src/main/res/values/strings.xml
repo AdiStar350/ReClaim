@@ -229,11 +229,7 @@
     <string name="cd_report_history">Report history</string>
     <string name="home_pending_claims_subtitle">%1$d awaiting your review</string>
 
-    <!-- Incoming claim (home) -->
-    <string name="claim_review_title">Review ownership claim</string>
-    <string name="claim_review_question_label">Secret question</string>
-    <string name="claim_review_answer_label">Their answer</string>
-    <string name="btn_decline_claim">Decline</string>
+    <!-- Claim verification -->
     <string name="claim_default_question">Describe a unique identifying feature of this item.</string>
 
     <!-- Claim decision (home) -->
