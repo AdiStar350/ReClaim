@@ -7,6 +7,7 @@ import com.example.reclaim.sync.OfflineProtocol;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import okhttp3.HttpUrl;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -26,6 +27,20 @@ public final class RetrofitClient {
      * Trailing slash is required.
      */
     private static final String BASE_URL = "https://decal-magnetism-coherent.ngrok-free.dev/";
+
+    /**
+     * Used only when the ngrok tunnel is not running ({@code tunnel.sh} stopped).
+     * {@code 10.0.2.2} is the host machine as seen from the Android emulator;
+     * a physical device would need the host's LAN IP here instead.
+     */
+    private static final HttpUrl LOCAL_FALLBACK_URL = HttpUrl.get("http://10.0.2.2:8080/");
+
+    /** How long to stay on the local fallback before trying the tunnel again. */
+    private static final long FALLBACK_RETRY_MS = TimeUnit.SECONDS.toMillis(30);
+
+    /** Until when requests go straight to the local fallback. 0 = use the tunnel. */
+    private static volatile long useLocalUntil = 0L;
+
     /** Shared Retrofit instance. */
     private static Retrofit retrofit;
 
@@ -48,6 +63,7 @@ public final class RetrofitClient {
 
             OkHttpClient client = new OkHttpClient.Builder()
                     .addInterceptor(RetrofitClient::interceptBackendAvailability)
+                    .addInterceptor(RetrofitClient::interceptLocalFallback)
                     .addInterceptor(loggingInterceptor)
                     // Tunnels and mobile can be slow
                     .connectTimeout(30, TimeUnit.SECONDS)
@@ -62,6 +78,63 @@ public final class RetrofitClient {
                     .build();
         }
         return retrofit;
+    }
+
+    /**
+     * Sends requests to the ngrok tunnel first. If the tunnel is offline
+     * (connection error, or an ngrok error page such as ERR_NGROK_3200),
+     * retries the same request against the local backend and keeps using it
+     * for a short while before checking the tunnel again.
+     */
+    private static Response interceptLocalFallback(Interceptor.Chain chain)
+            throws IOException {
+        Request request = chain.request();
+        IOException tunnelError = null;
+        boolean triedTunnel = false;
+
+        if (System.currentTimeMillis() >= useLocalUntil) {
+            triedTunnel = true;
+            try {
+                Response response = chain.proceed(request);
+                if (!isNgrokTunnelError(response)) {
+                    return response;
+                }
+                response.close();
+            } catch (IOException e) {
+                if (chain.call().isCanceled()) {
+                    throw e;
+                }
+                tunnelError = e;
+            }
+            useLocalUntil = System.currentTimeMillis() + FALLBACK_RETRY_MS;
+        }
+
+        try {
+            return chain.proceed(toLocal(request));
+        } catch (IOException localError) {
+            if (!triedTunnel && !chain.call().isCanceled()) {
+                // Local is down while we were skipping the tunnel; try the tunnel now.
+                useLocalUntil = 0L;
+                return chain.proceed(request);
+            }
+            // Both are down: surface a connection error so offline mode kicks in.
+            throw tunnelError != null ? tunnelError : localError;
+        }
+    }
+
+    /** True when the reply is ngrok's own error page rather than the backend. */
+    private static boolean isNgrokTunnelError(Response response) {
+        return response.header("ngrok-error-code") != null;
+    }
+
+    /** Same request, pointed at the local backend. */
+    private static Request toLocal(Request request) {
+        HttpUrl url = request.url().newBuilder()
+                .scheme(LOCAL_FALLBACK_URL.scheme())
+                .host(LOCAL_FALLBACK_URL.host())
+                .port(LOCAL_FALLBACK_URL.port())
+                .build();
+        return request.newBuilder().url(url).build();
     }
 
     /**

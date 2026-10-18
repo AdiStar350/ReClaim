@@ -127,6 +127,11 @@
     <string name="msg_password_required">Password is required</string>
     <string name="msg_account_deleted">Account deleted</string>
     <string name="msg_delete_account_failed">Could not delete account. Check your name and password.</string>
+    <string name="msg_delete_account_name_required">Please enter your full name to confirm.</string>
+    <string name="msg_delete_account_password_required">Please enter your password to confirm.</string>
+    <string name="msg_delete_account_wrong_credentials">That name or password doesn\'t match your account. Please try again.</string>
+    <string name="msg_delete_account_try_again">Something went wrong while deleting your account. Please try again.</string>
+    <string name="msg_delete_account_no_connection">Couldn\'t reach the server. Check your connection and try again.</string>
     <string name="app_version_label">ReClaim v%1$s</string>
 
     <!-- List -->

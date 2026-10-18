@@ -28,7 +28,7 @@ import com.example.reclaim.ui.auth.LoginActivity;
 import com.example.reclaim.ui.auth.VerifyOtpActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
+import androidx.appcompat.app.AlertDialog;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -219,39 +219,50 @@ public class ProfileSettingsFragment extends Fragment {
     private void showDeleteAccountDialog() {
         View dialogView = LayoutInflater.from(requireContext())
                 .inflate(R.layout.dialog_delete_account, null);
-        TextInputLayout nameLayout = dialogView.findViewById(R.id.input_layout_confirm_name);
-        TextInputLayout passwordLayout = dialogView.findViewById(R.id.input_layout_confirm_password);
         TextInputEditText nameInput = dialogView.findViewById(R.id.edit_confirm_name);
         TextInputEditText passwordInput = dialogView.findViewById(R.id.edit_confirm_password);
 
-        new MaterialAlertDialogBuilder(requireContext())
+        // Positive click is handled in the show listener so errors keep the dialog open.
+        AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.delete_account_title)
                 .setView(dialogView)
                 .setNegativeButton(R.string.btn_cancel, null)
-                .setPositiveButton(R.string.btn_delete_account, (d, w) -> {
+                .setPositiveButton(R.string.btn_delete_account, null)
+                .create();
+
+        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(v -> {
                     String name = nameInput.getText() != null
                             ? nameInput.getText().toString().trim() : "";
                     String password = passwordInput.getText() != null
                             ? passwordInput.getText().toString() : "";
                     if (TextUtils.isEmpty(name)) {
-                        nameLayout.setError(getString(R.string.msg_name_required));
+                        Toast.makeText(requireContext(),
+                                R.string.msg_delete_account_name_required,
+                                Toast.LENGTH_SHORT).show();
+                        nameInput.requestFocus();
                         return;
                     }
                     if (TextUtils.isEmpty(password)) {
-                        passwordLayout.setError(getString(R.string.msg_password_required));
+                        Toast.makeText(requireContext(),
+                                R.string.msg_delete_account_password_required,
+                                Toast.LENGTH_SHORT).show();
+                        passwordInput.requestFocus();
                         return;
                     }
-                    deleteAccount(name, password);
-                })
-                .show();
+                    deleteAccount(dialog, passwordInput, name, password);
+                }));
+        dialog.show();
     }
 
-    private void deleteAccount(String name, String password) {
+    private void deleteAccount(AlertDialog dialog, TextInputEditText passwordInput,
+                               String name, String password) {
         String authHeader = TokenManager.getAuthHeader(requireContext());
         if (authHeader == null) {
             return;
         }
 
+        setDeleteDialogBusy(dialog, true);
         binding.progress.setVisibility(View.VISIBLE);
         apiService.deleteAccount(authHeader, new DeleteAccountRequest(name, password))
                 .enqueue(new Callback<Void>() {
@@ -262,14 +273,26 @@ public class ProfileSettingsFragment extends Fragment {
                         }
                         binding.progress.setVisibility(View.GONE);
                         if (response.isSuccessful()) {
+                            dialog.dismiss();
                             TokenManager.clearToken(requireContext());
                             Toast.makeText(requireContext(),
                                     R.string.msg_account_deleted, Toast.LENGTH_SHORT).show();
                             logout();
-                        } else {
-                            Toast.makeText(requireContext(),
-                                    R.string.msg_delete_account_failed, Toast.LENGTH_SHORT).show();
+                            return;
                         }
+                        setDeleteDialogBusy(dialog, false);
+                        int message;
+                        if (response.code() == 403) {
+                            // Name or password did not match. Let the user try again.
+                            message = R.string.msg_delete_account_wrong_credentials;
+                            passwordInput.setText("");
+                            passwordInput.requestFocus();
+                        } else if (response.code() == 401) {
+                            message = R.string.msg_session_expired;
+                        } else {
+                            message = R.string.msg_delete_account_try_again;
+                        }
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
                     }
 
                     @Override
@@ -278,10 +301,19 @@ public class ProfileSettingsFragment extends Fragment {
                             return;
                         }
                         binding.progress.setVisibility(View.GONE);
+                        setDeleteDialogBusy(dialog, false);
                         Toast.makeText(requireContext(),
-                                R.string.msg_delete_account_failed, Toast.LENGTH_SHORT).show();
+                                R.string.msg_delete_account_no_connection,
+                                Toast.LENGTH_LONG).show();
                     }
                 });
+    }
+
+    /** Blocks the dialog buttons while the delete request is running. */
+    private void setDeleteDialogBusy(AlertDialog dialog, boolean busy) {
+        dialog.setCancelable(!busy);
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(!busy);
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(!busy);
     }
 
     @Override
