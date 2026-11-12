@@ -3,17 +3,14 @@ package com.example.reclaimbackend.controller;
 import com.example.reclaimbackend.dto.ForgotPasswordRequest;
 import com.example.reclaimbackend.dto.LoginRequest;
 import com.example.reclaimbackend.dto.LoginResponse;
-import com.example.reclaimbackend.dto.RegisterRequest;
 import com.example.reclaimbackend.dto.ResendOtpRequest;
 import com.example.reclaimbackend.dto.ResetPasswordRequest;
 import com.example.reclaimbackend.dto.ResetTokenResponse;
 import com.example.reclaimbackend.dto.SendOtpRequest;
 import com.example.reclaimbackend.dto.VerifyOtpRequest;
-import com.example.reclaimbackend.model.User;
 import com.example.reclaimbackend.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -45,26 +42,6 @@ public class AuthController {
         try {
             LoginResponse response = authService.login(request);
             return ResponseEntity.ok(response);
-        } catch (ResponseStatusException e) {
-            return ResponseEntity
-                    .status(e.getStatusCode())
-                    .body(Map.of("error", e.getReason()));
-        }
-    }
-
-    /**
-     * Creates a new account. The password is stripped before the reply.
-     *
-     * @param request the signup details
-     * @return 201 with the user, or 409 if the email is taken
-     */
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
-        try {
-            User savedUser = authService.register(request);
-            // Do not send the password back
-            savedUser.setPassword(null);
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
         } catch (ResponseStatusException e) {
             return ResponseEntity
                     .status(e.getStatusCode())

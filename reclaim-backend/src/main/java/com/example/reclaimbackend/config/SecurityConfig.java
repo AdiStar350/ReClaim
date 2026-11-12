@@ -14,7 +14,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * Who can call which routes. Login and signup are public; the rest need a token.
+ * Who can call which routes. Login and signup are public; the rest need a
+ * token.
  */
 @Configuration
 @EnableWebSecurity
@@ -33,19 +34,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
 
                 // No server-side session.
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // Who can call what
                 .authorizeHttpRequests(auth -> auth
                         // Login, signup, and password reset are open
                         .requestMatchers("/api/auth/login").permitAll()
-                        .requestMatchers("/api/auth/register").permitAll()
                         .requestMatchers("/api/auth/register/**").permitAll()
                         .requestMatchers("/api/auth/forgot-password/**").permitAll()
                         // Everything else needs a signed-in user
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
 
                 // Check the token before the usual login filter
                 .addFilterBefore(jwtAuthenticationFilter,

@@ -31,15 +31,6 @@ public interface ReClaimApiService {
     Call<LoginResponse> login(@Body LoginRequest loginRequest);
 
     /**
-     * Creates a new account.
-     *
-     * @param registerRequest sign-up fields
-     * @return the new user
-     */
-    @POST("api/auth/register")
-    Call<com.example.reclaim.model.User> register(@Body RegisterRequest registerRequest);
-
-    /**
      * Sends a sign-up code to the given email.
      */
     @POST("api/auth/register/send-otp")

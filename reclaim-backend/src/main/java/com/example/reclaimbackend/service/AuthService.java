@@ -3,7 +3,6 @@ package com.example.reclaimbackend.service;
 import com.example.reclaimbackend.config.JwtUtil;
 import com.example.reclaimbackend.dto.LoginRequest;
 import com.example.reclaimbackend.dto.LoginResponse;
-import com.example.reclaimbackend.dto.RegisterRequest;
 import com.example.reclaimbackend.dto.ResetPasswordRequest;
 import com.example.reclaimbackend.dto.SendOtpRequest;
 import com.example.reclaimbackend.dto.VerifyOtpRequest;
@@ -44,10 +43,10 @@ public class AuthService {
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${otp.expiry.minutes:10}")
-    private long otpExpiryMinutes;
+    private long otpExpiryMinutes = 10;
 
     @Value("${otp.max.attempts:5}")
-    private int otpMaxAttempts;
+    private int otpMaxAttempts = 5;
 
     // ---
     // Login
@@ -85,44 +84,6 @@ public class AuthService {
                 user.getEmail(), user.getId());
 
         return new LoginResponse(token);
-    }
-
-    // ---
-    // Sign up
-    // ---
-
-    /**
-     * Creates a user if the email is free.
-     *
-     * @param request email, password, name, phone
-     * @return the saved user
-     * @throws ResponseStatusException 409 if the email is taken
-     */
-    public User register(RegisterRequest request) {
-        // Stop if the email is taken
-        if (userRepository.existsByEmail(request.getEmail())) {
-            log.warn("Registration failed: email already exists — {}",
-                    request.getEmail());
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "Email is already registered");
-        }
-
-        // Hash the password and build the user
-        User user = User.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .name(request.getName())
-                .phoneNumber(request.getPhoneNumber())
-                .build();
-
-        // Save the user
-        User savedUser = userRepository.save(user);
-
-        log.info("User registered successfully: {} (ID: {})",
-                savedUser.getEmail(), savedUser.getId());
-
-        return savedUser;
     }
 
     // ---

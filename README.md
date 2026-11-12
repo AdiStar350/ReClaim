@@ -125,7 +125,6 @@ ReClaim utilizes an **n-tier Client-Server Architecture** deployed on the cloud 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `POST` | `/api/auth/login` | Authenticate with email & password and receive a JWT |
-| `POST` | `/api/auth/register` | Direct account creation |
 | `POST` | `/api/auth/register/send-otp` | Start registration and email a 6-digit verification OTP |
 | `POST` | `/api/auth/register/verify-otp` | Verify registration OTP, create the account, and return a JWT |
 | `POST` | `/api/auth/register/resend-otp` | Resend a registration verification OTP |
