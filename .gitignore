@@ -66,5 +66,6 @@ Thumbs.db
 
 # ── Local tooling & personal files ──────────────────────────────────────
 .agents/
+.claude/
 .antigravitycli/
 /הצעת פרויקט - עדי - אפליקצית אבידות ומציאות.docx
